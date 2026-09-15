@@ -340,30 +340,39 @@ describe('AgendaHub — calendário de navegação rápida', () => {
     });
   });
 
-  it('marca o dia de hoje com destaque no calendário', () => {
+  it('marca o dia de hoje com destaque e sublinhado no calendário', () => {
     render(<AgendaHub />);
     fireEvent.click(screen.getByTestId('agenda-open-calendar-header'));
     const now = new Date();
     const todayBtn = screen.getByTestId(`calendar-day-${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`);
     expect(todayBtn.className).toContain('bg-sky-500');
+    expect(todayBtn.className).toContain('underline');
   });
 
-  it('destaca sábados com cor de fim de semana', () => {
+  it('destaca sábados com cor diferenciada de vermelho com tom azulado', () => {
     render(<AgendaHub />);
     fireEvent.click(screen.getByTestId('agenda-open-calendar-header'));
     const now = new Date();
     const sat = firstWeekendDay(now.getFullYear(), now.getMonth(), 6);
     const btn = screen.getByTestId(`calendar-day-${now.getFullYear()}-${now.getMonth()}-${sat}`);
-    expect(btn.className).toContain('text-rose-500');
+    expect(btn.className).toContain('text-[#a8256a]');
   });
 
-  it('destaca domingos com vermelho mais escuro', () => {
+  it('destaca domingos com vermelho', () => {
     render(<AgendaHub />);
     fireEvent.click(screen.getByTestId('agenda-open-calendar-header'));
     const now = new Date();
     const sun = firstWeekendDay(now.getFullYear(), now.getMonth(), 0);
     const btn = screen.getByTestId(`calendar-day-${now.getFullYear()}-${now.getMonth()}-${sun}`);
-    expect(btn.className).toContain('text-red-700');
+    expect(btn.className).toContain('text-red-600');
+  });
+
+  it('destaca o dia de hoje com sublinhado no caderno da agenda', async () => {
+    render(<AgendaHub />);
+    const now = new Date();
+    const label = await screen.findByTestId(`agenda-day-label-${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`);
+    expect(label.className).toContain('underline');
+    expect(label.className).toContain('text-sky-700');
   });
 
   it('mantém cor padrão nos dias úteis', () => {

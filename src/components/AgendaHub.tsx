@@ -1059,7 +1059,8 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
     const dayIdx = dateObj.getDay();
     const dayOfWeek = DAYS_SHORT[dayIdx];
     const isToday = isSameDay(dateObj, today);
-    const isWeekend = dayIdx === 0 || dayIdx === 6;
+    const isSunday = dayIdx === 0;
+    const isSaturday = dayIdx === 6;
     const isEmpty = commitments.length === 0;
     const isAdding = addingDayKey === key;
     const todayCls = isToday ? 'font-bold italic' : '';
@@ -1075,14 +1076,21 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
     const firstLines = firstId ? commitLines[firstId] : undefined;
     const firstFragments = firstLines && firstLines.length > 1 ? firstLines : null;
 
+    const dayLabelColor = isToday
+      ? 'text-sky-700 underline decoration-2 decoration-sky-500 underline-offset-[3px] ring-1.5 ring-sky-500 rounded-lg px-1 bg-sky-50/50'
+      : isSunday
+        ? 'text-red-600'
+        : isSaturday
+          ? 'text-[#a8256a]'
+          : 'text-slate-500';
+
     const dayLabel = (
       <span
-        className={`inline-flex items-baseline whitespace-nowrap gap-1 w-[62px] min-w-[62px] max-w-[85px] md:w-[70px] md:min-w-[70px] shrink-0 text-[14px] md:text-[15px] leading-[17px] font-black uppercase tracking-wider translate-y-[1px] pr-1.5 ${
-          isToday ? 'text-sky-700 ring-1.5 ring-sky-500 rounded-full px-1' : isWeekend ? 'text-rose-500' : 'text-slate-500'
-        }`}
+        data-testid={`agenda-day-label-${year}-${month}-${day}`}
+        className={`inline-flex items-baseline whitespace-nowrap gap-1 w-[62px] min-w-[62px] max-w-[85px] md:w-[70px] md:min-w-[70px] shrink-0 text-[14px] md:text-[15px] leading-[17px] font-black uppercase tracking-wider translate-y-[1px] pr-1.5 ${dayLabelColor}`}
       >
-        <span className="shrink-0">{dayOfWeek}</span>
-        <span className="shrink-0">{day}</span>
+        <span className={`shrink-0 ${isToday ? 'underline decoration-2 decoration-sky-500 underline-offset-[3px]' : ''}`}>{dayOfWeek}</span>
+        <span className={`shrink-0 ${isToday ? 'underline decoration-2 decoration-sky-500 underline-offset-[3px]' : ''}`}>{day}</span>
       </span>
     );
 
@@ -1833,8 +1841,17 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
             </div>
 
             <div className="grid grid-cols-7 gap-1 text-center">
-              {DAYS_SHORT.map((d) => (
-                <span key={d} className="text-[9px] font-black uppercase tracking-wider text-slate-400 py-1">
+              {DAYS_SHORT.map((d, idx) => (
+                <span
+                  key={d}
+                  className={`text-[9px] font-black uppercase tracking-wider py-1 ${
+                    idx === 0
+                      ? 'text-red-600'
+                      : idx === 6
+                        ? 'text-[#a8256a]'
+                        : 'text-slate-400'
+                  }`}
+                >
                   {d}
                 </span>
               ))}
@@ -1858,11 +1875,11 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
                       data-testid={`calendar-day-${calYear}-${calMonth}-${day}`}
                       className={`relative h-9 rounded-lg text-sm font-semibold transition-colors ${
                         isToday
-                          ? 'bg-sky-500 text-white shadow'
+                          ? 'bg-sky-500 text-white shadow font-black underline decoration-2 decoration-white underline-offset-2'
                           : dayIdx === 0
-                            ? 'text-red-700 hover:bg-red-50'
+                            ? 'text-red-600 hover:bg-red-50 font-bold'
                             : dayIdx === 6
-                              ? 'text-rose-500 hover:bg-rose-50'
+                              ? 'text-[#a8256a] hover:bg-fuchsia-50/50 font-bold'
                               : 'text-slate-700 hover:bg-sky-50'
                       }`}
                     >

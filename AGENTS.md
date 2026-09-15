@@ -6,6 +6,22 @@
 
 ## Progress
 ### Done
+- **Agenda — Dia Atual Sublinhado e Diferenciação Cromática de Sábado e Domingo** (implementado 2026-09-15):
+  - **Identificação da Necessidade**:
+    - O dia atual precisava de uma sinalização visual mais imediata e inequívoca no caderno e no calendário para facilitar a localização temporal rápida.
+    - Sábados e domingos estavam indistintos (ambos com cor avermelhada idêntica), dificultando diferenciar o primeiro dia do fim de semana do dia de descanso pleno.
+  - **Solução Visual Aplicada (`AgendaHub.tsx`)**:
+    - **Dia Atual Sublinhado**:
+      - No caderno: rótulo do dia (`dayLabel`) com `underline decoration-2 decoration-sky-500 underline-offset-[3px]`, garantindo sublinhado nítido no dia da semana e no número (ex: `TER 15`), emoldurado com badge suave azul safira.
+      - No calendário popover: dia atual com `font-black underline decoration-2 decoration-white underline-offset-2`.
+    - **Cromática Soberana para Sábado e Domingo**:
+      - **Domingo (`dayIdx === 0`)**: Vermelho clássico puro e vibrante (`text-red-600`).
+      - **Sábado (`dayIdx === 6`)**: Vermelho com nuance azulada elegante (`text-[#a8256a]` - matiz carmim/framboesa-vinho a 328° de matiz), criando contraste instantâneo e distinguível a olho nu tanto no caderno quanto na grade e cabeçalho do calendário.
+  - **Testes & Validação**:
+    - 73 testes unitários passando em `AgendaHub.test.tsx`.
+    - Build de produção Vite concluído com 0 erros.
+    - APK Android recompilado com sucesso via `./gradlew assembleDebug` (44s).
+
 - **Agenda — Atalho Soberano na Tela Inicial do Celular com Ícone 3D Exclusivo e Tutorial Pedagógico** (implementado 2026-09-15):
   - **Identificação da Oportunidade & Necessidade**:
     - O usuário precisava abrir o app Finanças Pro Invest e navegar até a aba da Agenda sempre que desejava consultar ou registrar um compromisso diário.
