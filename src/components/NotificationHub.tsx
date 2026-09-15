@@ -1,7 +1,31 @@
 import React, { useState } from 'react';
-import { Bell, X, Sparkles, ChevronRight, CheckCheck, Inbox, History, RefreshCcw, CalendarCheck2 } from 'lucide-react';
+import { Bell, X, Sparkles, ChevronRight, CheckCheck, Inbox, History, RefreshCcw, CalendarCheck2, Clock } from 'lucide-react';
 import type { NexusEvent } from '../contexts/NotificationContext';
 import { useNotifications } from '../contexts/NotificationContext';
+import { resolveAppRoute } from '../utils/deepLinkRouter';
+
+export function formatNotificationDateTime(createdAt: any): string {
+  if (!createdAt) return '';
+  let date: Date | null = null;
+  if (typeof createdAt?.toDate === 'function') {
+    date = createdAt.toDate();
+  } else if (typeof createdAt?.toMillis === 'function') {
+    date = new Date(createdAt.toMillis());
+  } else if (typeof createdAt?.seconds === 'number') {
+    date = new Date(createdAt.seconds * 1000);
+  } else if (createdAt instanceof Date) {
+    date = createdAt;
+  } else if (typeof createdAt === 'string' || typeof createdAt === 'number') {
+    date = new Date(createdAt);
+  }
+  if (!date || isNaN(date.getTime())) return '';
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${day}/${month}/${year} às ${hours}:${minutes}`;
+}
 
 interface NotificationHubProps {
   isOpen: boolean;
@@ -20,7 +44,16 @@ const NotificationHub: React.FC<NotificationHubProps> = ({ isOpen, onClose, onNa
 
   if (!isOpen) return null;
 
-  const handleAction = async (event: NexusEvent) => {
+  const handleNavigateToEvent = (event: NexusEvent) => {
+    const targetRoute = resolveAppRoute(event.deepLink, event.eventType);
+    onNavigate(targetRoute);
+    if (!event.read) {
+      dismiss(event.id);
+    }
+    onClose();
+  };
+
+  const handleCtaAction = async (event: NexusEvent) => {
     if (isRecurringBillEvent(event)) {
       const confirmed = window.confirm('Você tem certeza que este lançamento pode ser registrado como pago? Se confirmar, você pode alterar a qualquer momento.');
       if (!confirmed) return;
@@ -35,13 +68,7 @@ const NotificationHub: React.FC<NotificationHubProps> = ({ isOpen, onClose, onNa
       }
     }
 
-    if (event.deepLink) {
-        onNavigate(event.deepLink);
-    }
-    if (!event.read) {
-        dismiss(event.id);
-    }
-    onClose();
+    handleNavigateToEvent(event);
   };
 
   const handleLoadMore = async () => {
@@ -50,89 +77,117 @@ const NotificationHub: React.FC<NotificationHubProps> = ({ isOpen, onClose, onNa
       setIsLoadingMore(false);
   };
 
-  const renderEventCard = (event: NexusEvent) => (
-    <div 
-      key={event.id}
-      className={`group relative bg-white border rounded-[2rem] p-6 shadow-sm hover:shadow-md transition-all active:scale-[0.99] overflow-hidden ${
-        isRecurringBillEvent(event)
-          ? 'border-amber-200 bg-amber-50/60 ring-1 ring-amber-100'
-          : isNexusAdvisorEvent(event)
-          ? 'border-emerald-200 bg-emerald-50/30 ring-1 ring-emerald-100/60'
-          : 'border-slate-200'
-      } ${
-        !event.read && event.urgency === 'high' ? 'border-l-4 border-l-rose-500' : 
-        !event.read && event.urgency === 'medium' ? 'border-l-4 border-l-amber-500' : 
-        !event.read ? 'border-l-4 border-l-sky-500' : 'opacity-80'
-      }`}
-    >
-      {/* Dismiss Button (Only for unread) */}
-      {!event.read && (
-          <button 
-            onClick={() => dismiss(event.id)}
-            className="absolute top-4 right-4 p-1 text-slate-400 hover:text-rose-600 transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
-          >
-            <X size={16} />
-          </button>
-      )}
+  const renderEventCard = (event: NexusEvent) => {
+    const formattedDate = formatNotificationDateTime(event.createdAt);
 
-      <div className="flex items-start gap-4">
-        <div className={`mt-1 p-2.5 rounded-xl text-white ${
-             isRecurringBillEvent(event)
-               ? 'bg-amber-600'
-               : isNexusAdvisorEvent(event)
-               ? 'bg-gradient-to-br from-emerald-600 to-teal-700 shadow-md shadow-emerald-500/20'
-               : event.read ? 'bg-slate-400' :
-               event.urgency === 'high' ? 'bg-rose-600' : 
-               event.urgency === 'medium' ? 'bg-amber-600' : 
-               'bg-sky-600'
-        }`}>
-          {isRecurringBillEvent(event) ? <CalendarCheck2 size={18} /> : <Sparkles size={18} />}
-        </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <h4 className={`text-sm font-black leading-tight uppercase tracking-tight ${event.read ? 'text-slate-500' : 'text-slate-900'}`}>
-              {event.message.title}
-            </h4>
-            {isRecurringBillEvent(event) && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] text-amber-700">
-                <CalendarCheck2 size={10} /> Pendente
-              </span>
+    return (
+      <div 
+        key={event.id}
+        onClick={() => handleNavigateToEvent(event)}
+        className={`group relative bg-white border rounded-[2rem] p-6 shadow-sm hover:shadow-md transition-all active:scale-[0.99] overflow-hidden cursor-pointer hover:border-slate-300 text-left ${
+          isRecurringBillEvent(event)
+            ? 'border-amber-200 bg-amber-50/60 ring-1 ring-amber-100'
+            : isNexusAdvisorEvent(event)
+            ? 'border-emerald-200 bg-emerald-50/30 ring-1 ring-emerald-100/60'
+            : 'border-slate-200'
+        } ${
+          !event.read && event.urgency === 'high' ? 'border-l-4 border-l-rose-500' : 
+          !event.read && event.urgency === 'medium' ? 'border-l-4 border-l-amber-500' : 
+          !event.read ? 'border-l-4 border-l-sky-500' : 'opacity-85'
+        }`}
+      >
+        <div className="flex items-start gap-4">
+          <div className={`mt-1 p-2.5 rounded-xl text-white shrink-0 ${
+               isRecurringBillEvent(event)
+                 ? 'bg-amber-600'
+                 : isNexusAdvisorEvent(event)
+                 ? 'bg-gradient-to-br from-emerald-600 to-teal-700 shadow-md shadow-emerald-500/20'
+                 : event.read ? 'bg-slate-400' :
+                 event.urgency === 'high' ? 'bg-rose-600' : 
+                 event.urgency === 'medium' ? 'bg-amber-600' : 
+                 'bg-sky-600'
+          }`}>
+            {isRecurringBillEvent(event) ? <CalendarCheck2 size={18} /> : <Sparkles size={18} />}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <h4 className={`text-sm font-black leading-tight uppercase tracking-tight ${event.read ? 'text-slate-600' : 'text-slate-900'}`}>
+                {event.message.title}
+              </h4>
+              {isRecurringBillEvent(event) && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] text-amber-700">
+                  <CalendarCheck2 size={10} /> Pendente
+                </span>
+              )}
+              {isNexusAdvisorEvent(event) && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100/80 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-[0.15em] text-emerald-800 border border-emerald-200">
+                  <Sparkles size={10} className="fill-emerald-700" /> Consultor Nexus
+                </span>
+              )}
+            </div>
+
+            {/* Data e Hora de Envio */}
+            {formattedDate && (
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 mb-2">
+                <Clock size={11} className="shrink-0 text-slate-400" />
+                <span>Enviado em {formattedDate}</span>
+              </div>
             )}
-            {isNexusAdvisorEvent(event) && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100/80 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-[0.15em] text-emerald-800 border border-emerald-200">
-                <Sparkles size={10} className="fill-emerald-700" /> Consultor Nexus
-              </span>
+
+            <p className={`text-xs font-medium leading-relaxed mb-4 ${
+              isRecurringBillEvent(event)
+                ? 'text-amber-900/80'
+                : isNexusAdvisorEvent(event)
+                ? 'text-slate-700'
+                : 'text-slate-500'
+            }`}>
+              {event.message.body}
+            </p>
+            
+            {event.message.ctaLabel && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCtaAction(event);
+                }}
+                className={`mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                  isRecurringBillEvent(event)
+                    ? 'text-amber-700 hover:text-amber-800'
+                    : isNexusAdvisorEvent(event)
+                    ? 'text-emerald-700 hover:text-emerald-800'
+                    : 'text-sky-600 hover:text-sky-700'
+                }`}
+              >
+                {event.message.ctaLabel}
+                <ChevronRight size={14} />
+              </button>
+            )}
+
+            {/* Botão de Confirmação de Leitura (Aba Entrada) */}
+            {!event.read ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  dismiss(event.id);
+                }}
+                className="mt-2 flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-black text-[10px] uppercase tracking-wider transition-all shadow-xs"
+              >
+                <CheckCheck size={14} className="text-emerald-400" />
+                <span>Ciente do comunicado</span>
+              </button>
+            ) : (
+              /* Selo de Confirmação de Leitura (Aba Histórico) */
+              <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                  <CheckCheck size={12} /> Ciente do comunicado
+                </span>
+              </div>
             )}
           </div>
-          <p className={`text-xs font-medium leading-relaxed mb-4 ${
-            isRecurringBillEvent(event)
-              ? 'text-amber-900/80'
-              : isNexusAdvisorEvent(event)
-              ? 'text-slate-700'
-              : 'text-slate-500'
-          }`}>
-            {event.message.body}
-          </p>
-          
-          {event.message.ctaLabel && (
-            <button
-              onClick={() => handleAction(event)}
-              className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-colors ${
-                isRecurringBillEvent(event)
-                  ? 'text-amber-700 hover:text-amber-800'
-                  : isNexusAdvisorEvent(event)
-                  ? 'text-emerald-700 hover:text-emerald-800'
-                  : 'text-sky-600 hover:text-sky-700'
-              }`}
-            >
-              {event.message.ctaLabel}
-              <ChevronRight size={14} />
-            </button>
-          )}
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="fixed inset-0 z-[200] flex justify-end">

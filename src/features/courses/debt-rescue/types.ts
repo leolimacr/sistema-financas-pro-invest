@@ -30,7 +30,7 @@ export type CourseLessonBlock =
     }
   | {
       type: 'tool-cta';
-      tool: 'debt-calculator' | 'nexus-ai' | 'budget-tool';
+      tool: 'debt-calculator' | 'nexus-ai' | 'budget-tool' | 'compound-interest' | 'goals' | string;
       title: string;
       content: string;
       buttonLabel: string;
@@ -44,6 +44,26 @@ export type CourseLessonBlock =
       correctIndex: number;
       feedbackCorrect: string;
       feedbackIncorrect: string;
+    }
+  | {
+      type: 'case-study';
+      title: string;
+      subtitle?: string;
+      scenarios: Array<{
+        title: string;
+        badge?: string;
+        badgeType?: 'danger' | 'warning' | 'success' | 'info';
+        points: string[];
+        highlightedResult?: string;
+      }>;
+      takeaway?: string;
+    }
+  | {
+      type: 'principle';
+      title?: string;
+      statement: string;
+      context?: string;
+      practicalRule?: string;
     };
 
 export interface CourseLesson {

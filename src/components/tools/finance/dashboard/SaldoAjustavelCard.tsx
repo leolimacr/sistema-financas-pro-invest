@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { CreditCard, Clock, Receipt, Eye, Check, X, Loader, ChevronDown } from 'lucide-react';
 import type { QueryClient } from '@tanstack/react-query';
-import { maskCurrency } from '../../../../utils/calculations';
+import { maskCurrency, toIntegerCents } from '../../../../utils/calculations';
 import type { FaturaDetalhe, LancamentoFuturoInfo } from '../../../../utils/calculations';
 import { getLocalDateString } from '../../../../utils/dateHelpers';
 import { payInvoice } from '../../../../services/payInvoiceService';
@@ -61,7 +61,15 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
     return init;
   });
 
-  const saldoComExclusoes = saldoReal != null ? saldoReal - computeExclusions(reserveTarget, colchaoTarget, voucherCards) : 0;
+  // Composição Soberana: Saldo em Conta + Saldos dos Cartões Voucher
+  const totalVoucherCents = (voucherCards || []).reduce(
+    (acc, c) => acc + toIntegerCents(c.balance || 0),
+    0
+  );
+  const saldoRealCents = toIntegerCents(saldoReal || 0);
+  const saldoBaseCents = saldoRealCents + totalVoucherCents;
+  const exclusaoTotalCents = toIntegerCents(computeExclusions(reserveTarget, colchaoTarget, voucherCards || []));
+  const saldoComExclusoes = saldoReal != null ? (saldoBaseCents - exclusaoTotalCents) / 100 : 0;
   const saldoBase = saldoComExclusoes;
 
   const [drawerItem, setDrawerItem] = useState<ComposicaoItem | null>(null);

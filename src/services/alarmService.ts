@@ -32,7 +32,17 @@ export async function scheduleAlarm(info: AlarmInfo) {
           title: 'Agenda',
           body: info.title,
           schedule: { at: info.alarmAt },
-          extra: { commitmentId: info.commitmentId, dateStr: info.dateStr },
+          sound: 'default',
+          smallIcon: 'ic_stat_fpi',
+          largeIcon: 'ic_stat_logo',
+          iconColor: '#0284c7',
+          extra: { 
+            commitmentId: info.commitmentId, 
+            dateStr: info.dateStr,
+            deepLink: '/app/agenda',
+            targetRoute: '/app/agenda',
+            eventType: 'agenda.alarm_due',
+          },
         }],
       });
     } catch {
@@ -98,11 +108,15 @@ function fireAlarm(info: AlarmInfo) {
     try {
       const n = new Notification('Agenda', {
         body: info.title,
+        icon: '/assets/images/brand/icon.png',
         tag: `agenda-${info.commitmentId}`,
       });
       n.onclick = () => {
         window.focus();
         if (onAlarmDue) onAlarmDue(info);
+        if (typeof window !== 'undefined' && window.location.pathname !== '/app/agenda') {
+          window.location.assign('/app/agenda');
+        }
       };
     } catch {
       // fallback

@@ -21,7 +21,17 @@ import {
   /**
    * Adiciona um novo cartão nominal para o usuário.
    */
-  export const addCard = async (userId: string, name: string, closingDay?: number, dueDay?: number, limit?: number, taxaJuros?: number, cardType?: string, voucherBalance?: number): Promise<string> => {
+  export const addCard = async (
+    userId: string,
+    name: string,
+    closingDay?: number,
+    dueDay?: number,
+    limit?: number,
+    taxaJuros?: number,
+    cardType?: string,
+    voucherBalance?: number,
+    voucherType?: string
+  ): Promise<string> => {
     const data: Record<string, any> = { 
       name, 
       isActive: true,
@@ -32,6 +42,7 @@ import {
     if (limit !== undefined) data.limit = limit || 0;
     if (taxaJuros !== undefined) data.taxaJuros = taxaJuros;
     if (voucherBalance !== undefined) data.voucherBalance = voucherBalance;
+    if (voucherType !== undefined) data.voucherType = voucherType;
     if (cardType === 'voucher' && voucherBalance !== undefined) data.saldoUtilizadoTotal = 0;
     const docRef = await addDoc(getCardsCollection(userId), data);
     queryClient.invalidateQueries({ queryKey: queryKeys.cards.byUser(userId) });

@@ -314,7 +314,7 @@ const AppLayoutInner: React.FC<AppLayoutProps> = ({ state }) => {
         userMeta={userMeta}
         userDisplayName={user?.displayName}
         onLogout={handleLogout}
-        onOpenCourse={() => routerNavigate('/curso/dividas')}
+        onOpenCourse={(slug = 'investidor-iniciante') => routerNavigate(`/curso/${slug}`)}
       />
 
       {isAuthenticated && !isAppLocked && isMobile && (
@@ -358,6 +358,7 @@ const AppLayoutInner: React.FC<AppLayoutProps> = ({ state }) => {
         )}
         <TransactionForm
           initialData={editingTransaction}
+          onDelete={state.deleteLancamento}
           onSave={async (t: { id?: string; amount: number; linkedDebtId?: string; type?: string; [key: string]: any }) => {
             const { id, ...rest } = t;
             const amount = Number(t.amount);

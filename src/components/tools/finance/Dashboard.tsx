@@ -12,6 +12,7 @@ import BudgetSetupSheet from './BudgetSetupSheet';
 import BudgetStatusCard from './BudgetStatusCard';
 import BudgetExceededBanner from './BudgetExceededBanner';
 import { calcBudgetProgress } from '../../../services/budgetMath';
+import { calculateWalletStatementSummary, getVoucherCardAvailableBalance } from '../../../utils/calculations';
 
 // Subcomponentes Refatorados
 import { useDashboardState } from './dashboard/useDashboardState';
@@ -42,9 +43,16 @@ const Dashboard: React.FC<any> = (props) => {
   const voice = getFlowLabels(state.commandMode);
   const [showCategoryRecovery, setShowCategoryRecovery] = useState(true);
 
-  const voucherCards = (state.userCards || [])
-    .filter((c: any) => c.type === 'voucher')
-    .map((c: any) => ({ id: c.id, name: c.name, balance: c.voucherBalance || 0 }));
+  const voucherCards = useMemo(() => {
+    return (state.userCards || [])
+      .filter((c: any) => c.type === 'voucher')
+      .map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        balance: getVoucherCardAvailableBalance(c, state.safeTransactions),
+        voucherType: c.voucherType,
+      }));
+  }, [state.userCards, state.safeTransactions]);
 
   const budgetProgress = useMemo(
     () => (state.currentBudget ? calcBudgetProgress(state.currentBudget, state.safeTransactions) : null),
@@ -186,6 +194,10 @@ const Dashboard: React.FC<any> = (props) => {
           colchaoTarget={state.colchaoTarget}
           voucherCards={voucherCards}
           transactions={state.safeTransactions}
+          onOpenCardManager={(cardId) => {
+            if (cardId) state.setFocusedCardId(cardId);
+            state.setIsCardModalOpen(true);
+          }}
         />
 
         <SaldoAjustavelCard

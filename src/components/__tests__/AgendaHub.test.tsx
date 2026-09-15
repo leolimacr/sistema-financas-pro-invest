@@ -31,6 +31,7 @@ const mocks = vi.hoisted(() => ({
   updateCommitment: vi.fn(),
   deleteCommitment: vi.fn(),
   toggleCommitment: vi.fn(),
+  reorderDayCommitments: vi.fn(),
 }));
 
 let mockResizeObservers: Array<{ trigger: () => void }> = [];
@@ -60,6 +61,7 @@ vi.mock('../../services/agendaService', () => ({
   updateCommitment: mocks.updateCommitment,
   deleteCommitment: mocks.deleteCommitment,
   toggleCommitment: mocks.toggleCommitment,
+  reorderDayCommitments: mocks.reorderDayCommitments,
 }));
 
 vi.mock('../../services/alarmService', () => ({
@@ -876,7 +878,11 @@ describe('AgendaHub — navegação por mês (navigateToMonth)', () => {
     expect(scrollCalls.length).toBe(0);
     const next = nextMonthLabel();
     await act(async () => {
-      resolvers.forEach((r) => r());
+      while (resolvers.length > 0) {
+        const r = resolvers.shift();
+        r?.();
+        await Promise.resolve();
+      }
     });
     const sec = sectionOf(next.year, next.month);
     expect(sec).not.toBeNull();
@@ -1152,3 +1158,147 @@ describe('AgendaHub — resolveFlushDirection (pendência única de direção)',
     expect(resolveFlushDirection('backward', false)).toEqual({ clear: true, direction: 'backward' });
   });
 });
+
+describe('AgendaHub — reordenação manual de compromissos no mesmo dia (setas ▲/▼)', () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const day = firstNonTodayDay(year, month);
+
+  beforeEach(() => {
+    mocks.fetchUpcomingCommitments.mockResolvedValue([]);
+    mocks.reorderDayCommitments.mockResolvedValue(undefined);
+  });
+
+  it('não exibe setas de reordenação quando o dia possui apenas 1 compromisso', async () => {
+    mocks.fetchMonthCommitments.mockImplementation((_uid, y, m) => {
+      if (y === year && m === month) {
+        return Promise.resolve([
+          {
+            id: 'c-single',
+            date: new Date(year, month, day, 9, 0),
+            title: 'Compromisso Único',
+            completed: false,
+          },
+        ]);
+      }
+      return Promise.resolve([]);
+    });
+
+    render(<AgendaHub />);
+    await screen.findByText('Compromisso Único');
+
+    expect(screen.queryByTestId('agenda-reorder-group-0')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('agenda-reorder-up-0')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('agenda-reorder-down-0')).not.toBeInTheDocument();
+  });
+
+  it('exibe setas com desabilitação nas pontas quando o dia possui 2 ou mais compromissos', async () => {
+    mocks.fetchMonthCommitments.mockImplementation((_uid, y, m) => {
+      if (y === year && m === month) {
+        return Promise.resolve([
+          {
+            id: 'c-1',
+            date: new Date(year, month, day, 9, 0),
+            title: 'Primeiro do dia',
+            completed: false,
+            order: 0,
+          },
+          {
+            id: 'c-2',
+            date: new Date(year, month, day, 10, 0),
+            title: 'Segundo do dia',
+            completed: false,
+            order: 1,
+          },
+        ]);
+      }
+      return Promise.resolve([]);
+    });
+
+    render(<AgendaHub />);
+    await screen.findByText('Primeiro do dia');
+    await screen.findByText('Segundo do dia');
+
+    const up0 = screen.getByTestId('agenda-reorder-up-0');
+    const down0 = screen.getByTestId('agenda-reorder-down-0');
+    const up1 = screen.getByTestId('agenda-reorder-up-1');
+    const down1 = screen.getByTestId('agenda-reorder-down-1');
+
+    // Primeiro item: subir desabilitado, descer habilitado
+    expect(up0).toBeDisabled();
+    expect(down0).not.toBeDisabled();
+
+    // Último item: subir habilitado, descer desabilitado
+    expect(up1).not.toBeDisabled();
+    expect(down1).toBeDisabled();
+  });
+
+  it('reordena na UI e chama reorderDayCommitments ao clicar na seta de descer', async () => {
+    mocks.fetchMonthCommitments.mockImplementation((_uid, y, m) => {
+      if (y === year && m === month) {
+        return Promise.resolve([
+          {
+            id: 'c-a',
+            date: new Date(year, month, day, 9, 0),
+            title: 'Item Alfa',
+            completed: false,
+            order: 0,
+          },
+          {
+            id: 'c-b',
+            date: new Date(year, month, day, 10, 0),
+            title: 'Item Beta',
+            completed: false,
+            order: 1,
+          },
+        ]);
+      }
+      return Promise.resolve([]);
+    });
+
+    render(<AgendaHub />);
+    await screen.findByText('Item Alfa');
+
+    const down0 = screen.getByTestId('agenda-reorder-down-0');
+    fireEvent.click(down0);
+
+    // Deve disparar reorderDayCommitments com a nova ordem
+    await waitFor(() => {
+      expect(mocks.reorderDayCommitments).toHaveBeenCalledWith(
+        'u1',
+        [
+          { id: 'c-b', order: 0 },
+          { id: 'c-a', order: 1 },
+        ],
+        expect.anything()
+      );
+    });
+  });
+
+  describe('AgendaHub — atalho no celular e modal pedagógico', () => {
+    it('renderiza o botão de atalho e abre o modal pedagógico com explicações ao clicar', async () => {
+      render(<AgendaHub />);
+
+      const shortcutBtn = screen.getByTestId('agenda-shortcut-trigger');
+      expect(shortcutBtn).toBeInTheDocument();
+
+      fireEvent.click(shortcutBtn);
+
+      const modal = await screen.findByTestId('agenda-shortcut-modal');
+      expect(modal).toBeInTheDocument();
+      expect(screen.getByText('Atalho da Agenda')).toBeInTheDocument();
+      expect(screen.getByText('Ícone 3D Oficial')).toBeInTheDocument();
+      expect(screen.getByText(/Sem passos intermediários/i)).toBeInTheDocument();
+
+      // Fecha o modal
+      const closeBtn = screen.getByTestId('agenda-shortcut-close');
+      fireEvent.click(closeBtn);
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('agenda-shortcut-modal')).not.toBeInTheDocument();
+      });
+    });
+  });
+});
+

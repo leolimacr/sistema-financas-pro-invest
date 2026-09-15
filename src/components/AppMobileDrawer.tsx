@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, LayoutDashboard, BarChart3, CreditCard, Compass, Settings, Sparkles, LogOut, ChevronRight, Crown, Share2 } from 'lucide-react';
+import { X, LayoutDashboard, BarChart3, CreditCard, Compass, Settings, Sparkles, LogOut, ChevronRight, Crown, Share2, TrendingUp } from 'lucide-react';
 import { useNavigation } from '../hooks/useNavigation';
 import { useEntitlement } from '../hooks/useEntitlement';
 import type { UserMeta } from '../types';
@@ -11,7 +11,7 @@ interface AppMobileDrawerProps {
   userMeta: UserMeta | null | undefined;
   userDisplayName?: string | null;
   onLogout: () => void;
-  onOpenCourse: () => void;
+  onOpenCourse: (slug?: string) => void;
 }
 
 const AppMobileDrawer: React.FC<AppMobileDrawerProps> = ({
@@ -114,10 +114,35 @@ const AppMobileDrawer: React.FC<AppMobileDrawerProps> = ({
             </div>
           </button>
 
+          {/* CURSOS DE FORMAÇÃO */}
           <button
             onClick={() => {
               onClose();
-              if (isAuthenticated) onOpenCourse();
+              if (isAuthenticated) onOpenCourse('investidor-iniciante');
+              else handleNavigate('login');
+            }}
+            className="w-full group relative p-px rounded-2xl bg-gradient-to-b from-blue-500/40 to-transparent transition-all active:scale-95 shadow-lg shadow-blue-950/20 mb-3"
+          >
+            <div className="bg-surface-primary rounded-[15px] p-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg">
+                <TrendingUp size={20} strokeWidth={2.5} />
+              </div>
+              <div className="flex-1 text-left leading-tight">
+                <span className="block text-[9px] font-black text-blue-600 uppercase tracking-widest mb-0.5">
+                  Curso Premium
+                </span>
+                <span className="block text-[13px] font-bold text-slate-900 uppercase tracking-tight">
+                  Investidor Soberano
+                </span>
+              </div>
+              <ChevronRight size={16} className="text-slate-400 group-hover:text-blue-600" />
+            </div>
+          </button>
+
+          <button
+            onClick={() => {
+              onClose();
+              if (isAuthenticated) onOpenCourse('dividas');
               else handleNavigate('login');
             }}
             className="w-full group relative p-px rounded-2xl bg-gradient-to-b from-emerald-500/40 to-transparent transition-all active:scale-95 shadow-lg shadow-emerald-950/20 mb-4"
@@ -128,7 +153,7 @@ const AppMobileDrawer: React.FC<AppMobileDrawerProps> = ({
               </div>
               <div className="flex-1 text-left leading-tight">
                 <span className="block text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-0.5">
-                  Novo Curso
+                  Curso Prático
                 </span>
                 <span className="block text-[13px] font-bold text-slate-900 uppercase tracking-tight">
                   Sair das Dívidas

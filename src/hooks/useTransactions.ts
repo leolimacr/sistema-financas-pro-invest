@@ -896,6 +896,29 @@ export const useTransactions = (userId?: string) => {
               await eventBus.publish(createDomainEvent<CardUsageUpdatedEvent['payload']>('card', EVENT_TYPES.card.usageUpdated, { cardId: card.id, userId, previousSaldoUtilizado: previousSaldo, newSaldoUtilizado: newUsed, reason: 'rollback', transactionId: id }, 'useTransactions.deleteLancamento'));
             } catch (e) { console.error("[Reactive Core] Erro no estorno (pagamento fatura):", e); }
           }
+          if (txToDelete.linkedInvoiceId || txToDelete.linkedInvoicePeriodEnd) {
+            try {
+              const { getInvoice, updateInvoiceAfterPayment, buildInvoiceId } = await import('../services/invoiceService');
+              const targetInvoiceId = txToDelete.linkedInvoiceId || (txToDelete.linkedInvoicePeriodEnd ? buildInvoiceId(txToDelete.linkedCardId, txToDelete.linkedInvoicePeriodEnd) : null);
+              if (targetInvoiceId) {
+                const invoice = await getInvoice(userId, targetInvoiceId).catch(() => null);
+                if (invoice) {
+                  const newPaidAmount = Math.max(0, Math.round(((invoice.paidAmount || 0) - txToDelete.amount) * 100) / 100);
+                  const total = Math.round((invoice.total || 0) * 100) / 100;
+                  const newRemaining = Math.max(0, Math.round((total - newPaidAmount) * 100) / 100);
+                  const newStatus = newPaidAmount <= 0 ? 'closed' : newPaidAmount >= total ? 'paid' : 'partial';
+                  await updateInvoiceAfterPayment(userId, invoice.cardId || txToDelete.linkedCardId, invoice.periodEnd, {
+                    paidAmount: newPaidAmount,
+                    status: newStatus,
+                    remainingAmount: newRemaining,
+                    total,
+                    updatedAt: new Date().toISOString(),
+                  });
+                  queryClient.invalidateQueries({ queryKey: queryKeys.invoices.byUser(userId) });
+                }
+              }
+            } catch (e) { console.error("[Reactive Core] Erro no estorno (fatura):", e); }
+          }
         } else if (txToDelete.paymentMethod === 'credit' && txToDelete.cardId) {
           const card = cardsRef.current.find(c => c.id === txToDelete.cardId);
           if (card) {

@@ -1,5 +1,6 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
+import { resolveAppRoute } from '../utils/deepLinkRouter';
 import type { NexusInsight } from './nexusInsightEngine';
 import type { RecurringBill } from '../types'; // Adicionado
 
@@ -82,6 +83,8 @@ export const NotificationService = {
       // Cancela notificação anterior da mesma categoria (evita empilhamento)
       await LocalNotifications.cancel({ notifications: [{ id }] });
 
+      const resolvedDeepLink = resolveAppRoute(payload.deepLink, payload.category);
+
       await LocalNotifications.schedule({
         notifications: [
           {
@@ -90,8 +93,15 @@ export const NotificationService = {
             id,
             schedule: { at: new Date(Date.now() + 500) }, // imediato
             sound: 'default',
-            smallIcon: 'ic_stat_controla',
-            extra: { deepLink: payload.deepLink ?? null },
+            smallIcon: 'ic_stat_fpi',
+            largeIcon: 'ic_stat_logo',
+            iconColor: '#0284c7',
+            extra: { 
+              deepLink: resolvedDeepLink,
+              targetRoute: resolvedDeepLink,
+              category: payload.category,
+              eventType: payload.category,
+            },
           },
         ],
       });
@@ -105,7 +115,7 @@ export const NotificationService = {
 
     const title = insight?.message.title || "Hora de organizar?";
     const body = insight?.message.body || "Que tal registrar suas movimentações de hoje? Manter a rotina gera clareza.";
-    const deepLink = insight?.deepLink || 'transaction-form';
+    const deepLink = insight?.deepLink ? resolveAppRoute(insight.deepLink) : '/app/controla?action=new-transaction';
 
     try {
       await this.cancelCategory('daily_reminder');
@@ -126,8 +136,14 @@ export const NotificationService = {
             body,
             schedule: { at: scheduledTime, repeats: true },
             sound: 'default',
-            smallIcon: 'ic_stat_controla',
-            extra: { deepLink },
+            smallIcon: 'ic_stat_fpi',
+            largeIcon: 'ic_stat_logo',
+            iconColor: '#0284c7',
+            extra: { 
+              deepLink,
+              targetRoute: deepLink,
+              eventType: 'daily_reminder',
+            },
           }
         ]
       });
@@ -157,8 +173,14 @@ export const NotificationService = {
             body: `Seu saldo atual estimado é de ${formatCurrency(estimatedBalance)}. Mantenha a precisão lançando suas últimas compras.`,
             schedule: { at: threeDaysLater },
             sound: 'default',
-            smallIcon: 'ic_stat_controla',
-            extra: { deepLink: 'transaction-form' },
+            smallIcon: 'ic_stat_fpi',
+            largeIcon: 'ic_stat_logo',
+            iconColor: '#0284c7',
+            extra: { 
+              deepLink: '/app/controla?action=new-transaction',
+              targetRoute: '/app/controla?action=new-transaction',
+              eventType: 'reengagement',
+            },
           }
         ]
       });
@@ -184,9 +206,13 @@ export const NotificationService = {
             body: 'Você já pode marcar esta despesa como paga ou revisar no Controla.',
             schedule: { at: notificationTime },
             sound: 'default',
-            smallIcon: 'ic_stat_controla',
+            smallIcon: 'ic_stat_fpi',
+            largeIcon: 'ic_stat_logo',
+            iconColor: '#0284c7',
             extra: {
               deepLink: `app://mark-bill-paid/${bill.id}`,
+              targetRoute: '/app/controla',
+              eventType: 'recurring_bill_due',
               billId: bill.id, // Passar o ID da conta para o deepLink
               userId,
             },

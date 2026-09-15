@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FolderPlus, RefreshCw, Wallet as WalletIcon } from 'lucide-react';
+import { FolderPlus, RefreshCw, Wallet as WalletIcon, ShieldAlert, Trash2 } from 'lucide-react';
 import CategoryManager from './CategoryManager';
 import CardManager from './CardManager';
 import type { Transaction, Category, CreditCard } from '../../../types';
@@ -10,6 +10,7 @@ import { getCards } from '../../../services/cardService';
 import { addRecurringBill } from '../../../services/billService';
 import { useAuth } from '../../../contexts/AuthContext';
 import { getLocalDateString } from '../../../utils/dateHelpers';
+import { getVoucherCardAvailableBalance } from '../../../utils/calculations';
 
 interface TransactionFormProps {
   onSave: (data: any) => Promise<void>;
@@ -20,6 +21,7 @@ interface TransactionFormProps {
   onDeleteCategory: (id: string) => Promise<void>;
   nexusAdvisoryContext?: NexusAdvisoryContext;
   transactions: Transaction[];
+  onDelete?: (id: string) => Promise<void> | void;
 }
 
 const TransactionForm: React.FC<TransactionFormProps> = ({ 
@@ -30,14 +32,20 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   onSaveCategory,
   onDeleteCategory,
   nexusAdvisoryContext,
-  transactions
+  transactions,
+  onDelete
 }) => {
   const { user } = useAuth();
   const amountInputRef = useRef<HTMLInputElement>(null);
   
-  // Flag de travamento para Faturas Inteligentes
-  const isLocked = (initialData as any)?.isLocked || false;
-  const lockMessage = (initialData as any)?.lockMessage || "";
+  // Flag de travamento para Faturas Inteligentes / Pagamento de Fatura
+  const isBillPayment = Boolean((initialData as any)?.isBillPayment);
+  const isLocked = Boolean((initialData as any)?.isLocked || isBillPayment);
+  const lockMessage = (initialData as any)?.lockMessage || (
+    isBillPayment
+      ? "Este lançamento representa o pagamento consolidado da fatura do cartão. O valor é composto pelas compras do período e protegido contra alteração direta. Apenas a data de pagamento pode ser editada. Para alterar o valor ou cancelar o pagamento, utilize a opção de excluir lançamento."
+      : ""
+  );
 
   const [description, setDescription] = useState(initialData?.description || '');
   const [amount, setAmount] = useState(initialData?.amount || '');
@@ -169,9 +177,12 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         return alert("Por favor, selecione o cartão voucher utilizado para este lançamento.");
       }
       const selCard = userCards.find(c => c.id === cardId);
-      if (selCard && selCard.voucherBalance !== undefined && numericAmount > selCard.voucherBalance) {
-        if (!window.confirm(`Saldo insuficiente no cartão ${selCard.name}. Disponíveis: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selCard.voucherBalance)}. Deseja continuar mesmo assim?`)) {
-          return;
+      if (selCard) {
+        const availableBal = getVoucherCardAvailableBalance(selCard, transactions);
+        if (numericAmount > availableBal) {
+          if (!window.confirm(`Saldo insuficiente no cartão ${selCard.name}. Disponíveis: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(availableBal)}. Deseja continuar mesmo assim?`)) {
+            return;
+          }
         }
       }
     }
@@ -190,7 +201,14 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
       paymentMethod: finalPaymentMethod,
       cardId: finalPaymentMethod === 'credit' || finalPaymentMethod === 'voucher' || (type === 'income' && cardId) ? (cardId || null) : null,
       installments: finalPaymentMethod === 'credit' ? installments : 1,
-      linkedDebtId: showDebtSelector ? linkedDebtId : null
+      linkedDebtId: showDebtSelector ? linkedDebtId : null,
+      ...(isBillPayment ? {
+        isBillPayment: true,
+        linkedCardId: (initialData as any).linkedCardId,
+        linkedInvoiceId: (initialData as any).linkedInvoiceId,
+        linkedInvoicePeriodEnd: (initialData as any).linkedInvoicePeriodEnd,
+      } : {}),
+      ...( (initialData as any)?.linkedRecurringBillId ? { linkedRecurringBillId: (initialData as any).linkedRecurringBillId } : {} ),
     });
 
     if (isRecurring && user?.uid && type === 'expense' && !initialData?.id) {
@@ -227,11 +245,11 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
       />
       <div className="space-y-4 p-2">
         {isLocked && (
-          <div className="bg-amber-50 border border-amber-200 p-3 rounded-2xl flex gap-3 animate-in fade-in slide-in-from-top-2">
-            <div className="p-2 bg-amber-500/10 rounded-xl text-amber-600 h-fit">
-              <FolderPlus size={18} />
+          <div className="bg-amber-50/90 border border-amber-200/80 p-3.5 rounded-2xl flex gap-3 animate-in fade-in slide-in-from-top-2 shadow-xs">
+            <div className="p-2 bg-amber-500/10 rounded-xl text-amber-600 h-fit shrink-0">
+              <ShieldAlert size={18} />
             </div>
-            <p className="text-[10px] font-medium text-amber-800 leading-relaxed">
+            <p className="text-[11px] font-medium text-amber-900 leading-relaxed">
               {lockMessage}
             </p>
           </div>
@@ -305,10 +323,10 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
             <label className="text-xxs font-black text-text-muted uppercase ml-1">Data de Pagamento</label>
             <input 
               type="date" 
-              disabled={isLocked}
+              disabled={isLocked && !isBillPayment}
               value={date} 
               onChange={e => setDate(e.target.value)} 
-              className={`w-full bg-surface-primary p-4 rounded-2xl text-text-primary outline-none border border-surface-elevated focus:border-brand-primary text-sm ${isLocked ? 'opacity-70 bg-slate-50 cursor-not-allowed' : ''}`} 
+              className={`w-full bg-surface-primary p-4 rounded-2xl text-text-primary outline-none border border-surface-elevated focus:border-brand-primary text-sm ${isLocked && !isBillPayment ? 'opacity-70 bg-slate-50 cursor-not-allowed' : ''}`} 
             />
           </div>
         </div>
@@ -349,22 +367,25 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                 <div className="flex bg-surface-primary p-1 rounded-2xl border border-surface-elevated">
                   <button 
                     type="button"
+                    disabled={isLocked}
                     onClick={() => setPaymentMethod('money')} 
-                    className={`flex-1 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${paymentMethod === 'money' ? 'bg-surface-elevated text-text-primary shadow-soft' : 'text-text-muted'}`}
+                    className={`flex-1 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${paymentMethod === 'money' ? 'bg-surface-elevated text-text-primary shadow-soft' : 'text-text-muted'} ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     Dinheiro
                   </button>
                   <button 
                     type="button"
+                    disabled={isLocked}
                     onClick={() => setPaymentMethod('credit')} 
-                    className={`flex-1 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${paymentMethod === 'credit' ? 'bg-status-info/10 text-brand-secondary shadow-soft border border-brand-secondary/20' : 'text-text-muted'}`}
+                    className={`flex-1 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${paymentMethod === 'credit' ? 'bg-status-info/10 text-brand-secondary shadow-soft border border-brand-secondary/20' : 'text-text-muted'} ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     Cartão
                   </button>
                   <button 
                     type="button"
+                    disabled={isLocked}
                     onClick={() => setPaymentMethod('voucher')} 
-                    className={`flex-1 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${paymentMethod === 'voucher' ? 'bg-emerald-50 text-emerald-600 shadow-soft border border-emerald-200' : 'text-text-muted'}`}
+                    className={`flex-1 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${paymentMethod === 'voucher' ? 'bg-emerald-50 text-emerald-600 shadow-soft border border-emerald-200' : 'text-text-muted'} ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     Voucher (Alimentação/Refeição)
                   </button>
@@ -416,23 +437,27 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                     className="w-full bg-surface-primary p-4 rounded-2xl text-text-primary outline-none border border-surface-elevated focus:border-brand-primary appearance-none text-sm"
                   >
                     <option value="">Selecione o cartão voucher...</option>
-                    {userCards.filter(c => c.type === 'voucher').map(card => (
-                      <option key={card.id} value={card.id}>
-                        {card.name} {card.voucherBalance !== undefined ? `(Saldo: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(card.voucherBalance)})` : ''}
-                      </option>
-                    ))}
+                    {userCards.filter(c => c.type === 'voucher').map(card => {
+                      const bal = getVoucherCardAvailableBalance(card, transactions);
+                      return (
+                        <option key={card.id} value={card.id}>
+                          {card.name} (Saldo: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(bal)})
+                        </option>
+                      );
+                    })}
                   </select>
                   {cardId && (() => {
                     const selectedCard = userCards.find(c => c.id === cardId);
-                    if (!selectedCard || selectedCard.voucherBalance === undefined) return null;
+                    if (!selectedCard) return null;
+                    const availableBal = getVoucherCardAvailableBalance(selectedCard, transactions);
                     const numAmount = Number(amount);
                     if (!numAmount) return null;
-                    const insufficient = numAmount > selectedCard.voucherBalance;
+                    const insufficient = numAmount > availableBal;
                     return (
                       <div className={`text-[10px] font-bold px-1 ${insufficient ? 'text-red-600' : 'text-emerald-700'}`}>
                         {insufficient
-                          ? `Saldo insuficiente — disponível: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedCard.voucherBalance)}`
-                          : `Saldo disponível: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedCard.voucherBalance)}`
+                          ? `Saldo insuficiente — disponível: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(availableBal)}`
+                          : `Saldo disponível: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(availableBal)}`
                         }
                       </div>
                     );
@@ -511,30 +536,54 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
               className="w-full bg-white p-3 rounded-xl text-text-primary outline-none border border-emerald-200 focus:border-emerald-400 appearance-none text-sm font-bold"
             >
               <option value="">Apenas receita (sem recarga de voucher)</option>
-              {userCards.filter(c => c.type === 'voucher').map(card => (
-                <option key={card.id} value={card.id}>
-                  {card.name} {card.voucherBalance !== undefined ? `(Saldo atual: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(card.voucherBalance)})` : ''}
-                </option>
-              ))}
+              {userCards.filter(c => c.type === 'voucher').map(card => {
+                const bal = getVoucherCardAvailableBalance(card, transactions);
+                return (
+                  <option key={card.id} value={card.id}>
+                    {card.name} (Saldo atual: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(bal)})
+                  </option>
+                );
+              })}
             </select>
           </div>
         )}
 
-        <button 
-          type="button"
-          onClick={() => setIsCategoryModalOpen(true)}
-          className="mt-1 w-full py-3 rounded-2xl bg-surface-secondary hover:bg-brand-primary/10 border border-surface-elevated hover:border-brand-primary/30 text-text-secondary hover:text-action-primaryDark font-bold text-xxs uppercase tracking-ultra-wide transition-all flex items-center justify-center gap-2"
-        >
-          <FolderPlus size={16} />
-          <span>Gerenciar Categorias</span>
-        </button>
+        {!isLocked && (
+          <button 
+            type="button"
+            onClick={() => setIsCategoryModalOpen(true)}
+            className="mt-1 w-full py-3 rounded-2xl bg-surface-secondary hover:bg-brand-primary/10 border border-surface-elevated hover:border-brand-primary/30 text-text-secondary hover:text-action-primaryDark font-bold text-xxs uppercase tracking-ultra-wide transition-all flex items-center justify-center gap-2"
+          >
+            <FolderPlus size={16} />
+            <span>Gerenciar Categorias</span>
+          </button>
+        )}
 
         <NexusInlineAdvisor 
           draft={{ amount: Number(amount), category, type, paymentMethod }}
           context={nexusAdvisoryContext}
         />
 
-        <div className="sticky bottom-0 bg-white pt-4 pb-2 mt-4 flex gap-3 border-t border-slate-100">
+        <div className="sticky bottom-0 bg-white pt-4 pb-2 mt-4 flex items-center gap-3 border-t border-slate-100">
+          {initialData?.id && onDelete && (
+            <button
+              type="button"
+              onClick={async () => {
+                const confirmMsg = isBillPayment
+                  ? "Excluir este pagamento de fatura irá estornar o valor e restabelecer o limite do cartão. Deseja continuar?"
+                  : `Deseja realmente excluir este lançamento?`;
+                if (window.confirm(confirmMsg)) {
+                  await onDelete(initialData.id!);
+                  onCancel();
+                }
+              }}
+              className="px-4 py-4 text-status-danger hover:bg-status-danger/10 active:bg-status-danger/20 rounded-3xl transition-all font-black text-xxs uppercase tracking-wider flex items-center justify-center gap-1.5 border border-status-danger/20 shrink-0"
+              title={isBillPayment ? "Excluir pagamento e estornar fatura" : "Excluir lançamento"}
+            >
+              <Trash2 size={15} />
+              <span className="hidden sm:inline">Excluir</span>
+            </button>
+          )}
           <button onClick={onCancel} className="flex-1 py-4 text-text-muted font-bold uppercase text-xxs tracking-ultra-wide">Cancelar</button>
           <button onClick={handleSave} disabled={isSaving} className="flex-1 py-4 bg-brand-primary text-text-onBrand rounded-3xl font-black uppercase text-xxs tracking-ultra-wide shadow-brand-glow active:scale-95 disabled:opacity-50">
               {isSaving ? 'Processando...' : initialData ? 'Atualizar' : 'Salvar'}

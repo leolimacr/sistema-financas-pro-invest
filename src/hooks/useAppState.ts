@@ -1,6 +1,7 @@
 import type React from 'react';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -14,6 +15,7 @@ import { useReengagementTrigger } from './useReengagementTrigger';
 import { NotificationService } from '../services/NotificationService';
 import { addPaidRecurringBillTransaction } from '../services/transactionService';
 import { getLocalDateString } from '../utils/dateHelpers';
+import { resolveAppRoute } from '../utils/deepLinkRouter';
 import { PresenceEventService } from '../services/PresenceEventService';
 import { reconcileVoucherBalances, migrateVoucherPaymentMethod } from '../services/voucherReconciliation';
 import type { UserContext, NexusInsight } from '../services/nexusInsightEngine';
@@ -235,17 +237,33 @@ export function useAppState(): AppState {
 
     const setupNotificationTapListener = async () => {
       try {
-        // Listener nativo de ação na notificação local.
+        // Listener nativo universal de ação na notificação local/push.
         listener = await LocalNotifications.addListener('localNotificationActionPerformed', async (event: any) => {
           if (cancelled) return;
 
-          const deepLink = event?.notification?.extra?.deepLink as string | undefined;
-          if (!deepLink?.startsWith('app://mark-bill-paid/')) return;
+          const notification = event?.notification;
+          const extra = notification?.extra || {};
+          const deepLink = (extra?.deepLink || extra?.targetRoute) as string | undefined;
 
-          const billId = deepLink.split('/').pop();
-          if (!billId) return;
+          // 1. Ação expressa de marcar conta recorrente como paga
+          if (deepLink?.startsWith('app://mark-bill-paid/')) {
+            const billId = deepLink.split('/').pop();
+            if (billId) {
+              await handleBillPaidAction(billId);
+              return;
+            }
+          }
 
-          await handleBillPaidAction(billId);
+          // 2. Resolução soberana e direcionamento cirúrgico de rota
+          const targetRoute = resolveAppRoute(deepLink, extra?.eventType || notification?.title);
+
+          // 3. Executa navegação para a tela exata
+          routerNavigate(targetRoute);
+
+          // 4. Se a rota indicar ação de criação de lançamento, abre o modal
+          if (targetRoute.includes('action=new-transaction')) {
+            openTransactionForm();
+          }
         });
       } catch (error) {
         console.warn('[useAppState] Falha ao registrar listener de notificação:', error);
@@ -321,6 +339,55 @@ export function useAppState(): AppState {
     setEditingTransaction(initialData || null);
     setActiveModal('transaction');
   }, []);
+
+  // Intercepta deep links nativos (ex: financaspro://agenda) via @capacitor/app
+  useEffect(() => {
+    if (!isNative) return;
+
+    let cancelled = false;
+    let urlListener: { remove: () => Promise<void> | void } | null = null;
+
+    const handleOpenUrl = (urlStr: string) => {
+      if (!urlStr || cancelled) return;
+      try {
+        const targetRoute = resolveAppRoute(urlStr);
+        if (targetRoute) {
+          routerNavigate(targetRoute);
+          if (targetRoute.includes('action=new-transaction')) {
+            openTransactionForm();
+          }
+        }
+      } catch (err) {
+        console.warn('[useAppState] Erro ao resolver URL de abertura:', err);
+      }
+    };
+
+    const setupAppUrlOpen = async () => {
+      try {
+        const launchUrl = await App.getLaunchUrl();
+        if (launchUrl?.url) {
+          handleOpenUrl(launchUrl.url);
+        }
+
+        urlListener = await App.addListener('appUrlOpen', (data: { url: string }) => {
+          handleOpenUrl(data.url);
+        });
+      } catch (err) {
+        console.warn('[useAppState] Falha ao registrar appUrlOpen:', err);
+      }
+    };
+
+    setupAppUrlOpen();
+
+    return () => {
+      cancelled = true;
+      if (urlListener) {
+        try {
+          urlListener.remove();
+        } catch {}
+      }
+    };
+  }, [isNative, routerNavigate, openTransactionForm]);
 
   const isLoading = authLoading;
 

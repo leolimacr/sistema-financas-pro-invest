@@ -22,12 +22,14 @@ export interface CardInvoice {
 }
 
 export type CardType = 'credit' | 'voucher';
+export type VoucherType = 'alimentacao' | 'refeicao' | 'outro';
 
 export interface CreditCard {
   id: string;
   name: string;
   isActive?: boolean;
   type?: CardType;
+  voucherType?: VoucherType;
   closingDay?: number;
   dueDay?: number;
   limit?: number;

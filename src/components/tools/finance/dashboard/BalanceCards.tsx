@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { maskCurrency, calculatePreviousMonthClose } from '../../../../utils/calculations';
+import { Receipt } from 'lucide-react';
+import { maskCurrency, calculatePreviousMonthClose, toIntegerCents } from '../../../../utils/calculations';
 import { useExclusions } from '../../../../contexts/ExclusionsContext';
 import { FinanceLine, FinanceTotal, FinanceCheckLine } from './FinanceLine';
 
@@ -7,6 +8,49 @@ interface VoucherCardInfo {
   id: string;
   name: string;
   balance: number;
+  voucherType?: 'alimentacao' | 'refeicao' | 'outro';
+}
+
+export function getVoucherTitle(card: { name: string; voucherType?: string }): string {
+  const nameLower = (card.name || '').toLowerCase();
+  const isAlimentacao =
+    card.voucherType === 'alimentacao' ||
+    nameLower.includes('alimenta') ||
+    /\bva\b/.test(nameLower);
+  const isRefeicao =
+    card.voucherType === 'refeicao' ||
+    nameLower.includes('refei') ||
+    /\bvr\b/.test(nameLower);
+
+  if (isAlimentacao) {
+    if (
+      nameLower === 'alimentação' ||
+      nameLower === 'alimentacao' ||
+      nameLower === 'vale alimentação' ||
+      nameLower === 'vale alimentacao' ||
+      nameLower === 'cartão alimentação' ||
+      nameLower === 'cartao alimentacao'
+    ) {
+      return 'Retirar o saldo do Cartão Alimentação';
+    }
+    return `Retirar o saldo do Cartão Alimentação (${card.name})`;
+  }
+
+  if (isRefeicao) {
+    if (
+      nameLower === 'refeição' ||
+      nameLower === 'refeicao' ||
+      nameLower === 'vale refeição' ||
+      nameLower === 'vale refeicao' ||
+      nameLower === 'cartão refeição' ||
+      nameLower === 'cartao refeicao'
+    ) {
+      return 'Retirar o saldo do Cartão Refeição';
+    }
+    return `Retirar o saldo do Cartão Refeição (${card.name})`;
+  }
+
+  return `Retirar o saldo do Cartão Voucher (${card.name})`;
 }
 
 interface BalanceCardsProps {
@@ -18,6 +62,7 @@ interface BalanceCardsProps {
   colchaoTarget: number;
   voucherCards: VoucherCardInfo[];
   transactions: any[];
+  onOpenCardManager?: (cardId?: string) => void;
 }
 
 const MESES = [
@@ -34,6 +79,7 @@ const BalanceCards: React.FC<BalanceCardsProps> = ({
   colchaoTarget,
   voucherCards,
   transactions,
+  onOpenCardManager,
 }) => {
   const { excluirReserva, excluirColchao, excluirVoucherMap, toggleReserva, toggleColchao, toggleVoucherCard, computeExclusions } = useExclusions();
   const fmt = (n: number) => (isPrivacyMode ? '••••••' : maskCurrency(n));
@@ -54,8 +100,20 @@ const BalanceCards: React.FC<BalanceCardsProps> = ({
     );
   }
 
+  // Composição Soberana do Saldo Atual: Saldo em Conta + Saldos dos Cartões Voucher
+  const totalVoucherCents = voucherCards.reduce(
+    (acc, c) => acc + toIntegerCents(c.balance || 0),
+    0
+  );
+  const saldoRealCents = toIntegerCents(saldoReal);
+  const saldoBaseCents = saldoRealCents + totalVoucherCents;
+  const saldoBase = saldoBaseCents / 100;
+  const isSaldoBaseNegative = saldoBase < 0;
+
   const exclusaoTotal = computeExclusions(reserveTarget, colchaoTarget, voucherCards);
-  const saldoDisplay = saldoReal - exclusaoTotal;
+  const exclusaoTotalCents = toIntegerCents(exclusaoTotal);
+  const saldoDisplayCents = saldoBaseCents - exclusaoTotalCents;
+  const saldoDisplay = saldoDisplayCents / 100;
   const isNegative = saldoDisplay < 0;
   const hasExclusao = excluirReserva || excluirColchao || Object.values(excluirVoucherMap).some(Boolean);
 
@@ -78,20 +136,24 @@ const BalanceCards: React.FC<BalanceCardsProps> = ({
           Saldo Atual
         </h2>
         <p className="text-[10px] text-text-muted font-medium -mt-2 leading-relaxed">
-          Dinheiro que realmente está na sua conta bancária hoje.
+          {totalVoucherCents > 0
+            ? 'Total de recursos disponíveis hoje (conta bancária e cartões de benefício).'
+            : 'Dinheiro que realmente está na sua conta bancária hoje.'}
           <span className="block mt-0.5 text-[9px] text-text-muted italic">
-            Reflete o fluxo de caixa efetivado em conta: receitas menos despesas à vista e pagamentos de cartão. Compras no cartão de crédito e obrigações a prazo não são deduzidas aqui.
+            {totalVoucherCents > 0
+              ? 'Marque os cartões voucher abaixo para desconsiderá-los e visualizar estritamente o saldo em conta bancária.'
+              : 'Reflete o fluxo de caixa efetivado em conta: receitas menos despesas à vista e pagamentos de cartão. Compras no cartão de crédito e obrigações a prazo não são deduzidas aqui.'}
           </span>
         </p>
 
-        {/* Valor principal */}
+        {/* Valor principal: Sempre o saldo íntegro / cheio */}
         <div className="flex items-baseline justify-between">
           <h2
             className={`text-3xl font-black tabular-nums tracking-tight ${
-              isNegative ? 'text-status-danger' : 'text-text-primary'
+              isSaldoBaseNegative ? 'text-status-danger' : 'text-text-primary'
             }`}
           >
-            {fmt(saldoDisplay)}
+            {fmt(saldoBase)}
           </h2>
         </div>
 
@@ -129,16 +191,39 @@ const BalanceCards: React.FC<BalanceCardsProps> = ({
               hint={`Simulação: ${fmt(colchaoTarget)} abatidos do SALDO ATUAL. Valor separado para proteção — não é despesa do mês.`}
               value={fmt(colchaoTarget)}
             />
-            {voucherCards.filter(c => c.balance > 0).map(card => (
-              <FinanceCheckLine
-                key={card.id}
-                checked={!!excluirVoucherMap[card.id]}
-                onChange={() => toggleVoucherCard(card.id)}
-                title={`Retirar o saldo do Cartão Voucher (${card.name})`}
-                hint="Simulação: valor abatido do SALDO ATUAL."
-                value={fmt(card.balance)}
-              />
-            ))}
+            {voucherCards.map(card => {
+              const isZero = (card.balance || 0) <= 0;
+              const title = getVoucherTitle(card);
+              return (
+                <div key={card.id} className="flex items-center justify-between group">
+                  <div className="flex-1 min-w-0">
+                    <FinanceCheckLine
+                      checked={!isZero && !!excluirVoucherMap[card.id]}
+                      disabled={isZero}
+                      onChange={() => !isZero && toggleVoucherCard(card.id)}
+                      title={title}
+                      hint={
+                        isZero
+                          ? 'Saldo zerado neste cartão voucher.'
+                          : `Simulação: ${fmt(card.balance)} abatidos do SALDO ATUAL para ver o saldo real em conta.`
+                      }
+                      value={fmt(card.balance || 0)}
+                    />
+                  </div>
+                  {onOpenCardManager && (
+                    <button
+                      type="button"
+                      onClick={() => onOpenCardManager(card.id)}
+                      className="ml-2 p-1.5 text-text-muted hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all shrink-0 active:scale-95"
+                      title={`Ver extrato do cartão ${card.name}`}
+                      aria-label={`Ver extrato do cartão ${card.name}`}
+                    >
+                      <Receipt size={14} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           <FinanceTotal

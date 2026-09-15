@@ -15,7 +15,8 @@ public class MainActivity extends BridgeActivity {
     private static final int STATUS_BAR_COLOR = Color.rgb(238, 242, 245);
 
     @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        registerPlugin(AgendaShortcutPlugin.class);
         super.onCreate(savedInstanceState);
 
         Window window = getWindow();

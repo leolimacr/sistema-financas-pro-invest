@@ -5,7 +5,12 @@ import { vi } from 'vitest';
 vi.mock('@capacitor/core', () => ({
   Capacitor: {
     isNativePlatform: vi.fn(() => false),
+    getPlatform: vi.fn(() => 'web'),
   },
+  registerPlugin: vi.fn(() => ({
+    isPinSupported: vi.fn(async () => ({ supported: false })),
+    pinAgendaShortcut: vi.fn(async () => ({ success: false })),
+  })),
 }));
 
 // Mock Firebase Auth

@@ -381,6 +381,7 @@ export function calculatePreviousMonthClose(transactions: TxLike[], refDate: Dat
   let balance = 0;
   for (const t of transactions) {
     if (!t.date || t.date > endPrefix) continue;
+    if (t.paymentMethod === 'voucher') continue;
     const val = Number(t.amount) || 0;
     if (t.type === 'income') balance += val;
     else if (t.paymentMethod !== 'credit' && !t.isVirtual) balance -= val;
@@ -482,6 +483,8 @@ export function calculateRealCashBalance(
   for (let i = 0; i < transactions.length; i++) {
     const t = transactions[i];
     if (!t.date || t.date > hojeStr) continue;
+    // Transações de cartão voucher pertencem à carteira de benefícios separada
+    if (t.paymentMethod === 'voucher') continue;
     const val = Number(t.amount) || 0;
     if (t.type === 'income') {
       saldoReal += val;
@@ -669,4 +672,103 @@ export function calculateRealCashBalance(
     gastosFuturosMes,
     contasFuturasMes,
   };
+}
+
+export interface WalletTxLike {
+  type: string;
+  amount: number | string;
+  cardId?: string;
+  isVirtual?: boolean;
+  date?: string;
+  category?: string;
+  description?: string;
+}
+
+export interface WalletStatementSummary {
+  /** Total de entradas/recargas em reais com 2 casas decimais */
+  totalIncomes: number;
+  /** Total de despesas/saídas em reais com 2 casas decimais */
+  totalExpenses: number;
+  /** Saldo disponível em reais (totalIncomes - totalExpenses) */
+  availableBalance: number;
+  /** Total de entradas em centavos inteiros */
+  totalIncomesCents: number;
+  /** Total de despesas em centavos inteiros */
+  totalExpensesCents: number;
+  /** Saldo disponível em centavos inteiros */
+  availableBalanceCents: number;
+  /** Quantidade de movimentações consideradas */
+  transactionCount: number;
+}
+
+/**
+ * Converte valor numérico ou string monetária para centavos inteiros de forma segura,
+ * evitando discrepâncias de arredondamento de float do IEEE-754.
+ */
+export function toIntegerCents(amount: number | string | undefined | null): number {
+  if (amount === undefined || amount === null) return 0;
+  const num = typeof amount === 'string' ? parseFloat(amount.replace(',', '.')) : Number(amount);
+  if (isNaN(num)) return 0;
+  return Math.round(Number(num + 'e2'));
+}
+
+/**
+ * Consolida o resumo financeiro de uma carteira/extrato a partir de suas movimentações.
+ * Regra Soberana:
+ * saldoDisponivel = totalEntradas - totalDespesas
+ * Calculado estritamente em centavos inteiros durante a agregação antes da conversão para reais.
+ */
+export function calculateWalletStatementSummary(
+  transactions: WalletTxLike[],
+  targetCardId?: string
+): WalletStatementSummary {
+  let incomesCents = 0;
+  let expensesCents = 0;
+  let count = 0;
+
+  for (let i = 0; i < transactions.length; i++) {
+    const t = transactions[i];
+    if (targetCardId && t.cardId !== targetCardId) continue;
+    if (t.isVirtual) continue;
+
+    const valCents = toIntegerCents(t.amount);
+    count++;
+
+    if (t.type === 'income') {
+      incomesCents += valCents;
+    } else if (t.type === 'expense') {
+      expensesCents += valCents;
+    }
+  }
+
+  const balanceCents = incomesCents - expensesCents;
+
+  return {
+    totalIncomes: incomesCents / 100,
+    totalExpenses: expensesCents / 100,
+    availableBalance: balanceCents / 100,
+    totalIncomesCents: incomesCents,
+    totalExpensesCents: expensesCents,
+    availableBalanceCents: balanceCents,
+    transactionCount: count,
+  };
+}
+
+/**
+ * Obtém o saldo disponível soberano de um cartão voucher.
+ * Prioriza a composição histórica das movimentações através de calculateWalletStatementSummary.
+ * Caso não haja movimentações registradas, utiliza o saldo cadastrado no cartão.
+ */
+export function getVoucherCardAvailableBalance(
+  card: { id: string; voucherBalance?: number },
+  transactions?: WalletTxLike[]
+): number {
+  if (!transactions || transactions.length === 0) {
+    return card.voucherBalance || 0;
+  }
+  const cardTx = transactions.filter(t => t.cardId === card.id);
+  if (cardTx.length === 0) {
+    return card.voucherBalance || 0;
+  }
+  return calculateWalletStatementSummary(cardTx).availableBalance;
 }

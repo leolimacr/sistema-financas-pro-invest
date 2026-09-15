@@ -17,6 +17,16 @@ import {
 } from 'firebase/firestore';
 import { firestore } from '../firebase';
 import type { RecurringBill } from '../types';
+import {
+  loadMonthCache,
+  saveMonthCache,
+  upsertCachedCommitment,
+  removeCachedCommitment,
+} from '../agenda/agendaCache';
+import {
+  enqueueAgendaOp,
+  getPendingAgendaOps,
+} from '../agenda/agendaSyncQueue';
 
 export type RecurrenceFreq = 'daily' | 'weekly' | 'monthly';
 
@@ -96,6 +106,13 @@ export const fetchMonthCommitments = async (
   year: number,
   month: number
 ): Promise<AgendaCommitment[]> => {
+  // Se estiver comprovadamente offline, recupera imediatamente do cache local
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    const cached = loadMonthCache(userId, year, month);
+    if (cached) return cached;
+    return [];
+  }
+
   const startOfMonth = new Date(year, month, 1);
   const startOfNextMonth = new Date(year, month + 1, 1);
 
@@ -107,16 +124,71 @@ export const fetchMonthCommitments = async (
     orderBy('time', 'asc')
   );
 
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as AgendaCommitment));
+  try {
+    const snapshot = await getDocs(q);
+    const remoteData = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as AgendaCommitment));
+
+    // Mescla itens pendentes na fila de sync local para este mês que ainda não subiram
+    const pendingOps = getPendingAgendaOps(userId);
+    const pendingAdds = pendingOps
+      .filter((op): op is Extract<typeof op, { type: 'add' }> => op.type === 'add' && op.year === year && op.month === month)
+      .map((op) => ({
+        id: op.tempId,
+        date: Timestamp.fromDate(new Date(op.input.dateStr)),
+        title: op.input.title,
+        time: op.input.time,
+        endTime: op.input.endTime,
+        completed: op.input.completed,
+        alarmAt: op.input.alarmAtStr ? Timestamp.fromDate(new Date(op.input.alarmAtStr)) : undefined,
+        reminderMode: op.input.reminderMode,
+        seriesId: op.input.seriesId,
+        recurrence: op.input.recurrence,
+        detached: op.input.detached,
+        detachedNote: op.input.detachedNote,
+        location: op.input.location,
+        participants: op.input.participants,
+        notes: op.input.notes,
+        order: op.input.order,
+      } as AgendaCommitment));
+
+    const combined = [...remoteData];
+    for (const pending of pendingAdds) {
+      if (!combined.some((c) => c.id === pending.id)) {
+        combined.push(pending);
+      }
+    }
+
+    saveMonthCache(userId, year, month, combined);
+    return combined;
+  } catch (err) {
+    const fallback = loadMonthCache(userId, year, month);
+    if (fallback) {
+      return fallback;
+    }
+    throw err;
+  }
 };
 
 export const fetchUpcomingCommitments = async (
   userId: string,
   max = 10
 ): Promise<AgendaCommitment[]> => {
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
+  if (isOffline) {
+    const currentMonthData = loadMonthCache(userId, today.getFullYear(), today.getMonth()) || [];
+    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    const nextMonthData = loadMonthCache(userId, nextMonth.getFullYear(), nextMonth.getMonth()) || [];
+    const all = [...currentMonthData, ...nextMonthData];
+    return all
+      .filter((c) => {
+        const d = c.date instanceof Date ? c.date : c.date?.toDate?.() || new Date();
+        return d.getTime() >= today.getTime();
+      })
+      .slice(0, max);
+  }
 
   const q = query(
     getCollection(userId),
@@ -126,14 +198,28 @@ export const fetchUpcomingCommitments = async (
     limit(max)
   );
 
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as AgendaCommitment));
+  try {
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as AgendaCommitment));
+  } catch (err) {
+    const currentMonthData = loadMonthCache(userId, today.getFullYear(), today.getMonth()) || [];
+    return currentMonthData
+      .filter((c) => {
+        const d = c.date instanceof Date ? c.date : c.date?.toDate?.() || new Date();
+        return d.getTime() >= today.getTime();
+      })
+      .slice(0, max);
+  }
 };
 
 export const addCommitment = async (
   userId: string,
   data: AgendaCommitmentInput
 ): Promise<string> => {
+  const year = data.date.getFullYear();
+  const month = data.date.getMonth();
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+
   const now = Timestamp.now();
   const docData: Record<string, unknown> = {
     date: Timestamp.fromDate(data.date),
@@ -154,50 +240,295 @@ export const addCommitment = async (
   if (data.participants !== undefined) docData.participants = data.participants;
   if (data.notes !== undefined) docData.notes = data.notes;
   docData.order = data.order ?? null;
-  const docRef = await addDoc(getCollection(userId), docData);
-  return docRef.id;
+
+  if (isOffline) {
+    const tempId = 'temp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+    const localCommitment: AgendaCommitment = {
+      id: tempId,
+      date: Timestamp.fromDate(data.date),
+      title: data.title,
+      time: data.time,
+      endTime: data.endTime,
+      completed: data.completed,
+      alarmAt: data.alarmAt ? Timestamp.fromDate(data.alarmAt) : undefined,
+      reminderMode: data.reminderMode,
+      seriesId: data.seriesId,
+      recurrence: data.recurrence,
+      detached: data.detached,
+      detachedNote: data.detachedNote,
+      location: data.location,
+      participants: data.participants,
+      notes: data.notes,
+      order: data.order,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    upsertCachedCommitment(userId, year, month, localCommitment);
+    enqueueAgendaOp(userId, {
+      type: 'add',
+      tempId,
+      input: {
+        dateStr: data.date.toISOString(),
+        title: data.title,
+        time: data.time,
+        endTime: data.endTime,
+        completed: data.completed,
+        alarmAtStr: data.alarmAt?.toISOString(),
+        reminderMode: data.reminderMode,
+        seriesId: data.seriesId,
+        recurrence: data.recurrence,
+        detached: data.detached,
+        detachedNote: data.detachedNote,
+        location: data.location,
+        participants: data.participants,
+        notes: data.notes,
+        order: data.order,
+      },
+      year,
+      month,
+    });
+    return tempId;
+  }
+
+  try {
+    const docRef = await addDoc(getCollection(userId), docData);
+    const realId = docRef.id;
+
+    const localCommitment: AgendaCommitment = {
+      id: realId,
+      ...docData,
+      date: docData.date as Timestamp,
+      createdAt: now,
+      updatedAt: now,
+    } as AgendaCommitment;
+    upsertCachedCommitment(userId, year, month, localCommitment);
+
+    return realId;
+  } catch (err) {
+    const tempId = 'temp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+    const localCommitment: AgendaCommitment = {
+      id: tempId,
+      date: Timestamp.fromDate(data.date),
+      title: data.title,
+      time: data.time,
+      endTime: data.endTime,
+      completed: data.completed,
+      alarmAt: data.alarmAt ? Timestamp.fromDate(data.alarmAt) : undefined,
+      reminderMode: data.reminderMode,
+      seriesId: data.seriesId,
+      recurrence: data.recurrence,
+      detached: data.detached,
+      detachedNote: data.detachedNote,
+      location: data.location,
+      participants: data.participants,
+      notes: data.notes,
+      order: data.order,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    upsertCachedCommitment(userId, year, month, localCommitment);
+    enqueueAgendaOp(userId, {
+      type: 'add',
+      tempId,
+      input: {
+        dateStr: data.date.toISOString(),
+        title: data.title,
+        time: data.time,
+        endTime: data.endTime,
+        completed: data.completed,
+        alarmAtStr: data.alarmAt?.toISOString(),
+        reminderMode: data.reminderMode,
+        seriesId: data.seriesId,
+        recurrence: data.recurrence,
+        detached: data.detached,
+        detachedNote: data.detachedNote,
+        location: data.location,
+        participants: data.participants,
+        notes: data.notes,
+        order: data.order,
+      },
+      year,
+      month,
+    });
+    return tempId;
+  }
 };
 
 export const updateCommitment = async (
   userId: string,
   commitmentId: string,
-  data: Record<string, unknown>
+  data: Record<string, unknown>,
+  yearMonth?: { year: number; month: number }
 ): Promise<void> => {
-  const ref = doc(firestore, `users/${userId}/agenda`, commitmentId);
-  await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+
+  if (yearMonth) {
+    const current = loadMonthCache(userId, yearMonth.year, yearMonth.month);
+    const item = current?.find((c) => c.id === commitmentId);
+    if (item) {
+      upsertCachedCommitment(userId, yearMonth.year, yearMonth.month, {
+        ...item,
+        ...data,
+      } as AgendaCommitment);
+    }
+  }
+
+  if (isOffline) {
+    enqueueAgendaOp(userId, {
+      type: 'edit',
+      id: commitmentId,
+      updates: data,
+      year: yearMonth?.year ?? new Date().getFullYear(),
+      month: yearMonth?.month ?? new Date().getMonth(),
+    });
+    return;
+  }
+
+  try {
+    const ref = doc(firestore, `users/${userId}/agenda`, commitmentId);
+    await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
+  } catch {
+    enqueueAgendaOp(userId, {
+      type: 'edit',
+      id: commitmentId,
+      updates: data,
+      year: yearMonth?.year ?? new Date().getFullYear(),
+      month: yearMonth?.month ?? new Date().getMonth(),
+    });
+  }
 };
 
 export const deleteCommitment = async (
   userId: string,
-  commitmentId: string
+  commitmentId: string,
+  yearMonth?: { year: number; month: number }
 ): Promise<void> => {
-  const ref = doc(firestore, `users/${userId}/agenda`, commitmentId);
-  await deleteDoc(ref);
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+
+  if (yearMonth) {
+    removeCachedCommitment(userId, yearMonth.year, yearMonth.month, commitmentId);
+  }
+
+  if (isOffline) {
+    enqueueAgendaOp(userId, {
+      type: 'delete',
+      id: commitmentId,
+      year: yearMonth?.year ?? new Date().getFullYear(),
+      month: yearMonth?.month ?? new Date().getMonth(),
+    });
+    return;
+  }
+
+  try {
+    const ref = doc(firestore, `users/${userId}/agenda`, commitmentId);
+    await deleteDoc(ref);
+  } catch {
+    enqueueAgendaOp(userId, {
+      type: 'delete',
+      id: commitmentId,
+      year: yearMonth?.year ?? new Date().getFullYear(),
+      month: yearMonth?.month ?? new Date().getMonth(),
+    });
+  }
 };
 
 export const toggleCommitment = async (
   userId: string,
   commitmentId: string,
-  completed: boolean
+  completed: boolean,
+  yearMonth?: { year: number; month: number }
 ): Promise<void> => {
-  const ref = doc(firestore, `users/${userId}/agenda`, commitmentId);
-  await updateDoc(ref, { completed, updatedAt: serverTimestamp() });
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+
+  if (yearMonth) {
+    const current = loadMonthCache(userId, yearMonth.year, yearMonth.month);
+    const item = current?.find((c) => c.id === commitmentId);
+    if (item) {
+      upsertCachedCommitment(userId, yearMonth.year, yearMonth.month, {
+        ...item,
+        completed,
+      } as AgendaCommitment);
+    }
+  }
+
+  if (isOffline) {
+    enqueueAgendaOp(userId, {
+      type: 'toggle',
+      id: commitmentId,
+      completed,
+      year: yearMonth?.year ?? new Date().getFullYear(),
+      month: yearMonth?.month ?? new Date().getMonth(),
+    });
+    return;
+  }
+
+  try {
+    const ref = doc(firestore, `users/${userId}/agenda`, commitmentId);
+    await updateDoc(ref, { completed, updatedAt: serverTimestamp() });
+  } catch {
+    enqueueAgendaOp(userId, {
+      type: 'toggle',
+      id: commitmentId,
+      completed,
+      year: yearMonth?.year ?? new Date().getFullYear(),
+      month: yearMonth?.month ?? new Date().getMonth(),
+    });
+  }
 };
 
 /** Reordena os compromissos de um dia: grava o `order` re-normalizado de cada
  * item num único lote atômico (semântica de reordenação manual da Agenda). */
 export const reorderDayCommitments = async (
   userId: string,
-  ordered: Array<{ id: string; order: number }>
+  ordered: Array<{ id: string; order: number }>,
+  yearMonth?: { year: number; month: number }
 ): Promise<void> => {
-  const batch = writeBatch(firestore);
-  for (const item of ordered) {
-    batch.update(doc(firestore, `users/${userId}/agenda`, item.id), {
-      order: item.order,
-      updatedAt: serverTimestamp(),
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+
+  if (yearMonth) {
+    const current = loadMonthCache(userId, yearMonth.year, yearMonth.month);
+    if (current) {
+      const orderMap = new Map(ordered.map((o) => [o.id, o.order]));
+      const updated = current.map((c) => {
+        if (c.id && orderMap.has(c.id)) {
+          return { ...c, order: orderMap.get(c.id) };
+        }
+        return c;
+      });
+      saveMonthCache(userId, yearMonth.year, yearMonth.month, updated);
+    }
+  }
+
+  if (isOffline) {
+    enqueueAgendaOp(userId, {
+      type: 'reorder',
+      payload: ordered,
+      year: yearMonth?.year ?? new Date().getFullYear(),
+      month: yearMonth?.month ?? new Date().getMonth(),
+    });
+    return;
+  }
+
+  try {
+    const batch = writeBatch(firestore);
+    for (const item of ordered) {
+      if (item.id.startsWith('temp_')) continue;
+      batch.update(doc(firestore, `users/${userId}/agenda`, item.id), {
+        order: item.order,
+        updatedAt: serverTimestamp(),
+      });
+    }
+    await batch.commit();
+  } catch {
+    enqueueAgendaOp(userId, {
+      type: 'reorder',
+      payload: ordered,
+      year: yearMonth?.year ?? new Date().getFullYear(),
+      month: yearMonth?.month ?? new Date().getMonth(),
     });
   }
-  await batch.commit();
 };
 
 export const syncBillsToAgenda = async (

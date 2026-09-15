@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
-import { Bell, BellOff, CalendarDays, ChevronLeft, ChevronRight, X, Check, Trash2, Sparkles, RefreshCw } from 'lucide-react';
+import { Bell, BellOff, CalendarDays, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, X, Check, Trash2, Sparkles, RefreshCw, WifiOff, Smartphone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { AgendaShortcutService } from '../services/agendaShortcutService';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import type { Timestamp } from 'firebase/firestore';
@@ -11,8 +12,17 @@ import {
   updateCommitment,
   deleteCommitment,
   toggleCommitment,
+  reorderDayCommitments,
   type AgendaCommitment,
 } from '../services/agendaService';
+import { loadMonthCache } from '../agenda/agendaCache';
+import { processAgendaSyncQueue } from '../agenda/agendaSyncQueue';
+import {
+  compareDayCommitments,
+  moveCommitment,
+  nextOrderForDay,
+  replaceDayInMonth,
+} from '../agenda/dayOrder';
 import {
   scheduleAlarm, cancelAlarm, requestNotificationPermission,
   startAlarmChecker, stopAlarmChecker, setAlarmCallback, type AlarmInfo,
@@ -261,9 +271,15 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
   // --- Confirmação de exclusão de compromisso ---
   const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<{ id: string; title: string } | null>(null);
 
+  // --- Atalho no celular (Modal Pedagógico & Native Pin) ---
+  const [showShortcutModal, setShowShortcutModal] = useState(false);
+  const [isPinningShortcut, setIsPinningShortcut] = useState(false);
+
   const userId = user?.uid;
   const { bills: recurringBills = [] } = useBills(userId);
   const [isSyncingBills, setIsSyncingBills] = useState(false);
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [isSyncingQueue, setIsSyncingQueue] = useState(false);
   const notebookRef = useRef<HTMLDivElement | null>(null);
   const loadedKeysRef = useRef<Set<string>>(new Set());
   const monthStreamRef = useRef(monthStream);
@@ -272,10 +288,22 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
   const isSavingRef = useRef(false);
   const monthHeaderRef = useRef<HTMLDivElement | null>(null);
 
-  // --- Loading de dados (só carrega meses ao redor do ativo) ---
+  // --- Loading de dados com Cache Local Soberano (Zero Tela Branca Offline) ---
   const ensureMonthLoaded = useCallback(async (year: number, month: number, force?: boolean) => {
     if (!userId || seedCommitments) return;
     const key = `${year}-${month}`;
+
+    // 1. Hidratação Instantânea via Cache Local (aparelho)
+    const cachedData = loadMonthCache(userId, year, month);
+    if (cachedData && cachedData.length > 0) {
+      setAllMonths((prev) => {
+        if (!prev[key] || prev[key].length === 0) {
+          return { ...prev, [key]: cachedData };
+        }
+        return prev;
+      });
+    }
+
     if (!force && loadedKeysRef.current.has(key)) return;
     loadedKeysRef.current.add(key);
     try {
@@ -289,7 +317,12 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
     } catch (e) {
       if (import.meta.env.DEV) console.warn('[Agenda] Falha ao carregar mês', year, month, e);
       setLoadError(true);
-      setAllMonths((prev) => ({ ...prev, [key]: [] }));
+      // NUNCA esvazia os compromissos se houver cache local ou dados prévios!
+      setAllMonths((prev) => {
+        if (prev[key] && prev[key].length > 0) return prev;
+        if (cachedData && cachedData.length > 0) return { ...prev, [key]: cachedData };
+        return { ...prev, [key]: [] };
+      });
     }
   }, [userId, seedCommitments]);
 
@@ -412,6 +445,9 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
         if (!map.has(k)) map.set(k, []);
         map.get(k)!.push(c);
       }
+    }
+    for (const list of map.values()) {
+      list.sort(compareDayCommitments);
     }
     return map;
   }, [allMonths]);
@@ -729,16 +765,79 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
     if (showAgendaNexus) requestAnimationFrame(() => nexusPanelRef.current?.focus());
   }, [showAgendaNexus]);
 
+  const reloadDataRef = useRef(reloadData);
+  reloadDataRef.current = reloadData;
+  const addToastRef = useRef(addToast);
+  addToastRef.current = addToast;
+
+  // Monitoramento de conectividade e sincronização da fila offline
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const syncPendingQueue = async () => {
+      if (!userId || !navigator.onLine) return;
+      try {
+        setIsSyncingQueue(true);
+        const res = await processAgendaSyncQueue(userId, {
+          onIdReplaced: (tempId, realId, year, month) => {
+            const key = `${year}-${month}`;
+            setAllMonths((prev) => {
+              const list = prev[key];
+              if (!list) return prev;
+              return {
+                ...prev,
+                [key]: list.map((c) => (c.id === tempId ? { ...c, id: realId } : c)),
+              };
+            });
+          },
+        });
+        if (res.processed > 0) {
+          addToastRef.current(
+            `${res.processed} ${res.processed === 1 ? 'compromisso sincronizado' : 'compromissos sincronizados'} com a nuvem!`,
+            'success'
+          );
+          reloadDataRef.current();
+        }
+      } catch (err) {
+        if (import.meta.env.DEV) console.warn('[AgendaHub] Erro na sincronização da fila:', err);
+      } finally {
+        setIsSyncingQueue(false);
+      }
+    };
+
+    const handleOnline = () => {
+      setIsOnline(true);
+      void syncPendingQueue();
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Se estiver online no mount e houver operações pendentes, sincroniza
+    if (navigator.onLine && userId) {
+      void syncPendingQueue();
+    }
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [userId]);
+
   const handleDelete = useCallback(async (id: string) => {
     if (!userId) return;
     try {
-      await deleteCommitment(userId, id);
+      await deleteCommitment(userId, id, { year: activeYear, month: activeMonth });
       reloadData();
     } catch (e) {
       if (import.meta.env.DEV) console.error('[Agenda] Erro ao excluir', e);
       addToast('Não foi possível excluir o compromisso', 'error');
     }
-  }, [userId, reloadData, addToast]);
+  }, [userId, activeYear, activeMonth, reloadData, addToast]);
 
   const openDeleteConfirm = useCallback((id: string, title: string) => {
     setDeleteConfirmTarget({ id, title: title ?? '' });
@@ -747,7 +846,7 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
   const confirmDelete = useCallback(async () => {
     if (!userId || !deleteConfirmTarget) return;
     try {
-      await deleteCommitment(userId, deleteConfirmTarget.id);
+      await deleteCommitment(userId, deleteConfirmTarget.id, { year: activeYear, month: activeMonth });
       reloadData();
     } catch (e) {
       if (import.meta.env.DEV) console.error('[Agenda] Erro ao excluir', e);
@@ -755,18 +854,41 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
     } finally {
       setDeleteConfirmTarget(null);
     }
-  }, [userId, deleteConfirmTarget, reloadData, addToast]);
+  }, [userId, deleteConfirmTarget, activeYear, activeMonth, reloadData, addToast]);
+
+  const handleRequestShortcut = useCallback(async () => {
+    setIsPinningShortcut(true);
+    try {
+      if (AgendaShortcutService.isNativeAndroid()) {
+        const res = await AgendaShortcutService.requestPinShortcut();
+        if (res.success) {
+          addToast(
+            'Solicitação enviada! Confirme no diálogo do Android para adicionar o atalho à tela inicial.',
+            'success'
+          );
+        } else {
+          addToast(res.message || 'Não foi possível criar o atalho automaticamente.', 'info');
+        }
+      } else {
+        addToast('Siga as instruções para adicionar à tela inicial pelo seu dispositivo.', 'info');
+      }
+    } catch {
+      addToast('Erro ao solicitar criação de atalho.', 'error');
+    } finally {
+      setIsPinningShortcut(false);
+    }
+  }, [addToast]);
 
   const handleToggle = useCallback(async (id: string, completed: boolean) => {
     if (!userId) return;
     try {
-      await toggleCommitment(userId, id, completed);
+      await toggleCommitment(userId, id, completed, { year: activeYear, month: activeMonth });
       reloadData();
     } catch (e) {
       if (import.meta.env.DEV) console.error('[Agenda] Erro ao marcar/desmarcar', e);
       addToast('Erro ao atualizar status', 'error');
     }
-  }, [userId, reloadData, addToast]);
+  }, [userId, activeYear, activeMonth, reloadData, addToast]);
 
   // --- Inline edit handlers ---
   const startEdit = useCallback((c: AgendaCommitment) => {
@@ -781,7 +903,7 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
       await handleDelete(id);
     } else {
       try {
-        await updateCommitment(userId, id, { title: text });
+        await updateCommitment(userId, id, { title: text }, { year: activeYear, month: activeMonth });
         reloadData();
       } catch (e) {
         if (import.meta.env.DEV) console.error('[Agenda] Erro ao editar', e);
@@ -790,7 +912,7 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
     }
     setEditingId(null);
     setEditText('');
-  }, [userId, editText, reloadData, handleDelete, addToast]);
+  }, [userId, editText, activeYear, activeMonth, reloadData, handleDelete, addToast]);
 
   const startAdd = useCallback((dayKey: string) => {
     setAddingDayKey(dayKey);
@@ -804,10 +926,15 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
     try {
       const text = addText.trim();
       if (text) {
+        const dayKey = `${dateObj.getFullYear()}-${dateObj.getMonth()}-${dateObj.getDate()}`;
+        const dayItems = dayMap.get(dayKey) || [];
+        const nextOrder = nextOrderForDay(dayItems);
+
         const docRefId = await addCommitment(userId, {
           date: dateObj,
           title: text,
           completed: false,
+          order: nextOrder,
         });
 
         const key = `${dateObj.getFullYear()}-${dateObj.getMonth()}`;
@@ -816,12 +943,17 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
           date: dateObj,
           title: text,
           completed: false,
+          order: nextOrder,
         } as unknown as AgendaCommitment;
         setAllMonths((prev) => {
           const existing = prev[key] || [];
           return { ...prev, [key]: [...existing, optimisticCommitment] };
         });
         loadedKeysRef.current.delete(key);
+
+        if (!navigator.onLine) {
+          addToast('Compromisso salvo no aparelho (modo offline)', 'info');
+        }
       }
       setAddingDayKey(null);
       setAddText('');
@@ -831,7 +963,36 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
     } finally {
       isSavingRef.current = false;
     }
-  }, [userId, addText, addToast]);
+  }, [userId, addText, dayMap, addToast]);
+
+  const shiftCommitment = useCallback((dayKey: string, fromIndex: number, toIndex: number) => {
+    const dayItems = dayMap.get(dayKey) || [];
+    const reordered = moveCommitment(dayItems, fromIndex, toIndex);
+    if (reordered === dayItems) return;
+
+    const [yStr, mStr] = dayKey.split('-');
+    const monthKeyStr = `${yStr}-${mStr}`;
+
+    setAllMonths((prev) => {
+      const monthList = prev[monthKeyStr];
+      if (!monthList) return prev;
+      const nextMonthList = replaceDayInMonth(monthList, dayKey, reordered);
+      if (nextMonthList === monthList) return prev;
+      return { ...prev, [monthKeyStr]: nextMonthList };
+    });
+
+    if (seedCommitments || !userId) return;
+
+    const payload = reordered
+      .filter((c): c is AgendaCommitment & { id: string; order: number } => typeof c.id === 'string' && typeof c.order === 'number')
+      .map((c) => ({ id: c.id, order: c.order }));
+
+    reorderDayCommitments(userId, payload, { year: Number(yStr), month: Number(mStr) }).catch((err) => {
+      if (import.meta.env.DEV) console.error('[Agenda] Erro ao persistir reordenação', err);
+      addToast('Não foi possível salvar a nova ordem dos compromissos', 'error');
+      reloadData();
+    });
+  }, [dayMap, seedCommitments, userId, addToast, reloadData]);
 
   // --- Alarm handlers ---
   const openAlarm = useCallback((c: AgendaCommitment) => {
@@ -906,7 +1067,7 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
     // Estrutura única de TODA faixa da agenda (vazia, de 1 linha ou fragmento de
     // multilinha): altura fixa = AGENDA_ROW_HEIGHT; a régua vem UMA vez da pauta
     // global do caderno — nenhuma linha desenha a própria régua.
-    const rowCls = `relative flex items-end gap-2 md:gap-3 -mx-4 px-4 ${todayCls}`;
+    const rowCls = `relative flex items-end gap-1.5 md:gap-3 -mx-2 px-2 sm:-mx-4 sm:px-4 ${todayCls}`;
 
     const firstCommit = commitments[0];
     const restCommits = commitments.slice(1);
@@ -916,8 +1077,8 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
 
     const dayLabel = (
       <span
-        className={`inline-flex items-baseline whitespace-nowrap gap-1 w-[62px] md:w-[70px] shrink-0 text-[15px] leading-[17px] font-black uppercase tracking-wider translate-y-[1px] ${
-          isToday ? 'text-sky-700 ring-2 ring-sky-500 rounded-full px-1.5' : isWeekend ? 'text-rose-500' : 'text-slate-500'
+        className={`inline-flex items-baseline whitespace-nowrap gap-1 w-[62px] min-w-[62px] max-w-[85px] md:w-[70px] md:min-w-[70px] shrink-0 text-[14px] md:text-[15px] leading-[17px] font-black uppercase tracking-wider translate-y-[1px] pr-1.5 ${
+          isToday ? 'text-sky-700 ring-1.5 ring-sky-500 rounded-full px-1' : isWeekend ? 'text-rose-500' : 'text-slate-500'
         }`}
       >
         <span className="shrink-0">{dayOfWeek}</span>
@@ -929,7 +1090,7 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
     // completo (para medição de quebra) + fragmento 1 (ou o título completo).
     const titleSpan = (c: AgendaCommitment, fragments: string[] | null) => (
       <span
-        className={`flex-1 text-sm leading-[17px] break-words cursor-text relative min-w-0 translate-y-[1.5px] font-bold ${
+        className={`flex-1 text-[13px] sm:text-sm leading-[17px] tracking-tight sm:tracking-normal break-words cursor-text relative min-w-0 translate-y-[1.5px] font-bold ${
           c.completed ? 'line-through text-slate-400' : 'text-slate-800'
         }`}
         data-title-anchor={c.id}
@@ -957,7 +1118,7 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
               style={{ height: AGENDA_ROW_HEIGHT }}
             >
               <span
-                className={`flex-1 text-sm leading-[17px] break-words cursor-text min-w-0 translate-y-[1.5px] font-bold ${
+                className={`flex-1 text-[13px] sm:text-sm leading-[17px] tracking-tight sm:tracking-normal break-words cursor-text min-w-0 translate-y-[1.5px] font-bold ${
                   c.completed ? 'line-through text-slate-400' : 'text-slate-800'
                 }`}
                 data-fragment-line
@@ -969,11 +1130,52 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
           ))
         : null;
 
-    const controls = (c: AgendaCommitment) => (
-      <>
+    const reorderButtons = (index: number) => {
+      if (commitments.length <= 1) return null;
+      return (
+        <div className="flex items-center gap-0 md:gap-0.5 shrink-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity" data-testid={`agenda-reorder-group-${index}`}>
+          <button
+            type="button"
+            disabled={index === 0}
+            onClick={(e) => {
+              e.stopPropagation();
+              shiftCommitment(key, index, index - 1);
+            }}
+            className={`p-0.5 transition-colors ${
+              index === 0 ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-sky-600'
+            }`}
+            title="Subir compromisso"
+            aria-label="Subir compromisso"
+            data-testid={`agenda-reorder-up-${index}`}
+          >
+            <ChevronUp size={13} className="w-[13px] h-[13px] md:w-[14px] md:h-[14px]" />
+          </button>
+          <button
+            type="button"
+            disabled={index === commitments.length - 1}
+            onClick={(e) => {
+              e.stopPropagation();
+              shiftCommitment(key, index, index + 1);
+            }}
+            className={`p-0.5 transition-colors ${
+              index === commitments.length - 1 ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-sky-600'
+            }`}
+            title="Descer compromisso"
+            aria-label="Descer compromisso"
+            data-testid={`agenda-reorder-down-${index}`}
+          >
+            <ChevronDown size={13} className="w-[13px] h-[13px] md:w-[14px] md:h-[14px]" />
+          </button>
+        </div>
+      );
+    };
+
+    const controls = (c: AgendaCommitment, index: number) => (
+      <div className="shrink-0 flex items-center gap-0.5 sm:gap-1 ml-auto">
         {commitmentTimeLabel(c) && (
-          <span className="text-[11px] font-mono text-slate-400 shrink-0">{commitmentTimeLabel(c)}</span>
+          <span className="text-[10px] sm:text-[11px] font-mono text-slate-400 shrink-0 tracking-tight sm:tracking-normal">{commitmentTimeLabel(c)}</span>
         )}
+        {reorderButtons(index)}
         <button
           onClick={() => openAlarm(c)}
           className={`transition-colors p-0.5 shrink-0 ${
@@ -982,21 +1184,21 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
           title={c.alarmAt ? 'Alarme definido' : 'Definir alarme'}
         >
           {c.alarmAt
-            ? <Bell size={24} fill="currentColor" className="w-[22px] h-[22px] md:w-[18px] md:h-[18px]" />
-            : <BellOff size={24} className="w-[22px] h-[22px] md:w-[18px] md:h-[18px]" />}
+            ? <Bell size={14} fill="currentColor" className="w-[14px] h-[14px]" />
+            : <BellOff size={14} className="w-[14px] h-[14px]" />}
         </button>
         <button
           onClick={() => c.id && openDeleteConfirm(c.id, c.title)}
-          className="text-slate-400 hover:text-red-500 transition-all p-0.5 shrink-0"
+          className="text-slate-400 hover:text-red-500 md:opacity-0 md:group-hover:opacity-100 transition-all p-0.5 shrink-0"
           title="Excluir"
         >
-          <Trash2 size={24} className="w-[22px] h-[22px] md:w-[18px] md:h-[18px]" />
+          <Trash2 size={14} className="w-[14px] h-[14px]" />
         </button>
-      </>
+      </div>
     );
 
     const editInput = (commitId: string | undefined) => (
-      <>
+      <div className="flex items-center gap-1.5 flex-1 bg-white rounded-xl shadow-md border border-sky-400 ring-2 ring-sky-100 px-2.5 py-1 z-30 relative -my-1">
         <AutoResizeTextarea
           value={editText}
           onChange={(e) => setEditText(e.target.value)}
@@ -1008,18 +1210,25 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
             }
             if (e.key === 'Escape') setEditingId(null);
           }}
-          className="flex-1 text-sm text-slate-800 min-w-0"
+          className="flex-1 text-[13px] sm:text-sm text-slate-800 min-w-0 tracking-tight sm:tracking-normal bg-transparent focus:outline-none"
           autoFocus
           rows={1}
         />
         <button
           onClick={() => commitId && commitEdit(commitId)}
-          className="shrink-0 text-emerald-500 hover:text-emerald-600 p-[1px] self-start mt-1"
+          className="shrink-0 text-emerald-600 hover:text-emerald-700 p-0.5 self-center transition-colors"
           title="Confirmar"
         >
-          <Check size={28} strokeWidth={3} className="w-[25px] h-[25px] md:w-[21px] md:h-[21px]" />
+          <Check size={16} strokeWidth={3} className="w-[16px] h-[16px]" />
         </button>
-      </>
+        <button
+          onClick={() => setEditingId(null)}
+          className="text-slate-400 hover:text-slate-600 p-0.5 shrink-0 self-center transition-colors"
+          title="Cancelar"
+        >
+          <X size={16} className="w-[16px] h-[16px]" />
+        </button>
+      </div>
     );
 
     // Controles do input de ADIÇÃO (dia vazio e dias com compromissos). Compartilhados
@@ -1027,8 +1236,8 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
     // linha é a própria linha da data (primeira linha); para dias preenchidos é a linha
     // vazia logo abaixo. Assim o clique, o cursor e a renderização final coincidem.
     const addInputControls = () => (
-      <>
-        <div className="shrink-0 w-4 h-4 rounded border-2 border-dashed border-sky-300" />
+      <div className="flex items-center gap-1.5 flex-1 bg-white rounded-xl shadow-md border border-sky-400 ring-2 ring-sky-100 px-2.5 py-1 z-30 relative -my-1">
+        <div className="shrink-0 w-3.5 h-3.5 rounded border-2 border-dashed border-sky-400" />
         <AutoResizeTextarea
           value={addText}
           onChange={(e) => setAddText(e.target.value)}
@@ -1041,24 +1250,25 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
             if (e.key === 'Escape') setAddingDayKey(null);
           }}
           placeholder="Digite o compromisso..."
-          className="flex-1 text-sm text-slate-700 placeholder-slate-400"
+          className="flex-1 text-[13px] sm:text-sm text-slate-700 placeholder-slate-400 tracking-tight sm:tracking-normal bg-transparent focus:outline-none"
           autoFocus
           rows={1}
         />
         <button
           onClick={() => commitAdd(dateObj)}
-          className="shrink-0 text-emerald-500 hover:text-emerald-600 p-[1px] self-start mt-1"
+          className="shrink-0 text-emerald-600 hover:text-emerald-700 p-0.5 self-center transition-colors"
           title="Confirmar"
         >
-          <Check size={28} strokeWidth={3} className="w-[25px] h-[25px] md:w-[21px] md:h-[21px]" />
+          <Check size={16} strokeWidth={3} className="w-[16px] h-[16px]" />
         </button>
         <button
           onClick={() => setAddingDayKey(null)}
-          className="text-slate-400 hover:text-slate-600 p-0.5 shrink-0 self-start mt-1"
+          className="text-slate-400 hover:text-slate-600 p-0.5 shrink-0 self-center transition-colors"
+          title="Cancelar"
         >
-          <X size={24} className="w-[22px] h-[22px] md:w-[18px] md:h-[18px]" />
+          <X size={16} className="w-[16px] h-[16px]" />
         </button>
-      </>
+      </div>
     );
 
     const checkbox = (c: AgendaCommitment) => (
@@ -1070,7 +1280,7 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
             : 'border-slate-300 hover:border-sky-400'
         }`}
       >
-        {c.completed && <Check size={18} strokeWidth={3} className="w-[18px] h-[18px] md:w-[15px] md:h-[15px]" />}
+        {c.completed && <Check size={11} strokeWidth={3} className="w-[11px] h-[11px]" />}
       </button>
     );
 
@@ -1103,7 +1313,7 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
                 <>
                   {checkbox(firstCommit)}
                   {titleSpan(firstCommit, firstFragments)}
-                  {controls(firstCommit)}
+                  {controls(firstCommit, 0)}
                 </>
               ))
           )}
@@ -1113,7 +1323,7 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
         {continuationRows(firstCommit, firstFragments)}
 
         {/* Demais compromissos: cada um em faixa própria + fragmentos */}
-        {restCommits.map((c) => {
+        {restCommits.map((c, restIdx) => {
           const cId = c.id ?? '';
           const cLines = cId ? commitLines[cId] : undefined;
           const cFragments = cLines && cLines.length > 1 ? cLines : null;
@@ -1124,14 +1334,14 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
                 className={`${rowCls} hover:bg-sky-50/50 rounded-sm group`}
                 style={{ height: AGENDA_ROW_HEIGHT }}
               >
-                <span className="w-[62px] md:w-[70px] shrink-0" aria-hidden="true" />
+                <span className="w-[62px] min-w-[62px] max-w-[85px] md:w-[70px] md:min-w-[70px] shrink-0 pr-1.5" aria-hidden="true" />
                 {editingId === c.id ? (
                   editInput(c.id)
                 ) : (
                   <>
                     {checkbox(c)}
                     {titleSpan(c, cFragments)}
-                    {controls(c)}
+                    {controls(c, restIdx + 1)}
                   </>
                 )}
               </div>
@@ -1142,26 +1352,26 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
 
         {!isEmpty ? (
           isAdding ? (
-            <div className="relative flex items-end gap-2 md:gap-3 -mx-4 px-4" style={{ height: AGENDA_ROW_HEIGHT }}>
-              <span className="w-[62px] md:w-[70px] shrink-0" aria-hidden="true" />
+            <div className="relative flex items-end gap-1.5 md:gap-3 -mx-2 px-2 sm:-mx-4 sm:px-4" style={{ height: AGENDA_ROW_HEIGHT }}>
+              <span className="w-[62px] min-w-[62px] max-w-[85px] md:w-[70px] md:min-w-[70px] shrink-0 pr-1.5" aria-hidden="true" />
               {addInputControls()}
             </div>
           ) : (
             <div
-              className="relative flex items-end gap-2 md:gap-3 -mx-4 px-4 cursor-pointer hover:bg-sky-50/50 rounded-sm group"
+              className="relative flex items-end gap-1.5 md:gap-3 -mx-2 px-2 sm:-mx-4 sm:px-4 cursor-pointer hover:bg-sky-50/50 rounded-sm group"
               onClick={() => startAdd(key)}
               style={{ height: AGENDA_ROW_HEIGHT }}
             >
-              <span className="w-[62px] md:w-[70px] shrink-0" aria-hidden="true" />
+              <span className="w-[62px] min-w-[62px] max-w-[85px] md:w-[70px] md:min-w-[70px] shrink-0 pr-1.5" aria-hidden="true" />
             </div>
           )
         ) : (
           <div
-            className="relative flex items-end gap-2 md:gap-3 -mx-4 px-4"
+            className="relative flex items-end gap-1.5 md:gap-3 -mx-2 px-2 sm:-mx-4 sm:px-4"
             style={{ height: AGENDA_ROW_HEIGHT }}
             aria-hidden="true"
           >
-            <span className="w-[62px] md:w-[70px] shrink-0" aria-hidden="true" />
+            <span className="w-[62px] min-w-[62px] max-w-[85px] md:w-[70px] md:min-w-[70px] shrink-0 pr-1.5" aria-hidden="true" />
           </div>
         )}
       </div>
@@ -1189,7 +1399,7 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
           <p className="text-slate-500 text-sm">Faça login para usar a Agenda.</p>
         </div>
       ) : (
-        <div className="max-w-4xl mx-auto px-4 pb-28">
+        <div className="max-w-4xl mx-auto px-2 sm:px-4 pb-28">
 
           {/* Cabeçalho fixo — seção + mês/ano sempre visíveis durante o scroll.
               Usa `fixed` (não `sticky`): o AppLayout tem <main overflow-y-auto>,
@@ -1197,78 +1407,119 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
               engatar. UMA estrutura única responsiva (testids não duplicados):
               mobile 2 linhas (título+atalhos / navegação de mês); desktop 1 linha
               h-14 com o mês sobreposto ao centro, inalterado. */}
+          {/* BARRA FIXA ÚNICA — topo absoluto em relação à viewport.
+              Reestruturação em CSS Grid soberano:
+              - Mobile: 2 linhas limpas (Linha 1: Título + Ações; Linha 2: Navegação de Mês).
+              - Desktop: 3 colunas fluidas em linha única (md:grid-cols-[auto_1fr_auto]),
+                onde o mês vive na coluna central (1fr) com justify-self-center,
+                eliminando 100% qualquer risco geométrico de sobreposição sobre o Nexus. */}
           <div
             ref={monthHeaderRef}
             data-testid="agenda-header"
-            className="fixed top-[calc(4rem+env(safe-area-inset-top))] left-0 right-0 z-[90] isolate bg-white border-b border-slate-100 md:h-14"
+            className="fixed top-[calc(4rem+env(safe-area-inset-top))] left-0 right-0 z-[90] isolate bg-white border-b border-slate-100"
           >
-            <div className="relative max-w-4xl mx-auto md:h-full md:flex md:items-center md:px-4">
-              {/* Linha 1 — título (esq.) + HOJE/Próximos (dir.). No desktop preenche
-                  a linha inteira e empurra os atalhos para a extremidade direita. */}
-              <div className="relative z-10 flex items-center justify-between gap-3 h-11 w-full px-4 md:h-auto md:w-full md:flex-1 md:px-0">
-                <h1 className="text-sm font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+            <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-[auto_1fr_auto] items-center gap-x-2 gap-y-1 w-full px-3 md:px-4 py-1.5 md:py-0 md:h-14">
+              {/* Bloco 1 — título e status (Coluna 1) */}
+              <div className="flex items-center gap-2 min-w-0 justify-self-start">
+                <h1 className="text-sm font-black text-slate-900 uppercase tracking-tight flex items-center gap-2 shrink-0">
                   <CalendarDays size={18} className="text-sky-600" />
                   Agenda
                 </h1>
-
-                <div className="relative z-10 flex items-center gap-2 pointer-events-auto">
-                  <button
-                    type="button"
-                    onClick={handleOpenNexus}
-                    onKeyDown={handleNexusTriggerKeyDown}
-                    ref={nexusTriggerRef}
-                    aria-label="Abrir Nexus na Agenda"
-                    aria-expanded={showAgendaNexus}
-                    aria-controls="agenda-nexus-panel"
-                    title="Nexus na Agenda"
-                    data-testid="agenda-nexus-trigger"
-                    className="relative z-10 inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-1 active:scale-95 md:px-3.5"
+                {!isOnline && (
+                  <span
+                    data-testid="agenda-offline-badge"
+                    title="Modo Offline: Seus compromissos continuam salvos no aparelho."
+                    className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] md:text-[11px] font-black uppercase tracking-wider text-amber-700 shadow-xs shrink-0"
                   >
-                    <Sparkles size={15} aria-hidden="true" />
-                    <span>Nexus na Agenda</span>
-                  </button>
-                  {userId && (
-                    <button
-                      type="button"
-                      onClick={handleSyncBills}
-                      disabled={isSyncingBills}
-                      aria-label="Sincronizar contas do Controla"
-                      title="Sincronizar contas do Controla para este mês"
-                      data-testid="agenda-sync-bills"
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-1 active:scale-95 disabled:opacity-50 md:py-1.5"
-                    >
-                      <RefreshCw size={13} className={isSyncingBills ? 'animate-spin text-sky-600' : 'text-slate-500'} />
-                      <span className="hidden sm:inline">Sincronizar Contas</span>
-                    </button>
-                  )}
-                  {userId && (
-                    <button
-                      type="button"
-                      onClick={goToday}
-                      aria-label="Ir para hoje"
-                      title="Ir para hoje"
-                      data-testid="agenda-hoje"
-                      className="bg-sky-500 text-white px-3.5 py-2 md:py-1.5 rounded-xl shadow hover:bg-sky-600 transition-all active:scale-95 text-sm font-bold"
-                    >
-                      HOJE
-                    </button>
-                  )}
-                  <button
-                    onClick={toggleUpcoming}
-                    data-testid="agenda-proximos-toggle"
-                    className="bg-sky-500 text-white px-3.5 py-2 md:py-1.5 rounded-lg shadow hover:bg-sky-600 transition-all active:scale-95 text-sm font-bold"
+                    <WifiOff size={12} className="text-amber-600 shrink-0" />
+                    <span>Offline</span>
+                  </span>
+                )}
+                {isSyncingQueue && (
+                  <span
+                    data-testid="agenda-syncing-badge"
+                    title="Sincronizando compromissos com a nuvem..."
+                    className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] md:text-[11px] font-black uppercase tracking-wider text-emerald-700 shadow-xs shrink-0"
                   >
-                    Próximos
-                  </button>
-                </div>
+                    <RefreshCw size={12} className="animate-spin text-emerald-600 shrink-0" />
+                    <span className="hidden sm:inline">Sincronizando...</span>
+                  </span>
+                )}
               </div>
 
-              {/* Linha 2 (mobile) — navegação de mês; no desktop sobreposto ao
-                  centro (absolute) da linha única. */}
-              <div className="relative z-0 flex items-center justify-center gap-1 h-10 md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2">
+              {/* Bloco 2 — ações (Nexus, Sincronizar, HOJE, Próximos)
+                  No mobile: canto superior direito (col 2, row 1).
+                  No desktop: coluna 3 à direita via md:order-3. */}
+              <div className="justify-self-end flex items-center gap-1.5 md:gap-2 shrink-0 md:order-3">
+                <button
+                  type="button"
+                  onClick={handleOpenNexus}
+                  onKeyDown={handleNexusTriggerKeyDown}
+                  ref={nexusTriggerRef}
+                  aria-label="Abrir Nexus na Agenda"
+                  aria-expanded={showAgendaNexus}
+                  aria-controls="agenda-nexus-panel"
+                  title="Nexus na Agenda"
+                  data-testid="agenda-nexus-trigger"
+                  className="relative inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-2 py-1.5 md:px-3 text-xs font-black text-emerald-700 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-1 active:scale-95 shrink-0"
+                >
+                  <Sparkles size={14} aria-hidden="true" className="shrink-0" />
+                  <span className="hidden xl:inline">Nexus na Agenda</span>
+                  <span className="xl:hidden">Nexus</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowShortcutModal(true)}
+                  aria-label="Atalho da Agenda no celular"
+                  title="Criar atalho da Agenda na tela do celular"
+                  data-testid="agenda-shortcut-trigger"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-2 py-1.5 md:px-2.5 text-xs font-bold text-sky-700 shadow-sm transition hover:bg-sky-100 hover:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-1 active:scale-95 shrink-0"
+                >
+                  <Smartphone size={13} className="text-sky-600 shrink-0" />
+                  <span className="hidden xl:inline">Atalho</span>
+                </button>
+                {userId && (
+                  <button
+                    type="button"
+                    onClick={handleSyncBills}
+                    disabled={isSyncingBills}
+                    aria-label="Sincronizar contas do Controla"
+                    title="Sincronizar contas do Controla para este mês"
+                    data-testid="agenda-sync-bills"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2 py-1.5 md:px-2.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-1 active:scale-95 disabled:opacity-50 shrink-0"
+                  >
+                    <RefreshCw size={13} className={isSyncingBills ? 'animate-spin text-sky-600' : 'text-slate-500'} />
+                    <span className="hidden xl:inline">Sincronizar Contas</span>
+                  </button>
+                )}
+                {userId && (
+                  <button
+                    type="button"
+                    onClick={goToday}
+                    aria-label="Ir para hoje"
+                    title="Ir para hoje"
+                    data-testid="agenda-hoje"
+                    className="bg-sky-500 text-white px-2 py-1.5 md:px-2.5 rounded-xl shadow hover:bg-sky-600 transition-all active:scale-95 text-xs md:text-sm font-bold shrink-0"
+                  >
+                    HOJE
+                  </button>
+                )}
+                <button
+                  onClick={toggleUpcoming}
+                  data-testid="agenda-proximos-toggle"
+                  className="bg-sky-500 text-white px-2 py-1.5 md:px-2.5 rounded-lg shadow hover:bg-sky-600 transition-all active:scale-95 text-xs md:text-sm font-bold shrink-0"
+                >
+                  Próximos
+                </button>
+              </div>
+
+              {/* Bloco 3 — Navegação de mês
+                  No mobile: linha 2 (col-span-2).
+                  No desktop: coluna central (md:order-2 md:col-span-1), centralizado com justify-self-center sem NENHUM absolute! */}
+              <div className="col-span-2 md:col-span-1 justify-self-center flex items-center justify-center gap-0.5 md:gap-1 md:order-2 w-full md:w-auto py-0.5 md:py-0">
                 <button
                   onClick={goPrevMonth}
-                  className="p-2.5 md:p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-500 hover:text-slate-800 shrink-0"
+                  className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-500 hover:text-slate-800 shrink-0"
                   aria-label="Mês anterior"
                   data-testid="agenda-prev-month"
                 >
@@ -1277,7 +1528,7 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
                 <span
                   data-testid="agenda-month-label"
                   aria-live="polite"
-                  className="text-sm font-black text-slate-800 uppercase tracking-tight text-center mx-1"
+                  className="text-xs sm:text-sm font-black text-slate-800 uppercase tracking-tight text-center mx-1 whitespace-nowrap"
                 >
                   <time dateTime={`${activeYear}-${String(activeMonth + 1).padStart(2, '0')}`}>
                     {MONTHS[activeMonth]} {activeYear}
@@ -1285,7 +1536,7 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
                 </span>
                 <button
                   onClick={goNextMonth}
-                  className="p-2.5 md:p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-500 hover:text-slate-800 shrink-0"
+                  className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-500 hover:text-slate-800 shrink-0"
                   aria-label="Próximo mês"
                   data-testid="agenda-next-month"
                 >
@@ -1293,7 +1544,7 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
                 </button>
                 <button
                   onClick={openCalendar}
-                  className="p-2.5 md:p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-500 hover:text-slate-800 shrink-0"
+                  className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-500 hover:text-slate-800 shrink-0"
                   aria-label="Ir para data"
                   title="Ir para data"
                   data-testid="agenda-open-calendar-header"
@@ -1306,8 +1557,8 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
 
           {/* Espaçador que reserva a altura do cabeçalho fixo para o caderno não
               ficar escondido sob a barra. Mobile: altura das duas linhas
-              (4.4rem ≈ 84px) via min-height. Desktop: h-14 (56px), inalterado. */}
-          <div className="min-h-[88px] md:min-h-14" aria-hidden="true" />
+              (min-h-[84px]). Desktop: h-14 (56px). */}
+          <div className="min-h-[84px] md:min-h-14" aria-hidden="true" />
 
           {showAgendaNexus && (
             <div
@@ -1343,11 +1594,11 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
             </h2>
             <button
               onClick={() => setShowUpcoming(false)}
-              className="text-slate-400 hover:text-slate-600 transition-colors p-0.5"
+              className="p-2 -mr-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
               aria-label="Voltar ao caderno"
               data-testid="agenda-proximos-close"
             >
-              <X size={14} />
+              <X size={16} />
             </button>
           </div>
 
@@ -1433,11 +1684,11 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
                       </span>
                     )}
                     <button
-onClick={() => c.id && openDeleteConfirm(c.id, c.title)}
-                      className="text-slate-400 hover:text-red-500 transition-all p-0.5"
+                      onClick={() => c.id && openDeleteConfirm(c.id, c.title)}
+                      className="text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg p-1 transition-all shrink-0"
                       title="Excluir"
                     >
-                      <Trash2 size={24} className="w-[22px] h-[22px] md:w-[18px] md:h-[18px]" />
+                      <Trash2 size={16} className="w-[16px] h-[16px]" />
                     </button>
                   </div>
                 );
@@ -1455,7 +1706,7 @@ onClick={() => c.id && openDeleteConfirm(c.id, c.title)}
               reduzia a área útil; a folha pautada + linhas horizontais seguem
               intocadas, regidas pela pauta global do caderno. */}
 
-          <div className="relative pl-4 pr-4" data-notebook-content style={{ ...agendaPautaStyle, overflowAnchor: 'none' }}>
+          <div className="relative pl-2 pr-2 sm:pl-4 sm:pr-4" data-notebook-content style={{ ...agendaPautaStyle, overflowAnchor: 'none' }}>
             {initialLoading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="w-5 h-5 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
@@ -1488,9 +1739,9 @@ onClick={() => c.id && openDeleteConfirm(c.id, c.title)}
 
       {/* POPOVER — Configurar alarme */}
       {alarmTarget && (
-        <div className="fixed inset-0 z-[100] bg-black/30 flex items-end md:items-center justify-center p-4" onClick={() => setAlarmTarget(null)}>
+        <div className="fixed inset-0 z-[100] bg-black/30 flex items-end md:items-center justify-center p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]" onClick={() => setAlarmTarget(null)}>
           <div
-            className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl space-y-5"
+            className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
@@ -1543,12 +1794,12 @@ onClick={() => c.id && openDeleteConfirm(c.id, c.title)}
       {/* POPOVER — Calendário de navegação rápida */}
       {calendarOpen && (
         <div
-          className="fixed inset-0 z-[100] bg-black/30 flex items-end md:items-center justify-center p-4"
+          className="fixed inset-0 z-[100] bg-black/30 flex items-end md:items-center justify-center p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
           onClick={() => setCalendarOpen(false)}
           data-testid="agenda-calendar-popover"
         >
           <div
-            className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl space-y-4"
+            className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
@@ -1680,6 +1931,127 @@ onClick={() => c.id && openDeleteConfirm(c.id, c.title)}
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PEDAGÓGICO — Atalho da Agenda na Tela Inicial */}
+      {showShortcutModal && (
+        <div
+          className="fixed inset-0 z-[1000] bg-slate-900/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-3 sm:p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] animate-in fade-in duration-200"
+          onClick={() => setShowShortcutModal(false)}
+          data-testid="agenda-shortcut-modal"
+        >
+          <div
+            className="bg-white rounded-3xl w-full max-w-md p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto border border-slate-100 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Cabeçalho do Modal */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-sky-50 flex items-center justify-center text-sky-600">
+                  <Smartphone size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">Atalho da Agenda</h3>
+                  <p className="text-[11px] font-semibold text-slate-500">Acesso instantâneo com 1 toque</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowShortcutModal(false)}
+                className="p-1.5 hover:bg-slate-100 rounded-xl transition-colors text-slate-400 hover:text-slate-700"
+                aria-label="Fechar"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Card com o Ícone Master Exclusivo 3D */}
+            <div className="p-4 rounded-2xl bg-gradient-to-b from-sky-50/70 to-blue-50/40 border border-sky-100 flex items-center gap-4">
+              <div className="relative shrink-0">
+                <img
+                  src="/assets/images/brand/agenda-icon.png"
+                  alt="Ícone Agenda Finanças Pro Invest"
+                  className="w-16 h-16 rounded-2xl shadow-lg border-2 border-white object-cover"
+                />
+                <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center text-[10px] text-white font-black">
+                  ✓
+                </span>
+              </div>
+              <div className="min-w-0">
+                <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-sky-100 text-sky-800 text-[10px] font-black uppercase tracking-wider mb-1">
+                  Identidade Finanças Pro
+                </div>
+                <h4 className="text-sm font-black text-slate-900 leading-snug">Ícone 3D Oficial</h4>
+                <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                  Design harmonizado com a identidade visual do Finanças Pro Invest, com acabamento safira e detalhes em ouro.
+                </p>
+              </div>
+            </div>
+
+            {/* Explicação Pedagógica: Por que criar o atalho? */}
+            <div className="space-y-2.5 text-xs text-slate-600 leading-relaxed">
+              <div className="flex items-start gap-2.5">
+                <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5 text-[11px] font-black">
+                  1
+                </div>
+                <p>
+                  <strong className="text-slate-800 font-bold">Sem passos intermediários:</strong> Toque no ícone da Agenda na sua tela inicial e você será levado diretamente aos seus compromissos, sem precisar carregar a tela principal primeiro.
+                </p>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <div className="w-5 h-5 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center shrink-0 mt-0.5 text-[11px] font-black">
+                  2
+                </div>
+                <p>
+                  <strong className="text-slate-800 font-bold">Funciona Offline:</strong> Mesmo sem internet, o atalho abre imediatamente o caderno com os dados já salvos no seu aparelho.
+                </p>
+              </div>
+            </div>
+
+            {/* Ação Dinâmica Principal */}
+            {AgendaShortcutService.isNativeAndroid() ? (
+              <button
+                type="button"
+                onClick={handleRequestShortcut}
+                disabled={isPinningShortcut}
+                className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-bold text-sm shadow-md hover:shadow-lg hover:brightness-105 active:scale-98 transition flex items-center justify-center gap-2"
+              >
+                <Smartphone size={18} />
+                <span>{isPinningShortcut ? 'Solicitando ao Android...' : 'Adicionar Atalho à Tela Inicial'}</span>
+              </button>
+            ) : null}
+
+            {/* Passo a Passo Pedagógico */}
+            <div className="pt-2 border-t border-slate-100 space-y-2">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 block">
+                Outras Formas Práticas de Acessar:
+              </span>
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2 text-[11px] text-slate-600">
+                <div className="flex items-start gap-2">
+                  <span className="font-black text-slate-700 shrink-0">Opção A (Toque Longo):</span>
+                  <span>
+                    Na tela inicial do celular, <strong>pressione e segure o ícone do Finanças Pro Invest</strong> por 1 segundo. No menu que surgir, segure a opção <strong>&quot;Agenda&quot;</strong> e arraste para sua tela inicial.
+                  </span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-black text-slate-700 shrink-0">Opção B (Navegador/PWA):</span>
+                  <span>
+                    No Chrome/Safari, toque no menu <strong className="text-slate-800">⋮</strong> (ou Compartilhar no iPhone) e selecione <strong className="text-slate-800">&quot;Adicionar à tela de início&quot;</strong>.
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              data-testid="agenda-shortcut-close"
+              onClick={() => setShowShortcutModal(false)}
+              className="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50 transition"
+            >
+              Fechar
+            </button>
           </div>
         </div>
       )}

@@ -51,11 +51,13 @@ export const HomeCursos: React.FC<Props> = ({ heroPersona, setHeroPersona, setSe
                   : 'bg-white border-slate-200 hover:border-slate-300'
               }`}
               onClick={() => {
-                let internalSlug: string | null = null;
-                if (course.slug === 'plano-realista-para-sair-das-dividas') internalSlug = 'dividas';
-                else if (course.slug === 'investidor-iniciante-seus-primeiros-passos') internalSlug = 'investidor-iniciante';
-                if (internalSlug) navigate(`/curso/${internalSlug}`);
-                else setSelectedCourse(course);
+                let internalSlug: string = course.slug;
+                if (course.slug === 'plano-realista-para-sair-das-dividas' || course.id === 'plano-realista-para-sair-das-dividas' || course.id === 'dividas') {
+                  internalSlug = 'dividas';
+                } else if (course.slug === 'investidor-iniciante-seus-primeiros-passos' || course.id === 'investidor-iniciante') {
+                  internalSlug = 'investidor-iniciante';
+                }
+                navigate(`/curso/${internalSlug}`);
               }}
             >
               <div>

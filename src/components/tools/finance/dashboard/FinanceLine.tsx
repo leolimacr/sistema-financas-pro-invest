@@ -84,6 +84,7 @@ interface FinanceCheckLineProps {
   title: string;
   hint?: string;
   value: string;
+  disabled?: boolean;
 }
 
 export const FinanceCheckLine: React.FC<FinanceCheckLineProps> = ({
@@ -92,13 +93,19 @@ export const FinanceCheckLine: React.FC<FinanceCheckLineProps> = ({
   title,
   hint,
   value,
+  disabled = false,
 }) => (
-  <label className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 py-1.5 cursor-pointer group md:grid md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center md:gap-x-6 md:py-2.5 md:border-b md:border-slate-100 md:last:border-b-0">
+  <label className={`flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 py-1.5 transition-opacity md:grid md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center md:gap-x-6 md:py-2.5 md:border-b md:border-slate-100 md:last:border-b-0 ${
+    disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer group'
+  }`}>
     <input
       type="checkbox"
       checked={checked}
-      onChange={onChange}
-      className="order-1 mt-0.5 h-3.5 w-3.5 shrink-0 self-start rounded border-surface-elevated text-brand-primary focus:ring-brand-primary/30 md:order-none md:col-start-1 md:row-span-2 md:mt-0 md:self-center"
+      disabled={disabled}
+      onChange={disabled ? undefined : onChange}
+      className={`order-1 mt-0.5 h-3.5 w-3.5 shrink-0 self-start rounded border-surface-elevated text-brand-primary focus:ring-brand-primary/30 md:order-none md:col-start-1 md:row-span-2 md:mt-0 md:self-center ${
+        disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+      }`}
     />
     {/* Mobile: título flexível com largura mínima — valor fica ao lado se couber,
         ou quebra para a linha de baixo do mesmo bloco se não houver espaço. */}

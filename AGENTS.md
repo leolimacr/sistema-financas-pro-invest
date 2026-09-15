@@ -6,6 +6,338 @@
 
 ## Progress
 ### Done
+- **Agenda — Atalho Soberano na Tela Inicial do Celular com Ícone 3D Exclusivo e Tutorial Pedagógico** (implementado 2026-09-15):
+  - **Identificação da Oportunidade & Necessidade**:
+    - O usuário precisava abrir o app Finanças Pro Invest e navegar até a aba da Agenda sempre que desejava consultar ou registrar um compromisso diário.
+    - Criar um atalho dedicado diretamente na tela inicial do smartphone com identidade visual própria (squircle azul safira acetinado, caderno executivo semiaberto com pautas, espirais em ouro e fita esmeralda) eleva a utilidade prática e o valor percebido da Agenda.
+  - **Ícone Master Exclusivo 3D Multi-Resolução**:
+    - Gerado asset master 3D em alta fidelidade (`public/assets/images/brand/agenda-icon.png`) combinando os traços corporativos do FPI.
+    - Exportado em todas as resoluções necessárias para a web e sistema nativo:
+      - PWA: `agenda-shortcut-192.webp`, `agenda-shortcut-192.png`, `agenda-shortcut-512.webp`, `agenda-shortcut-512.png`.
+      - Android Nativo: `ic_shortcut_agenda.png` em `drawable` e em todas as densidades `mipmap` (`mdpi`, `hdpi`, `xhdpi`, `xxhdpi`, `xxxhdpi`).
+  - **Arquitetura Nativa Android & PWA**:
+    - `shortcuts.xml` e `strings.xml`: Atalho estático registrado com deep link nativo `financaspro://agenda`.
+    - `AndroidManifest.xml`: Meta-data `android.app.shortcuts` configurado na `MainActivity`.
+    - `AgendaShortcutPlugin.java`: Plugin Capacitor nativo que expõe `isPinSupported` e `pinAgendaShortcut` usando `ShortcutManager.requestPinShortcut` (Android 8.0+ / API 26+).
+    - `manifest.json`: Array `"shortcuts"` configurado com o ícone da Agenda e rota `/app/agenda?source=pwa_shortcut`.
+    - `deepLinkRouter.ts` e `useAppState.ts`: Captura universal de `financaspro://` via `@capacitor/app` (`appUrlOpen` e `getLaunchUrl`), redirecionando diretamente para `/app/agenda` com custo zero de consultas Firestore (FinOps).
+  - **Interface e Modal Pedagógico (`AgendaHub.tsx`)**:
+    - Botão `Atalho no Celular` integrado na barra superior da Agenda com ícone `<Smartphone />`.
+    - Modal educativo ricamente ilustrado:
+      - Exibe prévia do ícone 3D oficial.
+      - Destaca benefícios práticos (acesso direto em 1 toque sem intermediários, funcionamento 100% offline).
+      - Botão nativo de 1 clique para fixar o atalho no Android.
+      - Guia passo a passo com método do toque longo (pressionar o ícone por 1s e arrastar a opção "Agenda") e método PWA/Navegador ("Adicionar à tela inicial").
+  - **Testes & Validação**:
+    - Suíte da Agenda expandida para 72 testes automatizados, todos passando com 100% de sucesso (`AgendaHub.test.tsx`).
+    - Build de produção Vite concluído em 58.69s com 0 erros.
+    - Sincronização nativa Android concluída com sucesso via `npx cap sync android`.
+    - Compilação nativa Java e montagem do APK debug (`./gradlew assembleDebug`) concluída com `BUILD SUCCESSFUL` em 1m 1s.
+
+- **Agenda — Blindagem Visual Opaca e Foco Limpo na Escrita/Edição de Compromissos** (implementado 2026-09-15):
+  - **Identificação da Causa Raiz**:
+    - O componente `AutoResizeTextarea` utilizava `bg-transparent`. As linhas azuis horizontais da pauta do caderno (`agendaPautaStyle`) passavam exatamente por trás do texto que o usuário estava digitando, criando confusão visual e cortando as palavras no meio.
+    - Se o compromisso tinha mais de 1 linha ou se o usuário editava um compromisso em dia preenchido, o textarea expandia verticalmente sobre as linhas vizinhas sem fundo opaco, misturando as letras do input com compromissos ou datas do fundo.
+    - Na edição (`editInput`), faltava o botão explícito de cancelamento (`X`), forçando o usuário mobile a depender de cliques externos ou teclado físico para cancelar.
+  - **Solução Arquitetural Aplicada (`AgendaHub.tsx`)**:
+    - **Contêiner de Escrita/Edição 100% Opaco (`bg-white`)**:
+      - `editInput` e `addInputControls` encapsulados em contêiner dedicado:
+        `flex items-center gap-1.5 flex-1 bg-white rounded-xl shadow-md border border-sky-400 ring-2 ring-sky-100 px-2.5 py-1 z-30 relative -my-1`.
+      - O fundo branco sólido bloqueia 100% das linhas azuis da pauta e de qualquer elemento ou texto de linhas inferiores caso o textarea cresça verticalmente.
+    - **Controles de Ação Claros e Focados**:
+      - Botão de confirmação (`Check` size={16} em verde esmeralda `text-emerald-600`) e botão de cancelamento (`X` size={16} em tom neutro `text-slate-400 hover:text-slate-600`) disponíveis tanto na adição quanto na edição.
+    - **Resultado**: Ao digitar ou editar, o usuário desfruta de um cartão flutuante límpido, nítido e com contraste preto sobre branco impecável, sem nenhuma interferência visual do fundo.
+  - **Testes & Validação**:
+    - 157 testes automatizados passando (incluindo 71 testes unitários em `AgendaHub.test.tsx`).
+    - Build de produção Vite concluído em 58.66s com 0 erros.
+    - Sincronização nativa Android concluída com sucesso via `npx cap sync android`.
+
+- **Agenda — Otimização Soberana do Espaço de Escrita e Quebra de Linhas no Mobile** (implementado 2026-09-15):
+  - **Identificação da Causa Raiz**:
+    - No smartphone (360px a 412px), as margens externas (`px-4`), o padding interno do caderno (`pl-4 pr-4`) e a fileira estática de controles à direita (`Horário`, `▲`, `▼`, `Bell`, `Trash2`) consumiam mais de 65% da largura da linha, deixando míseros 90px a 110px para o texto do compromisso.
+    - O algoritmo `measureCommitLines` usava a largura estreita da Linha 1 para fatiar o texto inteiro. Assim, compromissos médios ou grandes eram fragmentados em pedaços de apenas 2 a 3 palavras por linha, forçando o uso de 4 a 5 linhas na pauta, mesmo havendo mais de 300px disponíveis nas linhas de continuação subsequentes.
+  - **Solução Arquitetural Aplicada (`AgendaHub.tsx`)**:
+    - **Aumento de Largura Útil (+32px líquidos)**:
+      - Contêiner da página ajustado para `px-2 sm:px-4` e folha do caderno para `pl-2 pr-2 sm:pl-4 sm:pr-4`, com linhas em `-mx-2 px-2 sm:-mx-4 sm:px-4`, aproveitando a tela móvel de borda a borda.
+    - **Controles de Linha Compactos (+55px líquidos)**:
+      - Botões de reordenação (▲/▼), alarme (`Bell`/`BellOff`) e lixeira (`Trash2`) padronizados para `size={13-14}` com `gap-0.5 sm:gap-1`, reduzindo a pegada dos controles no mobile de ~110px para ~55px.
+    - **Tipografia Fluida de Alta Densidade**:
+      - Título do compromisso, continuação e inputs (`titleSpan`, `continuationRows`, `addInputControls`, `editInput`) configurados com `text-[13px] sm:text-sm leading-[17px] tracking-tight sm:tracking-normal font-bold`.
+    - **Resultado**: A capacidade útil por linha no mobile saltou de ~15 caracteres para **35 a 40 caracteres (6 a 8 palavras)**, reduzindo o número de linhas necessárias pela metade e eliminando o desperdício de espaço no caderno.
+  - **Testes & Validação**:
+    - Suíte da Agenda com 157 testes automatizados passando (incluindo 71 testes unitários em `AgendaHub.test.tsx`).
+    - Build de produção Vite concluído em 1m 4s com 0 erros.
+    - Sincronização nativa Android concluída com sucesso via `npx cap sync android`.
+
+- **Agenda — Auditoria Cirúrgica Definitiva: Fim da Sobreposição via CSS Grid e Blindagem de Acessibilidade Visual Mobile** (implementado 2026-09-15):
+  - **Identificação da Causa Raiz da Sobreposição (Desktop)**:
+    - O contêiner de largura máxima `max-w-4xl` (896px) tem centro geométrico em 448px. O bloco de ações à direita (`Nexus`, `Sincronizar`, `HOJE`, `Próximos`) mede ~484px, ocupando a faixa de 412px a 896px.
+    - O bloco de navegação de mês (`< SETEMBRO 2026 > 📅`) utilizava `md:absolute md:left-1/2 -translate-x-1/2`, ocupando de 329px a 567px.
+    - **A Colisão Matemática**: A faixa entre 412px e 567px (155px) possuía sobreposição física direta: a seta de avanço e o ícone de calendário ficavam desenhados diretamente sobre o botão **Nexus na Agenda**.
+  - **Identificação do Risco de Acessibilidade Visual (Mobile / Baixa Visão)**:
+    - Usuários com dificuldades visuais ativam o aumento de fonte do sistema operacional (Android/iOS com escala de 125% a 200%).
+    - O rótulo da data com largura estática e a linha única de altura fixa podiam empurrar o checkbox e cortar o texto do compromisso em telas estreitas (360px a 390px).
+    - Os modais de alarme e calendário não possuíam rolagem interna protegida para viewports com zoom extremo.
+  - **Solução Arquitetural Aplicada (`AgendaHub.tsx`)**:
+    - **CSS Grid de 3 Colunas Fluidas (Zero Absolute)**:
+      - `grid grid-cols-2 md:grid-cols-[auto_1fr_auto] items-center gap-x-2 gap-y-1 w-full px-3 md:px-4 py-1.5 md:py-0 md:h-14`.
+      - **Desktop**: Coluna 1 (Título & Badges `justify-self-start`), Coluna 2 (`1fr`, Mês centralizado via `md:order-2 justify-self-center`), Coluna 3 (Ações `justify-self-end md:order-3`). Como são células reais de CSS Grid, é matematicamente impossível uma coluna invadir o espaço da outra.
+      - **Mobile**: Linha 1 para Título e Ações (`grid-cols-2`), e Linha 2 dedicada para Navegação de Mês (`col-span-2 justify-self-center`), garantindo touch target amplo para navegação.
+    - **Blindagem de Acessibilidade Visual Mobile**:
+      - `dayLabel` configurado com `w-[62px] min-w-[62px] max-w-[85px] md:w-[70px] md:min-w-[70px] shrink-0 pr-1.5`, absorvendo números de dois dígitos mesmo com fontes grandes sem espremer o checkbox.
+      - Controles da linha do compromisso encapsulados em contêiner flexível `shrink-0 flex items-center gap-0.5 md:gap-1 ml-auto`, isolando o texto do compromisso (`flex-1 min-w-0`) e impedindo que botões quebrem ou fiquem encavalados.
+      - Modais de Alarme e Calendário equipados com `max-h-[90vh] overflow-y-auto` e padding de safe-area (`pb-[calc(1.5rem+env(safe-area-inset-bottom))]`), permitindo rolagem confortável em aparelhos com zoom ativado.
+  - **Testes & Validação**:
+    - 157 testes automatizados passando (incluindo 71 testes unitários em `AgendaHub.test.tsx`).
+    - Build de produção Vite concluído em 56.74s com 0 erros.
+    - Sincronização nativa Android concluída com sucesso via `npx cap sync android`.
+
+- **Agenda — Auditoria Completa de Layout, Sobreposição de Ícones e Acessibilidade de Toque (Desktop e Mobile)** (implementado 2026-09-15):
+  - **Identificação da Causa Raiz**:
+    - **Desktop**: A barra de navegação central de mês (`< Mês Ano > 📅`) utilizava `md:absolute md:left-1/2` com `z-0`, enquanto o bloco de botões de ação à direita somava cerca de 500px com `z-10`. Em viewports médias (768px a 1100px), os botões da direita sobrepunham diretamente a seta do próximo mês e o ícone de calendário, gerando bloqueio de cliques.
+    - **Mobile**: O botão do Nexus exibia o texto completo "Nexus na Agenda" e os botões tinham paddings largos, somando mais de 440px na linha superior e comprimindo o título "Agenda" e o badge de status em telas de 360px a 412px.
+    - **Pauta de 28px do Caderno**: O checkbox continha um ícone `Check` de 18px dentro de uma caixinha de 16x16px (`w-4 h-4`), transbordando as bordas. Os ícones de alarme (`Bell`) e exclusão (`Trash2`) estavam configurados com `size={24}` (22px de altura), ocupando quase toda a linha de 28px e encostando nas pautas horizontais. No desktop, ficavam permanentemente visíveis em todas as linhas sem efeito hover.
+    - **Rótulo do Dia de Hoje**: Em dias com 2 dígitos (ex: "QUI 28"), o badge circular com anel ultrapassava os 62px fixos e empurrava o checkbox para o lado, desalinhando-o das linhas subsequentes.
+    - **Touch Targets & Safe Area**: O botão de fechar do painel de Próximos era muito pequeno para toque no celular (`size={14}`, `p-0.5`), e os modais inferiores de alarme e calendário não respeitavam `env(safe-area-inset-bottom)`.
+  - **Correções Aplicadas**:
+    - `AgendaHub.tsx`:
+      - **Cabeçalho Desktop & Mobile**: Navegação de mês elevada para `z-20 pointer-events-auto`. Botões da direita agora possuem labels responsivos (`hidden xl:inline` para rótulos longos), botão do Nexus enxuto no mobile (`Nexus`), e paddings harmoniosos (`px-2.5 py-1.5`), eliminando 100% das colisões no desktop e no mobile.
+      - **Pauta de 28px**: Ícone `Check` do checkbox reduzido para `size={11}` com `strokeWidth={3}`, perfeitamente contido na caixinha de 16px. Ícones de ação (`Bell`, `Trash2`, `ChevronUp`, `ChevronDown`) padronizados para `size={15}` no mobile e `size={14}` no desktop. No desktop, reordenação e lixeira usam `md:opacity-0 md:group-hover:opacity-100 transition-opacity`, preservando o caderno limpo.
+      - **Dia de Hoje**: Tipografia do badge ajustada para `text-[14px]` com `ring-1.5` e `px-1`, encaixando em 58px sem empurrar os checkboxes.
+      - **Touch Targets**: Botão fechar de Próximos expandido para `p-2 rounded-xl` com `<X size={16} />`.
+      - **Safe Area**: Adicionado `pb-[calc(1.5rem+env(safe-area-inset-bottom))]` nos popovers inferiores no celular.
+  - **Testes & Validação**:
+    - Suíte da Agenda completa com 157 testes automatizados passando (incluindo 71 testes em `AgendaHub.test.tsx`).
+    - Build de produção Vite concluído em 57.84s com 0 erros.
+    - Sincronização nativa Android concluída com sucesso via `npx cap sync android`.
+
+- **Agenda — Arquitetura Offline-First com Cache Local em Disco, Fila de Sincronização Automática e Rigor FinOps** (implementado 2026-09-15):
+  - **Identificação da Causa Raiz**:
+    - Quando a conexão de internet caía ou oscilava, a Agenda tentava consultar o Firestore através de `getDocs(q)`. A falha de rede disparava o bloco `catch`, que executava `setAllMonths((prev) => ({ ...prev, [key]: [] }))`, zerando a exibição e apresentando um caderno totalmente vazio para o usuário.
+    - Qualquer tentativa de criar, editar, reordenar ou marcar um compromisso como concluído offline falhava no Firestore sem persistência local nem sincronização posterior.
+  - **Cache Local Soberano (`agendaCache.ts`)**:
+    - Criado sistema de persistência particionado por usuário e mês: `fpi_agenda_cache_${userId}_${year}_${month}`.
+    - Serialização resiliente de datas e instâncias de `Timestamp` (preservando métodos `.toDate()` e `.toMillis()`).
+    - Métodos atômicos: `loadMonthCache`, `saveMonthCache`, `upsertCachedCommitment`, `removeCachedCommitment`, `replaceCachedCommitmentId` e `clearUserAgendaCache`.
+  - **Fila de Sincronização de Mutações Offline (`agendaSyncQueue.ts`)**:
+    - Armazenamento persistente em `fpi_agenda_sync_queue_${userId}` para suportar fechamento e reabertura do app sem perda de dados.
+    - Operações enfileiradas: `add` (com `tempId`), `edit`, `delete`, `toggle` e `reorder`.
+    - Função `processAgendaSyncQueue`: ao detectar retorno da rede, envia as mutações acumuladas ao Firestore e notifica `onIdReplaced` para substituir `tempId` pelo ID definitivo do Firestore sem duplicações.
+  - **Camada de Serviço Híbrida (`agendaService.ts`)**:
+    - **Rigor FinOps**: `fetchMonthCommitments` checa `!navigator.onLine` e lê estritamente do cache local, impedindo cobranças ou erros no plano Blaze do Firebase. Se online, consulta apenas o mês sob demanda (`lazy loading` de `activeMonth ± 1`) e atualiza o cache local. Em falhas transitórias de rede, faz fallback para o cache local sem esvaziar os compromissos em tela.
+    - Operações CRUD offline: geram `tempId`, salvam no cache local imediatamente e enfileiram a mutação para posterior sincronização.
+  - **Feedback Visual e Sincronização Reativa (`AgendaHub.tsx`)**:
+    - Badges responsivos e discretos ao lado do título da Agenda: `<WifiOff /> Offline` (em tom âmbar) e `<RefreshCw className="animate-spin" /> Sincronizando...` (em verde esmeralda).
+    - Inscrição reativa em `window.addEventListener('online')` que dispara `processAgendaSyncQueue` e exibe notificação amigável (*"X compromissos sincronizados com a nuvem!"*).
+  - **Testes & Validação**:
+    - Criados 6 testes unitários em `src/agenda/__tests__/agendaCache.test.ts`.
+    - Criados 4 testes unitários em `src/agenda/__tests__/agendaSyncQueue.test.ts`.
+    - Criados 3 testes unitários em `src/services/__tests__/agendaService.offline.test.ts`.
+    - Suíte da Agenda completa com 157 testes automatizados passando (incluindo 71 testes em `AgendaHub.test.tsx`).
+    - Build de produção Vite concluído em 58.23s com 0 erros.
+    - Sincronização nativa Android concluída com sucesso via `npx cap sync android`.
+
+- **Notificações — Roteamento Soberano e Direcionamento Cirúrgico (Mobile, Web e Sininho)** (implementado 2026-09-14):
+  - **Identificação da Causa Raiz**:
+    - No mobile nativo (Android/Capacitor), o listener `LocalNotifications.addListener('localNotificationActionPerformed', ...)` em `useAppState.ts` possuía um filtro rígido (`if (!deepLink?.startsWith('app://mark-bill-paid/')) return;`), descartando qualquer notificação da Agenda, Dívidas ou Investimentos ao ser tocada na gaveta do celular.
+    - No agendamento de alarmes da Agenda (`alarmService.ts`), o payload `extra` omitia `deepLink: '/app/agenda'`, e no navegador desktop (`n.onclick`) não havia instrução de foco/navegação para a rota `/app/agenda`.
+    - No drawer do sininho (`NotificationHub.tsx`), apenas o textinho do CTA (`ctaLabel`) possuía clique; clicar no card, no título ou na mensagem não realizava nenhuma ação. Ademais, rotas e termos sem mapeamento (`'cartoes'`, `'despesas'`, `'controla'`, `'patrimonio'`) caíam em fallbacks que redirecionavam para a raiz `/`.
+  - **Motor Central Canônico de Roteamento (`deepLinkRouter.ts`)**:
+    - Criada a função pura `resolveAppRoute(target?: string, eventType?: string): string`.
+    - Converte com precisão termos brutos e esquemas nas rotas canônicas: `'agenda'` / `agenda.*` -> `/app/agenda`; `'controla'` / `'despesas'` / `'manager'` / `finance.*` -> `/app/controla`; `'transaction-form'` -> `/app/controla?action=new-transaction`; `'cartoes'` / `'faturas'` -> `/app/controla?tab=cartoes`; `'minhas-dividas'` / `debt.*` -> `/app/minhas-dividas`; `'investimentos'` / `wealth.aport*` -> `/app/investimentos`; `'passivos'` / `'patrimonio'` -> `/app/passivos`; `'metas'` -> `/app/metas`; `'ia'` / `'chat'` -> `/app/ia`.
+    - **FinOps & Zero Custo**: O roteamento é puramente de cliente (client-side React Router / Capacitor), sem disparar nenhuma consulta extra ao Firebase/Firestore no momento do clique.
+  - **Mobile Nativo (`useAppState.ts`)**:
+    - Listener universal habilitado para interceptar qualquer notificação tocada.
+    - Resolve a rota via `resolveAppRoute(deepLink, eventType)` e navega via `routerNavigate(targetRoute)`. Se contiver `action=new-transaction`, dispara automaticamente `openTransactionForm()`.
+  - **Alarmes e Notificações (`alarmService.ts` & `NotificationService.ts`)**:
+    - Alarmes de compromissos no mobile agora incluem `deepLink: '/app/agenda'`, `targetRoute: '/app/agenda'` e `eventType: 'agenda.alarm_due'`.
+    - Notificações Web desktop (`n.onclick`) redirecionam para `/app/agenda`.
+    - Lembretes diários e de reengajamento apontam para `/app/controla?action=new-transaction`.
+  - **Sininho / NotificationHub (`NotificationHub.tsx`)**:
+    - O card de cada notificação é 100% interativo e clicável (`cursor-pointer`), fechando o drawer e transportando o usuário diretamente para a tela do evento.
+    - Botão "Ciente do comunicado" e CTA com `e.stopPropagation()` preservando o ateste isolado de leitura.
+  - **Testes & Validação**:
+    - 17 novos testes unitários em `src/utils/__tests__/deepLinkRouter.test.ts`.
+    - Suíte de notificações e alarmes com 33/33 testes passando.
+    - Validação cruzada com finanças e presença (9 testes passando).
+    - Build de produção Vite concluído em 56.52s com 0 erros e sincronizado com o Android via `npx cap sync android`.
+
+- **Notificações no Sininho — Data/Hora de Envio, Confirmação "Ciente do comunicado" e Envio ao Histórico** (implementado 2026-09-14):
+  - **Identificação da Causa Raiz**:
+    - As mensagens de notificação e comunicados exibidos no sininho (`NotificationHub.tsx`) não continham data e hora legíveis de envio ao usuário, dificultando a contextualização temporal e a percepção de urgência.
+    - O fechamento da notificação era feito por um botão discreto de `X`, propiciando descarte inadvertido sem leitura reflexiva.
+    - Faltava um fluxo de ateste de leitura explícito que arquivasse a mensagem confirmada na caixa de histórico do usuário.
+  - **Data/Hora Padronizada**:
+    - Criada a função pura `formatNotificationDateTime(createdAt)` em `NotificationHub.tsx` com suporte resiliente a `Timestamp` do Firestore (`toDate()`, `toMillis()`, `{ seconds }`), strings ISO e objetos `Date`.
+    - Cada card de notificação exibe `Clock` com texto no padrão brasileiro: `"Enviado em DD/MM/AAAA às HH:mm"`.
+  - **Botão Formal "Ciente do comunicado" e Sincronização Otimista**:
+    - Removido o botão de descarte `X`. Na aba **Entrada**, cada notificação não lida exibe um botão de alta visibilidade: `<CheckCheck /> Ciente do comunicado`.
+    - `NotificationContext.tsx`: `dismiss(eventId)` atualizado para persistir `{ read: true, readAt: nowIso }` no Firestore e, de forma otimista, mover o evento da lista `unreadEvents` diretamente para o topo de `historyEvents`.
+    - Na aba **Histórico**, as notificações lidas exibem o selo permanente `✓ Ciente do comunicado`.
+  - **Testes & Validação**:
+    - Nova suíte `src/components/__tests__/NotificationHub.test.tsx` com 8 testes cobrindo formatos de data/hora, renderização na aba Entrada, acionamento de `dismiss` e selo na aba Histórico.
+    - Suíte de finanças com 38/38 testes passando.
+    - Build de produção Vite concluído em 1m 4s com 0 erros.
+
+- **Cartões de Crédito — Confirmação e Orientação Pedagógica ao Ocultar Cartão** (implementado 2026-09-14):
+  - **Identificação da Causa Raiz**:
+    - Ao clicar no botão de olho riscado (`EyeOff`, "Ocultar Cartão") no `CardManager.tsx`, o cartão era ocultado de imediato (`isActive: false`) sem nenhuma confirmação.
+    - Isso gerava risco de cliques acidentais e insegurança ao usuário, que não sabia onde o cartão havia ido parar nem como restaurá-lo.
+  - **Confirmação Explícita e Pedagógica**:
+    - `handleToggleStatus`: Quando o cartão está ativo (`isActive !== false`) e `skipConfirm === false`, exibe caixa de confirmação clara:
+      *"Deseja realmente ocultar o cartão '[Nome]'?\n\nEle não aparecerá na lista de seleção do dia a dia, mas você poderá reativá-lo a qualquer momento na aba 'Ocultos'."*
+    - Se o usuário cancelar (`false`), a ação é cancelada e o cartão permanece ativo sem chamadas à API.
+    - Se o usuário confirmar (`true`), o cartão é atualizado para `isActive: false` no Firestore.
+    - `handleDeleteCard`: Quando o cartão tem histórico e o sistema sugere ocultá-lo, repassa `skipConfirm = true` para evitar confirmação dupla.
+    - Botão `EyeOff`: Atualizado atributo `title="Ocultar Cartão (pode ser reativado em Ocultos)"`.
+    - Na aba **Ocultos**, a reativação com o botão "Reativar Cartão" permanece direta e ágil sem pedir confirmação.
+  - **Testes & Validação**:
+    - Nova suíte `src/components/tools/finance/__tests__/CardManager.test.tsx` com 3 testes unitários cobrindo cancelamento seguro, confirmação com persistência no Firestore e reativação direta na aba Ocultos.
+    - Suíte financeira com 38/38 testes passando.
+    - Build de produção Vite concluído em 1m 25s com 0 erros.
+
+- **Cartões de Crédito — Blindagem e Bloqueio de Edição do Valor de Pagamento de Fatura** (implementado 2026-09-14):
+  - **Identificação da Causa Raiz**:
+    - Lançamentos de pagamento de fatura (`isBillPayment: true`) podiam ser editados no formulário genérico de lançamentos (`TransactionForm.tsx`), permitindo que o usuário alterasse arbitrariamente o valor liquidado.
+    - Como o valor da fatura é a consolidação estrita das despesas registradas no cartão durante o ciclo, alterar o valor da liquidação avulsa causava descolamento contábil entre a fatura no Firestore (`users/{uid}/faturas`), o total das compras e o limite do cartão.
+    - A trava `isLocked` já existia no código de `TransactionForm.tsx`, porém não era conectada a `initialData.isBillPayment`.
+  - **Blindagem e Travamento Soberano**:
+    - `TransactionForm.tsx`: Quando `initialData.isBillPayment === true`, o formulário ativa automaticamente o modo de proteção.
+    - **Valor**: Estritamente bloqueado (`disabled={isLocked}`), impedindo descompasso com as compras da fatura.
+    - **Tipo e Meio de Pagamento**: Bloqueados (`disabled={isLocked}`), impedindo mutação indevida da natureza da liquidação.
+    - **Descrição e Categoria**: Bloqueadas contra edição, preservando categoria de fatura e nome do cartão.
+    - **Data de Pagamento (Exclusividade Editável)**: Liberada (`disabled={isLocked && !isBillPayment}`), permitindo conciliação bancária da data em que o valor compensou na conta.
+    - **Banner Explicativo Pedagógico**: Alerta com `ShieldAlert` orientando que o valor é derivado das compras e que, para cancelar ou retificar o valor, deve-se excluir o lançamento.
+    - **Preservação de Metadados**: `handleSave` atualizado para repassar `isBillPayment`, `linkedCardId`, `linkedInvoiceId` e `linkedInvoicePeriodEnd`, impedindo limpeza acidental de flags no RTDB.
+  - **Exclusão e Estorno Transparente**:
+    - Adicionado botão `"Excluir"` com confirmação pedagógica no rodapé de `TransactionForm.tsx` (quando aberto em modo edição com `onDelete`).
+    - `TransactionHistory.tsx`: Atualizado tooltip de edição para `"Editar data de pagamento"` e mensagem de confirmação de exclusão para alertar sobre o estorno e restabelecimento do limite.
+    - `useTransactions.ts`: Ao excluir um pagamento de fatura, além de reverter `saldoUtilizadoTotal` no cartão, agora também atualiza a fatura no Firestore (`invoices`), abatendo `paidAmount`, recalculando `remainingAmount` e restaurando o status da fatura para `closed` ou `partial`.
+  - **Testes & Validação**:
+    - Nova suíte `src/components/tools/finance/__tests__/TransactionForm.test.tsx` com 4 testes unitários cobrindo travamento de campos, edição e salvamento seguro de data, exclusão com estorno e funcionamento normal de transações não-fatura.
+    - Suíte financeira com 35/35 testes passando.
+    - Build de produção Vite concluído em 1m 11s com 0 erros.
+
+- **Formulário de Lançamentos & Vouchers — Sincronização Soberana do Saldo Disponível de Cartões Voucher** (implementado 2026-09-14):
+  - **Identificação da Causa Raiz**:
+    - Ao lançar uma despesa com cartão voucher no modal de lançamento (`TransactionForm.tsx`), o `<select>` e o alerta de saldo liam diretamente `selCard.voucherBalance` (campo estático bruto do documento Firestore do cartão).
+    - Quando o usuário criava movimentações de recarga ou despesas no extrato do voucher, o saldo dinâmico soberano (`calculateWalletStatementSummary`) era calculado em tempo real para o Controla e Extratos, mas o formulário de lançamentos exibia `R$ 0,00` ou valor desatualizado, bloqueando lançamentos válidos com mensagem de "Saldo insuficiente".
+  - **Função Soberana Centralizada (`calculations.ts`)**:
+    - Criada a função pura e tipada `getVoucherCardAvailableBalance(card, transactions)`.
+    - Prioriza a derivação histórica precisa via `calculateWalletStatementSummary(cardTx).availableBalance` quando houver transações registradas para o cartão.
+    - Aplica fallback gracioso para `card.voucherBalance || 0` caso o cartão seja novo e ainda não possua histórico no extrato.
+  - **Sincronização nos Pontos de Consumo**:
+    - `TransactionForm.tsx`: Validação de envio (`onSave`), opções do dropdown de despesas (`<option>`), alerta de saldo disponível/insuficiente e opções do dropdown de recarga (`tipo === 'income'`) atualizados para derivar o saldo estritamente via `getVoucherCardAvailableBalance(card, transactions)`.
+    - `Dashboard.tsx`: Atualizado para consumir diretamente `getVoucherCardAvailableBalance(c, state.safeTransactions)`, mantendo coerência absoluta entre o card "SALDO ATUAL" do Controla e o modal de lançamento.
+    - `CardManager.tsx`: Edição e badges de saldo sincronizados com `getVoucherCardAvailableBalance`.
+  - **Testes & Validação**:
+    - `walletCalculations.test.ts` enriquecido com 4 novos testes unitários cobrindo derivação dinâmica a partir de extrato, fallback para novo cartão sem histórico, tratamento de valores nulos/vazios e saldo negativo.
+    - Suíte completa com 31/31 testes passando (`walletCalculations.test.ts`, `VoucherStatement.test.tsx`, `BalanceCards.test.tsx`).
+    - Build de produção Vite concluído em 1m 7s com 0 erros.
+
+- **Controla — Composição Soberana do SALDO ATUAL com Saldos de Cartões Voucher** (implementado 2026-09-14):
+  - **Identificação da Causa Raiz**:
+    - O card "SALDO ATUAL" do Controla (`BalanceCards.tsx`) exibia `saldoReal` (fluxo de caixa em conta bancária) e abatia as exclusões através de `saldoDisplay = saldoReal - exclusaoTotal`.
+    - Ao marcar um cartão voucher no checklist (ex: "Retirar o saldo do Cartão Alimentação"), o valor do voucher era deduzido do saldo em conta bancária, que nunca havia incluído o voucher na sua base inicial.
+  - **Composição da Base Inicial em Centavos Inteiros**:
+    - O SALDO ATUAL principal agora é composto por: `saldoBase = saldoReal (conta bancária) + sum(saldoVouchers)`, calculado estritamente em centavos inteiros (`saldoRealCents + totalVoucherCents`) via `toIntegerCents`.
+    - **Invariância do Topo (Saldo Íntegro)**: O valor principal em destaque no topo (`h2` em `text-3xl`) exibe **sempre o saldo íntegro / cheio** (`saldoBase`), atuando como a âncora fixa patrimonial sem nunca sofrer deduções.
+    - **Totalizador Inferior Exclusivo para Deduções**: Ao marcar qualquer exclusão no checklist (voucher, reserva ou colchão), o valor deduzido é exibido exclusivamente no totalizador inferior com o label `"Saldo Atual (com exclusões)"` (`saldoDisplay`). Sem exclusões, a linha inferior converge para `"Saldo Atual"`.
+    - Ao manter os checkboxes desmarcados, o usuário visualiza sua liquidez total disponível no dia a dia (dinheiro em conta + vouchers).
+    - Ao marcar `[x] Retirar o saldo do Cartão Voucher (Pluxxe Alim)`, apenas aquele benefício é excluído da base na linha de fechamento.
+    - Ao marcar todos os vouchers, a dedução anula os saldos dos vouchers e o valor exibido no "Saldo Atual (com exclusões)" converge com precisão matemática para o **saldo real em conta bancária**.
+  - **Isolamento de Domínio**:
+    - `calculateRealCashBalance` e `calculatePreviousMonthClose` atualizados para ignorar transações com `t.paymentMethod === 'voucher'`, prevenindo vazamento de despesas de alimentação/refeição para a conta corrente bancária.
+  - **Sincronização**:
+    - `SaldoAjustavelCard.tsx` alinhado com a mesma composição soberana `(saldoReal + totalVouchers) - exclusaoTotal`.
+  - **Testes & Validação**:
+    - `BalanceCards.test.tsx` enriquecido com novos testes cobrindo a exibição do saldo composto inicial (R$ 6.200,00), exclusão de voucher único (R$ 5.400,00), convergência para o saldo em conta ao marcar todos os vouchers (R$ 5.000,00) e exclusão conjunta de reserva de emergência (R$ 4.000,00).
+    - 27/27 testes unitários passando em `BalanceCards.test.tsx`, `VoucherStatement.test.tsx` e `walletCalculations.test.ts`.
+    - Build de produção Vite concluído com sucesso em 59.46s com 0 erros.
+
+- **Carteira / Extrato — Correção da Fórmula Soberana de Saldo Disponível em Centavos** (implementado 2026-09-14):
+  - **Identificação da Causa Raiz**:
+    - O componente `VoucherStatement.tsx` calculava `totalIncomes` (R$ 4.276,89) e `totalExpenses` (R$ 999,56) a partir das movimentações, porém utilizava `const currentBalance = card.voucherBalance || 0;` para o saldo atual.
+    - Como o documento Firestore do cartão frequentemente continha saldo não inicializado ou desatualizado (`0`), o saldo disponível era indevidamente zerado (`R$ 0,00`), divergindo dos totais calculados.
+  - **Motor de Domínio Centralizado em Centavos (`calculations.ts`)**:
+    - Criada a função pura e tipada `calculateWalletStatementSummary(transactions, targetCardId)` e o conversor `toIntegerCents(amount)`.
+    - **Fórmula Soberana**: `saldoDisponivel = totalEntradas - totalDespesas` calculada estritamente em **centavos inteiros** (`incomesCents - expensesCents`), prevenindo erros de precisão flutuante IEEE-754.
+    - Preservada a semântica nativa de tipos: `type === 'income'` soma como entrada (incluindo recargas e ajustes a crédito), e `type === 'expense'` soma como saída (incluindo compras e ajustes a débito).
+  - **Sincronização nos Pontos de Consumo**:
+    - `VoucherStatement.tsx`: Os 3 cards de métricas (Saldo Atual Disponível, Total em Recargas e Total em Despesas) agora derivam estritamente do mesmo objeto consolidado `summary`. Agrupamento mensal e fluxo líquido também calculados em centavos inteiros.
+    - `Dashboard.tsx`: `voucherCards` passa a calcular o saldo derivado via `calculateWalletStatementSummary` quando há transações para o cartão, garantindo que o card "SALDO ATUAL" do Controla deduza os R$ 3.277,33 reais.
+    - `CardManager.tsx`: O badge de saldo do cartão exibe o saldo derivado soberano da mesma base.
+  - **Testes & Validação**:
+    - Nova suíte `src/utils/__tests__/walletCalculations.test.ts` com 8 testes cobrindo os 6 cenários exigidos (4.276,89 - 999,56 = 3.277,33; carteira vazia = 0; saldo negativo; saldo positivo; ajustes; e precisão em centavos).
+    - Atualizados `VoucherStatement.test.tsx` (7 testes) e `BalanceCards.test.tsx` (9 testes). Total de 24/24 testes passando.
+    - Build de produção Vite concluído com sucesso em 57.44s com 0 erros.
+
+- **Cartões Voucher — Visualização de Extratos de Movimentação e Linha do Tempo** (implementado 2026-09-14):
+  - **Componente Dedicado `VoucherStatement.tsx`**:
+    - Desenvolvido `src/components/tools/finance/VoucherStatement.tsx` para apresentar de forma estruturada, elegante e transparente o extrato completo de qualquer cartão voucher.
+    - **Cards de Métricas**: Saldo Atual Disponível (verde esmeralda), Total em Recargas (`+ R$`) e Total em Despesas (`− R$`).
+    - **Agrupamento Mensal & Timeline**: Lançamentos agrupados por mês (ex: "Setembro de 2026"), ordenados cronologicamente do mais recente para o mais antigo, com total líquido mensal e badges de categoria.
+    - **Distinção Visual Operacional**: Ícone `TrendingUp` em verde para créditos/recargas de benefício e `TrendingDown` em neutro/âmbar para compras de alimentação/refeição.
+    - **Ações Rápidas**: Botões `+ Registrar Gasto` e `+ Registrar Recarga` com preset automático de `paymentMethod: 'voucher'` e `cardId`, além de botão de edição direta (`Edit2`) para cada item.
+    - **Empty State Convidativo**: Mensagem amigável e botões de primeiro lançamento quando não há movimentações registradas.
+  - **Integração no `CardManager.tsx`**:
+    - Substituída a ausência de histórico por um accordion expansível dedicado com ícone `Receipt`: "Ver Extrato de Movimentações" / "Ocultar Extrato de Movimentações".
+    - Desbloqueado o botão `+ Lançar` no cabeçalho do cartão voucher para lançamentos rápidos diretos.
+  - **Atalho no Card "SALDO ATUAL" do Controla (`BalanceCards.tsx` & `Dashboard.tsx`)**:
+    - Cada linha de cartão voucher no card de saldo do Controla agora possui um botão discreto de extrato (`Receipt`).
+    - Ao clicar, abre o modal de gestão de cartões focando diretamente no extrato do cartão selecionado (`focusedCardId`).
+  - **Testes & Validação**:
+    - Criada suíte dedicada `src/components/tools/finance/VoucherStatement.test.tsx` com 6 testes unitários cobrindo renderização de métricas, agrupamento mensal, diferenciação de recargas/gastos, ações rápidas e empty state.
+    - Atualizado `BalanceCards.test.tsx` (9 testes) para cobrir o acionamento do extrato via `onOpenCardManager`.
+    - Total de 15/15 testes passando nas duas suítes; build de produção Vite concluído em 54.10s com 0 erros.
+
+- **Controla — Mini Auditoria e Exclusão de Saldos de Cartões Voucher (Alimentação e Refeição)** (implementado 2026-09-14):
+  - **Diagnóstico & Mini Auditoria**:
+    - *Rotas e Funcionamento*: As rotas dos cartões vouchers operam normalmente através do `FinanceContext`, `CardManager` e `Dashboard`. Vouchers compartilham o ciclo dos cartões com `cardType: 'voucher'`.
+    - *Cálculos de Saldo*: O saldo de vouchers é somado ao saldo total da conta (`accumulatedBalance`) e contabilizado na composição patrimonial. No entanto, faltava distinção clara entre os tipos de voucher (Alimentação vs Refeição) e cartões com saldo R$ 0,00 desapareciam do checklist em vez de serem sinalizados como desabilitados.
+    - *Edição de Vouchers*: Anteriormente, `CardManager` bloqueava a edição de vouchers com uma mensagem fixa ("Cartão voucher não possui configurações editáveis de fatura"), impedindo o usuário de renomear, ajustar o saldo ou definir o subtipo do cartão.
+  - **Tipagem & Subtipos Especializados**:
+    - Criado o tipo `VoucherType = 'alimentacao' | 'refeicao' | 'outro'` em `src/types/index.ts` e estendido `CreditCard.voucherType`.
+    - Atualizado `cardService.ts` (`addCard` e `updateCard`) para persistir `voucherType` no Firestore.
+    - `ExclusionsContext.tsx` atualizado para incluir `voucherType` em `VoucherCardInfo`.
+  - **Exclusão Dinâmica no Card "SALDO ATUAL" do Controla**:
+    - Em `BalanceCards.tsx`, implementada a função pura `getVoucherTitle`:
+      - Alimentação: `"Retirar o saldo do Cartão Alimentação ({nome})"`
+      - Refeição: `"Retirar o saldo do Cartão Refeição ({nome})"`
+      - Outro/Genérico: `"Retirar o saldo do Cartão Voucher ({nome})"`
+    - Corrigido o tratamento de saldo zero: em vez de esconder o cartão quando `card.balance === 0`, o card agora permanece visível, com `disabled={true}`, exibindo `R$ 0,00` e mensagem de apoio `(sem saldo a excluir)`, garantindo previsibilidade e transparência ao usuário.
+    - `FinanceCheckLine.tsx`: suporte a prop `disabled?: boolean`, impedindo clique/toggle e aplicando opacidade reduzida e cursor not-allowed quando desabilitado.
+  - **Experiência Completa no `CardManager.tsx`**:
+    - Reconhecimento automático do subtipo durante a digitação do nome (ex: digitou "Alimentação", "Vale Refeição", "Sodexo Alimentação" -> auto-seleciona a categoria correspondente).
+    - Botões de seleção de subtipo (`Alimentação`, `Refeição`, `Outro`) no formulário de criação e edição.
+    - Badges visuais coloridos nas listagens de cartões: verde para Alimentação e âmbar para Refeição.
+    - Modo de edição totalmente interativo liberado para vouchers, permitindo alterar nome, subtipo e valor do saldo diretamente no modal.
+  - **Testes & Validação**:
+    - Criada suíte dedicada `src/components/tools/finance/dashboard/BalanceCards.test.tsx` com 8 testes unitários cobrindo títulos específicos, cálculo e subtração do saldo, e desabilitação correta para saldo zerado.
+    - Suíte de testes passando com 23/23 testes (`BalanceCards.test.tsx`, `PendingObligations.test.tsx`, `notificationService.test.ts`).
+    - Build de produção Vite concluído com sucesso sem erros.
+
+- **Mobile — Restauração do Ícone Original do Finanças Pro Invest nas Notificações** (implementado 2026-09-14):
+  - **Identificação da Causa Raiz**: O `NotificationService.ts` forçava `smallIcon: 'ic_stat_controla'` (ícone da prancheta do Controla em vez da marca), enquanto o `alarmService.ts` omitia o ícone (fazendo o Android exibir o fallback genérico do sistema com a letra "i"). Além disso, faltava `largeIcon` para exibir a marca colorida em destaque na gaveta de notificações do Android.
+  - **Arquitetura Dual de Ícones no Android**:
+    - **`smallIcon: 'ic_stat_fpi'`**: Criado drawable nativo com silhueta alfa monocromática (RGB puro branco `#FFFFFF` sobre fundo 100% transparente) em 96x96 com cor de realce `#0284c7`, prevenindo o bug do "quadrado branco" do Android na barra de status.
+    - **`largeIcon: 'ic_stat_logo'`**: Conectado à logo oficial colorida 3D do Finanças Pro Invest (`ic_stat_logo.png` / `icon.png`) para exibição com destaque visual na gaveta de notificações do Android.
+    - **Compatibilidade Retroativa**: `ic_stat_controla.png` no Android atualizado com a logo da marca para cobrir notificações legadas ainda agendadas.
+    - **Web Fallback**: Web Notification no `alarmService.ts` atualizado de `/favicon.ico` para `/assets/images/brand/icon.png`.
+  - **Configuração Global do Capacitor**: Declarado `plugins.LocalNotifications` com `smallIcon: "ic_stat_fpi"` e `iconColor: "#0284c7"` em `capacitor.config.json` e sincronizado via `npx cap sync android` para `android/app/src/main/assets/capacitor.config.json`.
+  - **Atualização dos Serviços**:
+    - `NotificationService.ts`: Atualizados `dispatch`, `scheduleDailyReminder`, `scheduleReengagementReminder` e `scheduleRecurringBillDueNotification` para enviar `smallIcon: 'ic_stat_fpi'`, `largeIcon: 'ic_stat_logo'` e `iconColor: '#0284c7'`.
+    - `alarmService.ts`: Atualizado `scheduleAlarm` para enviar `smallIcon: 'ic_stat_fpi'`, `largeIcon: 'ic_stat_logo'`, `iconColor: '#0284c7'` e `sound: 'default'`.
+  - **Testes & Validação**: Novos testes unitários dedicados em `NotificationService.test.ts` (4 testes) e `alarmService.mobile.test.ts` (2 testes), além dos testes existentes (16 testes passando no total). Build de produção Vite gerado com sucesso em 42s com 0 erros e `npx cap sync android` executado com sucesso.
+
+- **Agenda — Restauração das Setas de Reordenação Manual de Compromissos (▲/▼)** (implementado 2026-09-14):
+  - **Conexão em `AgendaHub.tsx`**: Reconectado ao motor de `src/agenda/dayOrder.ts` (`compareDayCommitments`, `moveCommitment`, `nextOrderForDay`, `replaceDayInMonth`) e `reorderDayCommitments` em `src/services/agendaService.ts`.
+  - **Ordenação em `dayMap`**: Ordenação sistemática dos compromissos de cada data por `compareDayCommitments` (itens com `order` explícito prevalecem sobre legados; legados ordenam por `time` → `createdAt` → `id`).
+  - **Gravação de `order` incremental**: `commitAdd` agora calcula `nextOrderForDay` e salva o campo `order` no Firestore e no update otimista local.
+  - **Handler `shiftCommitment`**: Atualização otimista imediata no array de meses (`allMonths`) sem travar a interface (`await`), com envio de lote atômico (`writeBatch`) ao Firestore em segundo plano.
+  - **Interface & Acessibilidade**: Botões de setas `ChevronUp`/`ChevronDown` visíveis para dias com 2 ou mais compromissos, desabilitados nas pontas (primeiro e último item), estilizados dentro da grade pautada de 28px.
+  - **Testes & Validação**: Novos testes unitários dedicados em `AgendaHub.test.tsx` (ausência com 1 item, presença com 2+, desabilitação nas pontas, reordenação otimista e chamada ao Firestore). Suíte completa de 97 testes passando (`dayOrder.test.ts`, `agendaService.test.ts`, `AgendaHub.test.tsx`). Build de produção Vite concluído em 1m 17s com 0 erros.
+
 - **Audit 1 — Global structural audit of entire repository**: 12+ functional areas mapped (src/components/ — 15 subdirs; src/services/ — 22+ services; src/hooks/ — 25+ hooks; src/contexts/ — 6 contexts; src/core/ — 4 subdirs; src/routes/ — 365-line AppRoutes; src/config/ — stripe, nav, constants; src/theme/ — fpiVoiceGuide; src/utils/ — calculations, 321 lines; src/types/ — types; src/firebase/ — config). Financial domain model identified with 4 philosophical axes (Caixa, Pressão, Proteção, Trajetória) traced in code. 8+ business rules identified, 14 in `calculations.ts` line 289 `calculateSovereignBalance` diverges from core engine. Nexus/IA architecture fully documented: 8 backend modules (functions/) + 5+ frontend surfaces (NexusInsightCard, NexusFeed, NexusInlineAdvisor, AiAdvisor, CentralHub Nexus section). Monetization mapped: Free/Pro/Premium in `config/stripePlans.ts`. 26+ test files found across the project. Philosophical coherence confirmed: `fpiVoiceGuide.ts` as single source of truth for all product vocabulary (309 lines). Two lacunas: `derived-state/` subdirs (aggregators, calculators, selectors) completely empty; two frontends (mobile app + web SPA) diverging in some behavior.
 
 - **Audit 2 — Deep surgical audit of sovereign financial core**: No single source of truth — `useSovereignSnapshot` (`src/hooks/useSovereignSnapshot.ts:113`) is the primary orchestrator but `CockpitHero` (`src/components/Home/Cockpit/CockpitHero.tsx:505`) overrides hero value using `transactions.length >= 5` (a criterion absent from the calculation engine). `buildSovereignSnapshot` (`src/utils/calculations.ts:201`) is the central calculation engine, calls `computeSovereignMetrics` (line 157). `calculateSovereignBalance` (line 289) is a parallel dangerous function with different formula (`currentBalance - upcomingInvoices - monthlyFixedExpenses - reserveProvision`) vs core formula (`accumulatedBalance - virtualImpact - pendingBills - protectionShortfall`), used only by Nexus but represents divergence risk. `virtualImpact` has dual semantics: in `aggregateMonthFlow` (line 77) it means `isVirtual` expenses (credit-card-like without cash impact); in `useSovereignSnapshot` (line 91) it means `cardInvoiceRemaining`. `derived-state/` is completely empty (aggregators/, calculators/, selectors/ all empty; `runtime/domain-graph.ts` has `DependencyGraph` class but receives zero nodes — abandoned architecture). 6 calculation inconsistencies between engine and UI documented. Redundant debt bridges: both `DebtContext` and `FinanceContext` call `createDebtRealtimeBridge`.
@@ -26,6 +358,18 @@
   - Verificada e validada a barra inferior `MobileBottomNav` com as 5 abas principais do produto: **Central**, **Controla**, **Lançar** (+ flutuante central), **Agenda**, **Explorar** e **Mais** (abre o menu lateral completo `AppMobileDrawer`).
   - Corrigido o disparo do botão "Mais" em `AppLayout.tsx` para abrir suavemente o drawer mobile (`setMobileMenuOpen(true)`).
   - Testes unitários dedicados em `src/components/__tests__/MobileBottomNav.test.tsx` (4 testes passando). Build de produção Vite gerado com sucesso em 1m 34s sem nenhum erro.
+
+- **Modernização Premium dos Cursos & Trilha Investidor Soberano** (implementado 2026-09-12):
+  - **Conteúdo de Rigor CFP® & Grupo Primo**: Reescrita integral dos 6 módulos do curso de investimentos.
+    - *Passo 0 (Inquestionável)*: Proibição matemática de investir devendo juros altos (rotativo a 440%+ a.a. e cheque especial a 130%+ a.a.). Estudo de caso do "Investidor Iludido" vs "Estrategista Soberano".
+    - *Passo 1 (Base de Proteção Calibrada)*: Reserva de emergência calculada estritamente sobre o **Custo de Vida Essencial**, calibrada por estabilidade de renda: **Concursado (6 meses)**, **CLT Privada (9 meses)** e **Autônomo/PJ (12 meses)**. Regras inegociáveis de 100% liquidez diária (Tesouro Selic e CDB 100% CDI com FGC) e volatilidade zero.
+    - *Tríade Sagrada & Juros Compostos*: Aporte + Tempo + Taxa. As 3 fases da bola de neve exponencial e o ponto de inflexão da riqueza.
+    - *Renda Fixa & IPCA+*: Devedor vs credor, tabela regressiva de IR (22,5% a 15%) e proteção contra a inflação histórica.
+    - *Renda Variável & FIIs*: Mentalidade de dono em empresas perenes, proventos mensais isentos em FIIs e o "Número Mágico".
+    - *Antifragilidade & 4 Motores (inspirado no método ARCA)*: Caixa, IPCA+, Ações/FIIs Brasil e Dólar/ETFs Internacionais (IVVB11/WRLD11), rebalanceamento por novos aportes e checklist soberano.
+  - **Novos Blocos no LMS**: Criados `<CaseStudyBlock />` (cenários comparativos com badges visuais e takeaway) e `<PrincipleBlock />` (princípios fundamentais solenes em tema dark editorial).
+  - **Arquitetura Visual & Responsividade**: Fim do `max-w-lg` espremido em desktop. `<CourseTrackPage />` com grid de 2 colunas e card de comando do aluno; `<ModuleOverviewPage />` amplo; `<LessonPage />` com split LMS e sidebar de navegação de aulas no desktop + drawer tátil no mobile.
+  - **Persistência Real no Motor de Progresso**: `useCourseProgress.ts` agora persiste em `localStorage` (`fpi_course_progress_${slug}`), calcula percentuais reais dinamicamente a partir de `coursesRegistry` e gerencia desbloqueio de badges/insígnias. Testes automatizados passando (4/4 em `useCourseProgress.test.ts`).
 
 - **Frente C — Inteligência do Nexus & Conexão com a Agenda** (implementado 2026-09-11):
   - Criado o hook de consulta com cache reativo `useUpcomingCommitments.ts` conectado ao React Query (`queryKeys.agenda.upcoming`).

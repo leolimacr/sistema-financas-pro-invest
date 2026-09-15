@@ -93,8 +93,20 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const dismiss = async (eventId: string) => {
     if (!user) return;
+    const eventToMove = unreadEvents.find(e => e.id === eventId);
+    const nowIso = new Date().toISOString();
+    if (eventToMove) {
+      setUnreadEvents(prev => prev.filter(e => e.id !== eventId));
+      setHistoryEvents(prev => {
+        if (prev.some(h => h.id === eventId)) return prev;
+        return [{ ...eventToMove, read: true, readAt: nowIso }, ...prev];
+      });
+    }
     try {
-      await updateDoc(doc(firestore, 'users', user.uid, 'presenceEvents', eventId), { read: true });
+      await updateDoc(doc(firestore, 'users', user.uid, 'presenceEvents', eventId), { 
+        read: true,
+        readAt: nowIso,
+      });
     } catch (e) {
       console.error('Erro ao descartar evento:', e);
     }
@@ -102,13 +114,26 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const markAllAsRead = async () => {
     if (!user || unreadEvents.length === 0) return;
+    const eventsToMove = [...unreadEvents];
+    const nowIso = new Date().toISOString();
+    setUnreadEvents([]);
+    setHistoryEvents(prev => {
+      const existingIds = new Set(prev.map(h => h.id));
+      const newItems = eventsToMove
+        .filter(e => !existingIds.has(e.id))
+        .map(e => ({ ...e, read: true, readAt: nowIso }));
+      return [...newItems, ...prev];
+    });
     try {
-        const promises = unreadEvents.map(e => 
-            updateDoc(doc(firestore, 'users', user.uid, 'presenceEvents', e.id), { read: true })
-        );
-        await Promise.all(promises);
+      const promises = eventsToMove.map(e => 
+        updateDoc(doc(firestore, 'users', user.uid, 'presenceEvents', e.id), { 
+          read: true,
+          readAt: nowIso,
+        })
+      );
+      await Promise.all(promises);
     } catch (e) {
-        console.error('Erro ao marcar todas como lidas:', e);
+      console.error('Erro ao marcar todas como lidas:', e);
     }
   };
 

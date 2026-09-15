@@ -262,15 +262,21 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactions, o
                             onClick={(e) => { e.stopPropagation(); onEdit(t); }}
                             disabled={isDisabled}
                             className="p-2 text-text-muted hover:text-brand-secondary hover:bg-brand-secondary/10 active:bg-brand-secondary/20 rounded-lg transition-all disabled:opacity-30"
-                            title="Editar"
+                            title={isBillPayment ? "Editar data de pagamento" : "Editar"}
                           >
                             <Pencil size={16}/>
                           </button>
                           <button
-                            onClick={(e) => { e.stopPropagation(); if (window.confirm(`Deseja excluir "${t.description}"?`)) onDelete(t.id); }}
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              const confirmMsg = isBillPayment
+                                ? `Excluir este pagamento de fatura irá estornar o valor e restabelecer o limite do cartão. Deseja continuar?`
+                                : `Deseja excluir "${t.description}"?`;
+                              if (window.confirm(confirmMsg)) onDelete(t.id); 
+                            }}
                             disabled={isDisabled}
                             className="p-2 text-text-muted hover:text-status-danger hover:bg-status-danger/10 active:bg-status-danger/20 rounded-lg transition-all disabled:opacity-30"
-                            title="Excluir"
+                            title={isBillPayment ? "Excluir pagamento e estornar fatura" : "Excluir"}
                           >
                             <Trash2 size={16}/>
                           </button>

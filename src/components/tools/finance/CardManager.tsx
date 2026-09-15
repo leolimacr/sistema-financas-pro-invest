@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Plus, CreditCard as CardIcon, Trash2, EyeOff, Eye, RefreshCw, Calendar, Settings2, Check, ChevronLeft, ChevronDown, ChevronUp, Edit2, TrendingUp, Wallet as WalletIcon } from 'lucide-react';
+import { X, Plus, CreditCard as CardIcon, Trash2, EyeOff, Eye, RefreshCw, Calendar, Settings2, Check, ChevronLeft, ChevronDown, ChevronUp, Edit2, TrendingUp, Wallet as WalletIcon, Receipt } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { addCard, getCards, updateCard, deleteCard } from '../../../services/cardService';
 import { payInvoice } from '../../../services/payInvoiceService';
-import type { CreditCard, Transaction } from '../../../types';
+import type { CreditCard, Transaction, VoucherType } from '../../../types';
 import { getCurrentInvoice, getInvoiceBillingMonth } from '../../../utils/invoiceUtils';
 import { getLocalDateString } from '../../../utils/dateHelpers';
+import { calculateWalletStatementSummary, getVoucherCardAvailableBalance } from '../../../utils/calculations';
+import VoucherStatement from './VoucherStatement';
 
 interface CardManagerProps {
   isOpen: boolean;
@@ -31,6 +33,10 @@ const CardManager: React.FC<CardManagerProps> = ({ isOpen, onClose, userId, tran
   const [showHidden, setShowHidden] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
+  const [newVoucherType, setNewVoucherType] = useState<VoucherType>('alimentacao');
+  const [editCardName, setEditCardName] = useState<string>('');
+  const [editVoucherBalance, setEditVoucherBalance] = useState<string>('');
+  const [editVoucherType, setEditVoucherType] = useState<VoucherType>('alimentacao');
   const [showForm, setShowForm] = useState(true);
   const hasInitialized = useRef(false);
   const [editClosingDay, setEditClosingDay] = useState<string>('');
@@ -163,6 +169,7 @@ const CardManager: React.FC<CardManagerProps> = ({ isOpen, onClose, userId, tran
       const closing = newCardType === 'credit' ? Number(newClosingDay) : undefined;
       const due = newCardType === 'credit' ? Number(newDueDay) : undefined;
       const voucherBal = newCardType === 'voucher' ? Number(newVoucherBalance) || 0 : undefined;
+      const voucherTypeVal = newCardType === 'voucher' ? newVoucherType : undefined;
       await addCard(
         userId, 
         newCardName.trim(), 
@@ -171,10 +178,12 @@ const CardManager: React.FC<CardManagerProps> = ({ isOpen, onClose, userId, tran
         limitVal,
         taxaJurosVal,
         newCardType,
-        voucherBal
+        voucherBal,
+        voucherTypeVal
       );
       setNewCardName('');
       setNewCardType('credit');
+      setNewVoucherType('alimentacao');
       setNewClosingDay('');
       setNewDueDay('');
       setNewLimit('');
@@ -192,13 +201,50 @@ const CardManager: React.FC<CardManagerProps> = ({ isOpen, onClose, userId, tran
 
   const handleStartEdit = (card: CreditCard) => {
     setEditingCardId(card.id);
-    setEditClosingDay(card.closingDay?.toString() || '');
-    setEditDueDay(card.dueDay?.toString() || '');
-    setEditLimit(card.limit?.toString() || '');
-    setEditTaxaJuros(card.taxaJuros?.toString() || '');
+    setEditCardName(card.name || '');
+    if (card.type === 'voucher') {
+      const currentBal = getVoucherCardAvailableBalance(card, transactions);
+      setEditVoucherBalance(currentBal.toString());
+      const detectedType: VoucherType = card.voucherType || (card.name.toLowerCase().includes('refei') ? 'refeicao' : 'alimentacao');
+      setEditVoucherType(detectedType);
+    } else {
+      setEditClosingDay(card.closingDay?.toString() || '');
+      setEditDueDay(card.dueDay?.toString() || '');
+      setEditLimit(card.limit?.toString() || '');
+      setEditTaxaJuros(card.taxaJuros?.toString() || '');
+    }
   };
 
   const handleSaveEdit = async (cardId: string) => {
+    const card = cards.find(c => c.id === cardId);
+    if (!card) return;
+
+    if (card.type === 'voucher') {
+      if (!editCardName.trim()) {
+        alert("O nome do cartão é obrigatório.");
+        return;
+      }
+      const newBal = Number(editVoucherBalance);
+      if (isNaN(newBal) || newBal < 0) {
+        alert("O saldo do voucher deve ser um valor numérico válido maior ou igual a zero.");
+        return;
+      }
+
+      try {
+        await updateCard(userId, cardId, {
+          name: editCardName.trim(),
+          voucherBalance: newBal,
+          voucherType: editVoucherType,
+        });
+        setEditingCardId(null);
+        await loadCards();
+      } catch (error) {
+        console.error("Erro ao atualizar cartão voucher:", error);
+        alert("Erro ao salvar alterações do cartão.");
+      }
+      return;
+    }
+
     if (!editClosingDay || !editDueDay) {
       alert("As datas de fechamento e vencimento são obrigatórias.");
       return;
@@ -221,6 +267,7 @@ const CardManager: React.FC<CardManagerProps> = ({ isOpen, onClose, userId, tran
 
     try {
       await updateCard(userId, cardId, {
+        name: editCardName.trim() || card.name,
         closingDay: closing,
         dueDay: due,
         limit: limitVal,
@@ -238,7 +285,16 @@ const CardManager: React.FC<CardManagerProps> = ({ isOpen, onClose, userId, tran
     return transactions.some(t => t.cardId === cardId);
   };
 
-  const handleToggleStatus = async (card: CreditCard) => {
+  const handleToggleStatus = async (card: CreditCard, skipConfirm = false) => {
+    const isHiding = card.isActive !== false;
+
+    if (isHiding && !skipConfirm) {
+      const confirmMessage = `Deseja realmente ocultar o cartão "${card.name}"?\n\nEle não aparecerá na lista de seleção do dia a dia, mas você poderá reativá-lo a qualquer momento na aba "Ocultos".`;
+      if (!window.confirm(confirmMessage)) {
+        return;
+      }
+    }
+
     const nextStatus = !card.isActive;
     try {
       await updateCard(userId, card.id, { isActive: nextStatus });
@@ -253,8 +309,8 @@ const CardManager: React.FC<CardManagerProps> = ({ isOpen, onClose, userId, tran
     const hasHistory = checkCardHistory(card.id);
     
     if (hasHistory) {
-      if (window.confirm(`O cartão "${card.name}" possui histórico de lançamentos e não pode ser excluído permanentemente para não afetar seus dados.\n\nDeseja apenas OCULTÁ-LO da lista de seleção?`)) {
-        await handleToggleStatus(card);
+      if (window.confirm(`O cartão "${card.name}" possui histórico de lançamentos e não pode ser excluído permanentemente para não afetar seus dados.\n\nDeseja apenas OCULTÁ-LO da lista de seleção? (Você poderá reativá-lo a qualquer momento na aba "Ocultos")`)) {
+        await handleToggleStatus(card, true);
       }
       return;
     }
@@ -387,9 +443,20 @@ const CardManager: React.FC<CardManagerProps> = ({ isOpen, onClose, userId, tran
                     <label className="text-[9px] font-black text-text-muted uppercase tracking-widest ml-1">Nome do Cartão</label>
                     <input
                       type="text"
-                      placeholder="Ex: Nubank, Inter, XP..."
+                      placeholder="Ex: Nubank, Inter, Alelo Alimentação..."
                       value={newCardName}
-                      onChange={(e) => setNewCardName(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setNewCardName(val);
+                        if (newCardType === 'voucher') {
+                          const lower = val.toLowerCase();
+                          if (lower.includes('refei') || /\bvr\b/.test(lower)) {
+                            setNewVoucherType('refeicao');
+                          } else if (lower.includes('alimenta') || /\bva\b/.test(lower)) {
+                            setNewVoucherType('alimentacao');
+                          }
+                        }
+                      }}
                       className="w-full bg-surface-secondary p-4 rounded-2xl text-text-primary font-bold outline-none border border-surface-elevated focus:border-brand-primary text-sm transition-all"
                     />
                   </div>
@@ -413,6 +480,35 @@ const CardManager: React.FC<CardManagerProps> = ({ isOpen, onClose, userId, tran
                       </button>
                     </div>
                   </div>
+
+                  {newCardType === 'voucher' && (
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-black text-text-muted uppercase tracking-widest ml-1">Subtipo de Benefício</label>
+                      <div className="flex bg-surface-secondary p-1 rounded-2xl border border-surface-elevated gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setNewVoucherType('alimentacao')}
+                          className={`flex-1 py-2.5 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${newVoucherType === 'alimentacao' ? 'bg-emerald-600 text-white shadow-soft' : 'text-text-muted'}`}
+                        >
+                          Alimentação
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNewVoucherType('refeicao')}
+                          className={`flex-1 py-2.5 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${newVoucherType === 'refeicao' ? 'bg-amber-600 text-white shadow-soft' : 'text-text-muted'}`}
+                        >
+                          Refeição
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNewVoucherType('outro')}
+                          className={`flex-1 py-2.5 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${newVoucherType === 'outro' ? 'bg-surface-primary text-text-primary shadow-soft' : 'text-text-muted'}`}
+                        >
+                          Outro
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {newCardType === 'credit' && (
                     <div className="space-y-1.5">
@@ -545,18 +641,26 @@ const CardManager: React.FC<CardManagerProps> = ({ isOpen, onClose, userId, tran
                             <div className="flex flex-col">
                               <span className="text-base font-black text-text-primary uppercase tracking-tight">
                                 {card.name}
-                                {isVoucher && (
-                                  <span className="ml-2 inline-block px-1.5 py-0.5 rounded-md bg-emerald-100 text-[8px] font-black uppercase tracking-wider text-emerald-700 leading-none align-middle">
-                                    Voucher
-                                  </span>
-                                )}
+                                {isVoucher && (() => {
+                                  const isRef = card.voucherType === 'refeicao' || card.name.toLowerCase().includes('refei') || /\bvr\b/.test(card.name.toLowerCase());
+                                  const isAli = card.voucherType === 'alimentacao' || card.name.toLowerCase().includes('alimenta') || /\bva\b/.test(card.name.toLowerCase());
+                                  const label = isRef ? 'Refeição' : isAli ? 'Alimentação' : 'Voucher';
+                                  const colorClass = isRef ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800';
+                                  return (
+                                    <span className={`ml-2 inline-block px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider leading-none align-middle ${colorClass}`}>
+                                      {label}
+                                    </span>
+                                  );
+                                })()}
                               </span>
                               {!isEditing && (
                                 <div className="flex flex-wrap items-center gap-4 mt-2">
                                   {isVoucher ? (
                                     <div className="flex items-center gap-1.5 text-emerald-600">
                                       <WalletIcon size={12} />
-                                      <span className="text-[10px] font-black uppercase tracking-tighter">Saldo: R$ {(card.voucherBalance || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                      <span className="text-[10px] font-black uppercase tracking-tighter">
+                                        Saldo: R$ {getVoucherCardAvailableBalance(card, transactions).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                      </span>
                                     </div>
                                   ) : (
                                     <>
@@ -590,7 +694,19 @@ const CardManager: React.FC<CardManagerProps> = ({ isOpen, onClose, userId, tran
                               <>
                                 {!isEditing ? (
                                   <>
-                                    {!isVoucher && (
+                                    {isVoucher ? (
+                                      <button
+                                        onClick={() => {
+                                          onClose(cards);
+                                          onEditTransaction({ paymentMethod: 'voucher', cardId: card.id, type: 'expense' } as any);
+                                        }}
+                                        className="p-3 text-emerald-600 hover:bg-emerald-50 rounded-2xl transition-all flex items-center gap-2 px-4"
+                                        title="Registrar Gasto no Voucher"
+                                      >
+                                        <Plus size={20} />
+                                        <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Lançar</span>
+                                      </button>
+                                    ) : (
                                       <button
                                         onClick={() => onEditTransaction({ paymentMethod: 'credit', cardId: card.id, type: 'expense' } as any)}
                                         className="p-3 text-brand-primary hover:bg-brand-primary/10 rounded-2xl transition-all flex items-center gap-2 px-4"
@@ -610,7 +726,7 @@ const CardManager: React.FC<CardManagerProps> = ({ isOpen, onClose, userId, tran
                                     <button
                                       onClick={() => handleToggleStatus(card)}
                                       className="p-3 text-text-muted hover:text-brand-secondary hover:bg-brand-secondary/10 rounded-2xl transition-all"
-                                      title="Ocultar Cartão"
+                                      title="Ocultar Cartão (pode ser reativado em Ocultos)"
                                     >
                                       <EyeOff size={20} />
                                     </button>
@@ -642,9 +758,60 @@ const CardManager: React.FC<CardManagerProps> = ({ isOpen, onClose, userId, tran
                           <div className="px-6 pb-6 pt-0 animate-in slide-in-from-top-4 duration-300">
                             <div className="bg-surface-primary p-6 rounded-3xl border border-brand-primary/20 space-y-6 shadow-inner">
                               {isVoucher ? (
-                                <p className="text-[10px] text-text-muted font-medium ml-1">
-                                  Cartão voucher não possui configurações editáveis de fatura.
-                                </p>
+                                <div className="space-y-4">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                      <label className="text-[9px] font-black text-text-muted uppercase tracking-widest ml-1">Nome do Cartão</label>
+                                      <input
+                                        type="text"
+                                        value={editCardName}
+                                        onChange={(e) => setEditCardName(e.target.value)}
+                                        className="w-full bg-surface-secondary p-3 rounded-xl text-text-primary font-bold outline-none border border-surface-elevated focus:border-brand-primary text-sm"
+                                        placeholder="Ex: Alelo Alimentação, Sodexo..."
+                                      />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                      <label className="text-[9px] font-black text-text-muted uppercase tracking-widest ml-1">Saldo Disponível (R$)</label>
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={editVoucherBalance}
+                                        onChange={(e) => setEditVoucherBalance(e.target.value)}
+                                        className="w-full bg-surface-secondary p-3 rounded-xl text-text-primary font-bold outline-none border border-surface-elevated focus:border-brand-primary text-sm"
+                                        placeholder="0.00"
+                                      />
+                                      <p className="text-[8px] text-text-muted ml-1">Ajuste manual do saldo disponível no voucher.</p>
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-text-muted uppercase tracking-widest ml-1">Subtipo de Benefício</label>
+                                    <div className="flex bg-surface-secondary p-1 rounded-2xl border border-surface-elevated gap-1 max-w-md">
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditVoucherType('alimentacao')}
+                                        className={`flex-1 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${editVoucherType === 'alimentacao' ? 'bg-emerald-600 text-white shadow-soft' : 'text-text-muted'}`}
+                                      >
+                                        Alimentação
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditVoucherType('refeicao')}
+                                        className={`flex-1 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${editVoucherType === 'refeicao' ? 'bg-amber-600 text-white shadow-soft' : 'text-text-muted'}`}
+                                      >
+                                        Refeição
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditVoucherType('outro')}
+                                        className={`flex-1 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${editVoucherType === 'outro' ? 'bg-surface-primary text-text-primary shadow-soft' : 'text-text-muted'}`}
+                                      >
+                                        Outro
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
                               ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                   <div className="space-y-1.5">
@@ -780,6 +947,29 @@ const CardManager: React.FC<CardManagerProps> = ({ isOpen, onClose, userId, tran
                                   </div>
                                 )}
                               </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Accordion Extrato de Movimentações (Cartão Voucher) */}
+                        {isVoucher && (
+                          <div className="border-t border-surface-elevated bg-surface-primary/30 p-4">
+                            <button 
+                              onClick={() => setExpandedCard(expandedCard === card.id ? null : card.id)} 
+                              className="flex items-center gap-2 text-xxs font-black uppercase text-emerald-600 hover:text-emerald-700 transition-colors"
+                            >
+                              {expandedCard === card.id ? <ChevronUp size={14}/> : <ChevronDown size={14}/>} 
+                              <Receipt size={14} />
+                              {expandedCard === card.id ? 'Ocultar Extrato de Movimentações' : 'Ver Extrato de Movimentações'}
+                            </button>
+
+                            {expandedCard === card.id && (
+                              <VoucherStatement
+                                card={card}
+                                transactions={transactions}
+                                onEditTransaction={onEditTransaction}
+                                onCloseParent={() => onClose(cards)}
+                              />
                             )}
                           </div>
                         )}

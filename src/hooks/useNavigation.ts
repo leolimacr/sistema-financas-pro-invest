@@ -3,12 +3,16 @@ import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { resolveAppRoute } from '../utils/deepLinkRouter';
 
 export const TOOL_ROUTES: Record<string, string> = {
   central: '/app/central',
   home: '/app/central',
   dashboard: '/app/dashboard',
   manager: '/app/controla',
+  controla: '/app/controla',
+  despesas: '/app/controla',
+  cartoes: '/app/controla',
   chat: '/app/ia',
   explorar: '/app/explorar',
   agenda: '/app/agenda',
@@ -16,6 +20,7 @@ export const TOOL_ROUTES: Record<string, string> = {
   pricing: '/app/mais/pricing',
   'minhas-dividas': '/app/minhas-dividas',
   passivos: '/app/passivos',
+  patrimonio: '/app/passivos',
   investimentos: '/app/investimentos',
   metas: '/app/metas',
   login: '/login',
@@ -69,7 +74,7 @@ export const useNavigation = () => {
     const normalizedTool = tool === 'home' ? 'central' : tool;
     if (normalizedTool === 'central') setHomeKey(prev => prev + 1);
     
-    const path = TOOL_ROUTES[normalizedTool] || (normalizedTool === 'central' ? '/app/central' : `/${normalizedTool}`);
+    const path = TOOL_ROUTES[normalizedTool] || resolveAppRoute(normalizedTool);
     
     window.scrollTo(0, 0);
     navigate(path, { state });

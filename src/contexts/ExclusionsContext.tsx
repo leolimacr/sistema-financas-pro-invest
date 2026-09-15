@@ -4,6 +4,7 @@ export interface VoucherCardInfo {
   id: string;
   name: string;
   balance: number;
+  voucherType?: 'alimentacao' | 'refeicao' | 'outro';
 }
 
 export interface ExclusionToggles {
