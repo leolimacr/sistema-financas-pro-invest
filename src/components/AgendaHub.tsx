@@ -1967,7 +1967,7 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
               </button>
             </div>
 
-            {/* Card com o Ícone Master Exclusivo 3D */}
+            {/* Card com o Ícone da Agenda */}
             <div className="p-4 rounded-2xl bg-gradient-to-b from-sky-50/70 to-blue-50/40 border border-sky-100 flex items-center gap-4">
               <div className="relative shrink-0">
                 <img
@@ -1980,12 +1980,12 @@ const AgendaHub: React.FC<AgendaHubProps> = ({ onNavigate, seedCommitments }) =>
                 </span>
               </div>
               <div className="min-w-0">
-                <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-sky-100 text-sky-800 text-[10px] font-black uppercase tracking-wider mb-1">
-                  Identidade Finanças Pro
+                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 text-[10px] font-black uppercase tracking-wider mb-1">
+                  Finanças Pro Invest
                 </div>
-                <h4 className="text-sm font-black text-slate-900 leading-snug">Ícone 3D Oficial</h4>
+                <h4 className="text-sm font-black text-slate-900 leading-snug">Agenda de Compromissos</h4>
                 <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
-                  Design harmonizado com a identidade visual do Finanças Pro Invest, com acabamento safira e detalhes em ouro.
+                  Acesse suas tarefas e compromissos diretamente da tela inicial do celular com um único toque.
                 </p>
               </div>
             </div>

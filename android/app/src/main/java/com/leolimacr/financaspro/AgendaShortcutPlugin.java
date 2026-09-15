@@ -52,10 +52,18 @@ public class AgendaShortcutPlugin extends Plugin {
             intent.setData(Uri.parse("financaspro://agenda"));
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
+            android.graphics.Bitmap iconBitmap = android.graphics.BitmapFactory.decodeResource(context.getResources(), R.drawable.ic_shortcut_agenda);
+            Icon shortcutIcon;
+            if (iconBitmap != null) {
+                shortcutIcon = Icon.createWithAdaptiveBitmap(iconBitmap);
+            } else {
+                shortcutIcon = Icon.createWithResource(context, R.drawable.ic_shortcut_agenda);
+            }
+
             ShortcutInfo pinShortcutInfo = new ShortcutInfo.Builder(context, "agenda_pinned_shortcut")
-                    .setIcon(Icon.createWithResource(context, R.drawable.ic_shortcut_agenda))
+                    .setIcon(shortcutIcon)
                     .setShortLabel("Agenda")
-                    .setLongLabel("Agenda Finanças Pro")
+                    .setLongLabel("Agenda Finanças Pro Invest")
                     .setIntent(intent)
                     .build();
 

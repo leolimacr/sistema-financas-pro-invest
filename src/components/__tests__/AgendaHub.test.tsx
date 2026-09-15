@@ -1288,7 +1288,7 @@ describe('AgendaHub — reordenação manual de compromissos no mesmo dia (setas
       const modal = await screen.findByTestId('agenda-shortcut-modal');
       expect(modal).toBeInTheDocument();
       expect(screen.getByText('Atalho da Agenda')).toBeInTheDocument();
-      expect(screen.getByText('Ícone 3D Oficial')).toBeInTheDocument();
+      expect(screen.getByText('Agenda de Compromissos')).toBeInTheDocument();
       expect(screen.getByText(/Sem passos intermediários/i)).toBeInTheDocument();
 
       // Fecha o modal
