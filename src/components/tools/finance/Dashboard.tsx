@@ -1,6 +1,6 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { RefreshCw, Plus, ChevronUp, ChevronDown, PiggyBank, X, CreditCard } from 'lucide-react';
+import { RefreshCw, Plus, ChevronUp, ChevronDown, PiggyBank, X, CreditCard, List, CalendarDays } from 'lucide-react';
 import { useExclusions } from '../../../contexts/ExclusionsContext';
 
 // Hooks e Componentes Originais Reutilizados
@@ -12,6 +12,7 @@ import BudgetSetupSheet from './BudgetSetupSheet';
 import BudgetStatusCard from './BudgetStatusCard';
 import BudgetExceededBanner from './BudgetExceededBanner';
 import { calcBudgetProgress } from '../../../services/budgetMath';
+import { formatBudgetMonthName } from '../../../utils/budgetUtils';
 import { calculateWalletStatementSummary, getVoucherCardAvailableBalance } from '../../../utils/calculations';
 
 // Subcomponentes Refatorados
@@ -24,6 +25,7 @@ import SaldoAjustavelCard from './dashboard/SaldoAjustavelCard';
 import PendingObligations from './dashboard/PendingObligations';
 import DashboardCharts from './dashboard/DashboardCharts';
 import TransactionList from './dashboard/TransactionList';
+import MonthlyExpenseCalendar from './calendar/MonthlyExpenseCalendar';
 import CategorySummaryPanel from './dashboard/CategorySummaryPanel';
 import AveragesAnalysisPanel from './dashboard/AveragesAnalysisPanel';
 import RecurringIntroModal from './dashboard/RecurringIntroModal';
@@ -34,6 +36,7 @@ import { seedPersonaFromIntent } from '../../../services/personaService';
 import { getFlowLabels } from '../../../theme/fpiVoiceGuide';
 import PaywallModal from '../../PaywallModal';
 import CategoryRecoveryDialog from './dashboard/CategoryRecoveryDialog';
+import HistoryEducationalCard from './dashboard/HistoryEducationalCard';
 
 const Dashboard: React.FC<any> = (props) => {
   const state = useDashboardState(props);
@@ -42,6 +45,22 @@ const Dashboard: React.FC<any> = (props) => {
 
   const voice = getFlowLabels(state.commandMode);
   const [showCategoryRecovery, setShowCategoryRecovery] = useState(true);
+  const [viewType, setViewTypeState] = useState<'list' | 'calendar'>(() => {
+    try {
+      return (localStorage.getItem('fpi_controla_view_type') as 'list' | 'calendar') || 'list';
+    } catch {
+      return 'list';
+    }
+  });
+
+  const setViewType = useCallback((type: 'list' | 'calendar') => {
+    setViewTypeState(type);
+    try {
+      localStorage.setItem('fpi_controla_view_type', type);
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const voucherCards = useMemo(() => {
     return (state.userCards || [])
@@ -75,6 +94,9 @@ const Dashboard: React.FC<any> = (props) => {
           description: t.description || 'Sem descrição',
           amount: Number(t.amount) || 0,
           date: t.date,
+          purchaseDate: t.purchaseDate,
+          installments: t.installments,
+          currentInstallment: t.currentInstallment,
         })),
         total: inv.total || 0,
       });
@@ -103,6 +125,9 @@ const Dashboard: React.FC<any> = (props) => {
           description: tx.description || 'Sem descrição',
           amount: Number(tx.amount) || 0,
           date: tx.date,
+          purchaseDate: tx.purchaseDate,
+          installments: tx.installments,
+          currentInstallment: tx.currentInstallment,
         })),
         total: txList.reduce((s: number, tx: any) => s + (Number(tx.amount) || 0), 0),
       });
@@ -140,16 +165,16 @@ const Dashboard: React.FC<any> = (props) => {
 
       {/* SYNC BANNER */}
       {state.isStale && (
-        <div className="flex items-center justify-between gap-4 px-6 py-3 bg-amber-50 border border-amber-100 rounded-3xl animate-in slide-in-from-top-4">
+        <div className="flex items-center justify-between gap-4 px-6 py-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-800 rounded-3xl animate-in slide-in-from-top-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-amber-100 rounded-xl text-amber-600">
+            <div className="p-2 bg-amber-100 dark:bg-amber-900/60 rounded-xl text-amber-600 dark:text-amber-300">
               <RefreshCw size={16} className="animate-spin" />
             </div>
-            <p className="text-[10px] font-black text-amber-800 uppercase tracking-widest">
+            <p className="text-[10px] font-black text-amber-800 dark:text-amber-300 uppercase tracking-widest">
               Modo Offline / Sincronizando: Alguns dados podem estar desatualizados
             </p>
           </div>
-          <span className="text-[8px] font-bold text-amber-500 uppercase px-2 py-1 bg-white rounded-lg border border-amber-100">
+          <span className="text-[8px] font-bold text-amber-500 dark:text-amber-400 uppercase px-2 py-1 bg-white dark:bg-slate-800 rounded-lg border border-amber-100 dark:border-amber-800">
             Somente Leitura
           </span>
         </div>
@@ -216,6 +241,7 @@ const Dashboard: React.FC<any> = (props) => {
 
         {/* Obrigações pendentes (Contas fixas e faturas ativas) */}
         <PendingObligations
+          userId={state.user?.uid || ''}
           activeInvoices={state.activeInvoices}
           pendingBills={state.pendingBills}
           recurringBills={state.recurringBills}
@@ -232,6 +258,7 @@ const Dashboard: React.FC<any> = (props) => {
               budget={state.currentBudget}
               transactions={state.safeTransactions}
               onEdit={() => state.setIsBudgetSetupOpen(true)}
+              onDelete={state.deleteBudget}
             />
             <BudgetExceededBanner
               progress={budgetProgress}
@@ -240,16 +267,16 @@ const Dashboard: React.FC<any> = (props) => {
           </>
         )}
         {!state.isFirstAccess && !state.budgetLoading && !state.currentBudget && (
-          <div className="bg-surface-primary border border-slate-200 rounded-panel p-5 shadow-panel">
+          <div className="bg-surface-primary dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-panel p-5 shadow-panel">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-brand-secondary/10 rounded-2xl text-brand-secondary flex-shrink-0">
+              <div className="p-3 bg-brand-secondary/10 dark:bg-emerald-950/40 rounded-2xl text-brand-secondary dark:text-emerald-400 flex-shrink-0">
                 <PiggyBank size={22} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-black text-text-primary uppercase tracking-ultra-wide mb-0.5">
-                  Orçamento do Mês
+                <p className="text-xs font-black text-text-primary dark:text-white uppercase tracking-ultra-wide mb-0.5">
+                  Orçamento de {formatBudgetMonthName(state.activeMonthKey)}
                 </p>
-                <p className="text-xxs text-text-secondary font-medium leading-relaxed">
+                <p className="text-xxs text-text-secondary dark:text-slate-400 font-medium leading-relaxed">
                   Defina limites de gastos por categoria e acompanhe seu progresso em tempo real.
                 </p>
               </div>
@@ -267,22 +294,22 @@ const Dashboard: React.FC<any> = (props) => {
         {/* Painel educativo ou Estado de primeiro acesso */}
         {state.isFirstAccess ? (
           state.userMetaLoading && state.userMeta == null ? (
-            <div className="py-16 px-6 bg-surface-primary border border-dashed border-brand-primary/30 rounded-4xl text-center animate-pulse">
-              <div className="w-16 h-16 bg-surface-secondary rounded-3xl border border-surface-elevated mx-auto mb-5" />
-              <div className="h-5 w-56 bg-surface-secondary rounded-full mx-auto mb-3" />
-              <div className="h-4 w-72 max-w-full bg-surface-secondary rounded-full mx-auto mb-2" />
-              <div className="h-4 w-64 max-w-full bg-surface-secondary rounded-full mx-auto mb-6" />
-              <div className="h-12 w-40 bg-surface-secondary rounded-3xl mx-auto" />
+            <div className="py-16 px-6 bg-surface-primary dark:bg-slate-900 border border-dashed border-brand-primary/30 dark:border-emerald-500/40 rounded-4xl text-center animate-pulse">
+              <div className="w-16 h-16 bg-surface-secondary dark:bg-slate-800 rounded-3xl border border-surface-elevated dark:border-slate-700 mx-auto mb-5" />
+              <div className="h-5 w-56 bg-surface-secondary dark:bg-slate-800 rounded-full mx-auto mb-3" />
+              <div className="h-4 w-72 max-w-full bg-surface-secondary dark:bg-slate-800 rounded-full mx-auto mb-2" />
+              <div className="h-4 w-64 max-w-full bg-surface-secondary dark:bg-slate-800 rounded-full mx-auto mb-6" />
+              <div className="h-12 w-40 bg-surface-secondary dark:bg-slate-800 rounded-3xl mx-auto" />
             </div>
           ) : (
-            <div className="py-16 px-6 bg-surface-primary border border-dashed border-brand-primary/30 rounded-4xl text-center">
-              <div className="w-16 h-16 bg-surface-secondary rounded-3xl border border-surface-elevated flex items-center justify-center mx-auto mb-5">
-                <Plus size={28} className="text-brand-primary" />
+            <div className="py-16 px-6 bg-surface-primary dark:bg-slate-900 border border-dashed border-brand-primary/30 dark:border-emerald-500/40 rounded-4xl text-center">
+              <div className="w-16 h-16 bg-surface-secondary dark:bg-slate-800 rounded-3xl border border-surface-elevated dark:border-slate-700 flex items-center justify-center mx-auto mb-5">
+                <Plus size={28} className="text-brand-primary dark:text-emerald-400" />
               </div>
-              <p className="text-text-primary font-black text-lg mb-2">
+              <p className="text-text-primary dark:text-white font-black text-lg mb-2">
                 {state.userMeta?.isFirstSession ? 'Aqui você não olha só o saldo da conta.' : 'Seu painel está em branco'}
               </p>
-              <p className="text-text-secondary text-sm max-w-sm mx-auto leading-relaxed mb-6">
+              <p className="text-text-secondary dark:text-slate-400 text-sm max-w-sm mx-auto leading-relaxed mb-6">
                 {state.userMeta?.isFirstSession ? voice.firstLaunchHint : voice.emptyLaunchHint}
               </p>
               <button
@@ -306,7 +333,7 @@ const Dashboard: React.FC<any> = (props) => {
         {!state.isFirstAccess && (
           <div className="space-y-6">
             <div className="space-y-3">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted px-1">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted dark:text-slate-400 px-1">
                 Filtros e controles
               </p>
               <FilterBar 
@@ -320,6 +347,7 @@ const Dashboard: React.FC<any> = (props) => {
                 changeDate={state.changeDate}
                 periodLabel={state.periodLabel}
                 onExportPDF={state.handleExportPDF}
+                onExportCSV={state.handleExportCSV}
                 startDate={state.startDate}
                 endDate={state.endDate}
                 setStartDate={state.setStartDate}
@@ -337,20 +365,20 @@ const Dashboard: React.FC<any> = (props) => {
 
               {/* Banner de filtro ativo por cartão */}
               {state.filterCardId && (
-                <div className="flex items-center justify-between gap-3 px-5 py-3 bg-brand-secondary/10 border border-brand-secondary/20 rounded-3xl animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-center justify-between gap-3 px-5 py-3 bg-brand-secondary/10 dark:bg-slate-800/80 border border-brand-secondary/20 dark:border-slate-700 rounded-3xl animate-in fade-in slide-in-from-top-2">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="p-2 bg-brand-secondary/20 rounded-xl text-brand-secondary shrink-0">
+                    <div className="p-2 bg-brand-secondary/20 dark:bg-slate-700 rounded-xl text-brand-secondary dark:text-emerald-400 shrink-0">
                       <CreditCard size={16} />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xxs font-black text-text-muted uppercase tracking-ultra-wide">
+                      <p className="text-xxs font-black text-text-muted dark:text-slate-400 uppercase tracking-ultra-wide">
                         Fatura
                       </p>
-                      <p className="text-sm font-black text-text-primary truncate">
+                      <p className="text-sm font-black text-text-primary dark:text-white truncate">
                         {state.filterCardName}
                       </p>
                       {state.filterPeriodStart && state.filterPeriodEnd && (
-                        <p className="text-xxs font-bold text-text-muted mt-0.5">
+                        <p className="text-xxs font-bold text-text-muted dark:text-slate-400 mt-0.5">
                           {new Date(state.filterPeriodStart.replace(/-/g, '/')).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} a {new Date(state.filterPeriodEnd.replace(/-/g, '/')).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                         </p>
                       )}
@@ -359,7 +387,7 @@ const Dashboard: React.FC<any> = (props) => {
                   <button
                     type="button"
                     onClick={state.handleClearCardFilter}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/80 hover:bg-white text-text-muted hover:text-status-danger font-black text-[10px] uppercase tracking-widest border border-surface-elevated transition-all active:scale-95 shrink-0"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/80 dark:bg-slate-700 hover:bg-white dark:hover:bg-slate-600 text-text-muted dark:text-slate-300 hover:text-status-danger font-black text-[10px] uppercase tracking-widest border border-surface-elevated dark:border-slate-600 transition-all active:scale-95 shrink-0"
                   >
                     <X size={14} />
                     Limpar filtro
@@ -374,46 +402,96 @@ const Dashboard: React.FC<any> = (props) => {
                   onClick={() => state.setShowTransactions(!state.showTransactions)}
                   className={`flex items-center justify-center gap-2 px-5 py-3 rounded-3xl text-xxs font-black uppercase tracking-ultra-wide border transition-all active:scale-95 w-full sm:w-auto ${
                     state.showTransactions
-                      ? 'bg-surface-elevated border-surface-elevated text-text-secondary hover:bg-surface-secondary'
-                      : 'bg-status-success/10 border-brand-primary/30 text-action-primaryDark hover:bg-status-success/20'
+                      ? 'bg-surface-elevated dark:bg-slate-800 border-surface-elevated dark:border-slate-700 text-text-secondary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-700'
+                      : 'bg-status-success/10 border-brand-primary/30 text-action-primaryDark dark:text-emerald-400 hover:bg-status-success/20'
                   }`}
                 >
                   {state.showTransactions ? 'Recolher lançamentos' : 'Mostrar lançamentos'}
                   {state.showTransactions ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </button>
 
-                <div className="text-xxs font-bold text-text-muted uppercase tracking-ultra-wide text-center sm:text-right">
+                <div className="text-xxs font-bold text-text-muted dark:text-slate-400 uppercase tracking-ultra-wide text-center sm:text-right">
                   {state.filtered.length} lançamento{state.filtered.length !== 1 ? 's' : ''}{state.showTransactions ? '' : ' oculto(s)'}
                 </div>
               </div>
 
-            {/* Lista de lançamentos do período */}
-            <section className="bg-surface-primary border border-slate-200 rounded-panel shadow-panel p-4 md:p-6 space-y-4">
-              <div className="flex items-center justify-between px-1">
-                <h2 className="text-sm font-black text-text-primary tracking-tight">Lançamentos</h2>
-                <span className="text-xxs font-bold text-text-muted uppercase tracking-ultra-wide">
-                  {state.filtered.length} no período
-                </span>
+            {/* Lista ou Calendário de Lançamentos */}
+            <section className="bg-surface-primary dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-panel shadow-panel p-4 md:p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-sm font-black text-text-primary dark:text-white tracking-tight">Lançamentos</h2>
+                  <span className="text-xxs font-bold text-text-muted dark:text-slate-400 uppercase tracking-ultra-wide">
+                    {state.filtered.length} no período
+                  </span>
+                </div>
+
+                {/* Seletor Executivo de Modo de Visualização: [ 📋 Lista ] [ 📅 Calendário de Gastos ] */}
+                <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border-2 border-slate-300 dark:border-slate-700 self-start sm:self-auto shadow-xs">
+                  <button
+                    type="button"
+                    onClick={() => setViewType('list')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xxs font-black uppercase tracking-wider transition-all active:scale-95 ${
+                      viewType === 'list'
+                        ? 'bg-slate-900 dark:bg-emerald-600 text-white shadow-sm'
+                        : 'text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white'
+                    }`}
+                  >
+                    <List size={13} />
+                    Lista
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewType('calendar')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xxs font-black uppercase tracking-wider transition-all active:scale-95 ${
+                      viewType === 'calendar'
+                        ? 'bg-slate-900 dark:bg-emerald-600 text-white shadow-sm'
+                        : 'text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white'
+                    }`}
+                  >
+                    <CalendarDays size={13} />
+                    Calendário de Gastos
+                  </button>
+                </div>
               </div>
-               <TransactionList
-                 transactions={state.filtered}
-                 visibleCount={state.visibleCount}
-                 setVisibleCount={state.setVisibleCount}
-                 showTransactions={state.showTransactions}
-                 setShowTransactions={state.setShowTransactions}
-                 onDelete={state.onDeleteTransaction}
-                 onEdit={state.onEditTransaction}
-                 isPrivacyMode={state.isPrivacyMode}
-                 isStale={state.isStale}
-                 invoiceLookup={invoiceLookup}
-                 periodLabel={state.periodLabel}
-               />
+
+              {state.isHistoryLockedMonth ? (
+                <HistoryEducationalCard
+                  currentDate={state.currentDate}
+                  periodLabel={state.periodLabel}
+                  allTransactions={state.safeTransactions}
+                  onUnlockHistory={() => state.setShowHistoryPaywall(true)}
+                  onReturnToCurrentMonth={state.handleReturnToCurrentMonth}
+                />
+              ) : viewType === 'calendar' ? (
+                <MonthlyExpenseCalendar
+                  transactions={state.safeTransactions}
+                  initialMonthKey={`${state.currentDate.getFullYear()}-${String(state.currentDate.getMonth() + 1).padStart(2, '0')}`}
+                  onEditTransaction={state.onEditTransaction}
+                  onOpenForm={state.onOpenForm}
+                  isPrivacyMode={state.isPrivacyMode}
+                  userCardNames={(state.userCards || []).map((c: any) => c.name)}
+                />
+              ) : (
+                <TransactionList
+                  transactions={state.filtered}
+                  visibleCount={state.visibleCount}
+                  setVisibleCount={state.setVisibleCount}
+                  showTransactions={state.showTransactions}
+                  setShowTransactions={state.setShowTransactions}
+                  onDelete={state.onDeleteTransaction}
+                  onEdit={state.onEditTransaction}
+                  isPrivacyMode={state.isPrivacyMode}
+                  isStale={state.isStale}
+                  invoiceLookup={invoiceLookup}
+                  periodLabel={state.periodLabel}
+                />
+              )}
             </section>
             </div>
 
             {/* Resumos e análises complementares */}
             <section className="space-y-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted px-1">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted dark:text-slate-400 px-1">
                 Resumos e análises
               </p>
               {/* Painel de Resumo por Categoria */}
@@ -510,7 +588,13 @@ const Dashboard: React.FC<any> = (props) => {
         categories={state.categories}
         transactions={state.safeTransactions}
         monthlyIncome={state.userMeta?.financialProfile?.monthlyIncome || state.stats.income || 0}
+        currentBudget={state.currentBudget}
+        targetMonthKey={state.activeMonthKey}
+        previousBudget={state.previousBudget}
+        fixedObligationsTotal={state.fixedObligationsTotal}
+        creditInvoicesTotal={state.creditInvoicesTotal}
         onSaved={() => state.setIsBudgetSetupOpen(false)}
+        onDelete={state.deleteBudget}
       />
     </div>
 );

@@ -10,7 +10,7 @@ export function resolveScrollContainer(el: HTMLElement | null): Window | HTMLEle
   let cur: HTMLElement | null = el;
   while (cur && cur !== document.documentElement) {
     const ov = getComputedStyle(cur).overflowY;
-    if ((ov === 'auto' || ov === 'scroll') && cur.scrollHeight > cur.clientHeight) {
+    if (ov === 'auto' || ov === 'scroll') {
       return cur;
     }
     cur = cur.parentElement;

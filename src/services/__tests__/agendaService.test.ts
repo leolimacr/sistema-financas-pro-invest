@@ -48,6 +48,9 @@ import {
   deleteCommitment,
   toggleCommitment,
   reorderDayCommitments,
+  syncBillsToAgenda,
+  isSyncedBill,
+  extractBillAmount,
 } from '../agendaService';
 import type { AgendaRecurrence } from '../agendaService';
 
@@ -254,4 +257,106 @@ describe('agendaService', () => {
       expect(mockBatchCommit).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('syncBillsToAgenda', () => {
+    beforeEach(() => {
+      // Mock getDocs to return an empty list by default
+      mockGetDocs.mockResolvedValue({
+        docs: [],
+      });
+    });
+
+    it('adiciona contas fixas que ainda não existem no mês', async () => {
+      const bills = [
+        { id: 'bill-1', name: 'Aluguel', amount: 1500, dueDay: 10, isActive: true, category: 'Moradia', type: 'fixed' as const, userId: USER_ID },
+        { id: 'bill-2', name: 'Internet', amount: 120, dueDay: 15, isActive: true, category: 'Serviços', type: 'fixed' as const, userId: USER_ID },
+      ];
+
+      const res = await syncBillsToAgenda(USER_ID, bills, 2026, 8);
+      expect(res).toBe(2);
+      expect(mockAddDoc).toHaveBeenCalledTimes(2);
+
+      const firstCall = mockAddDoc.mock.calls[0][1] as any;
+      expect(firstCall.title).toBe('Pagar Aluguel');
+      expect(firstCall.notes).toContain('1.500,00');
+      expect(firstCall.completed).toBe(false);
+
+      const secondCall = mockAddDoc.mock.calls[1][1] as any;
+      expect(secondCall.title).toBe('Pagar Internet');
+      expect(secondCall.completed).toBe(false);
+    });
+
+    it('ignora contas já existentes na agenda ou inativas', async () => {
+      mockGetDocs.mockResolvedValue({
+        docs: [
+          {
+            id: 'c-existing',
+            data: () => ({
+              title: 'Pagar Aluguel',
+              date: { toDate: () => new Date(2026, 8, 10) },
+            }),
+          },
+        ],
+      });
+
+      const bills = [
+        { id: 'bill-1', name: 'Aluguel', amount: 1500, dueDay: 10, isActive: true, category: 'Moradia', type: 'fixed' as const, userId: USER_ID },
+        { id: 'bill-2', name: 'Luz', amount: 200, dueDay: 20, isActive: true, category: 'Moradia', type: 'fixed' as const, userId: USER_ID },
+        { id: 'bill-3', name: 'Inativo', amount: 50, dueDay: 5, isActive: false, category: 'Outros', type: 'fixed' as const, userId: USER_ID },
+      ];
+
+      const res = await syncBillsToAgenda(USER_ID, bills, 2026, 8);
+      // Aluguel is existing (skipped), Inativo is inactive (skipped), Luz is added
+      expect(res).toBe(1);
+      expect(mockAddDoc).toHaveBeenCalledTimes(1);
+      const added = mockAddDoc.mock.calls[0][1] as any;
+      expect(added.title).toBe('Pagar Luz');
+    });
+
+    it('trata com segurança dueDay e amount inválidos ou ausentes sem quebrar', async () => {
+      const bills = [
+        { id: 'bill-bad', name: 'Conta Estranha', amount: NaN as any, dueDay: undefined as any, isActive: true, category: 'Geral', type: 'fixed' as const, userId: USER_ID },
+      ];
+
+      const res = await syncBillsToAgenda(USER_ID, bills, 2026, 8);
+      expect(res).toBe(1);
+      expect(mockAddDoc).toHaveBeenCalledTimes(1);
+
+      const added = mockAddDoc.mock.calls[0][1] as any;
+      expect(added.title).toBe('Pagar Conta Estranha');
+      expect(added.notes).toContain('0,00');
+    });
+
+    it('recupera com fallback sem estourar exceção quando getDocs falhar', async () => {
+      mockGetDocs.mockRejectedValueOnce(new Error('The query requires an index'));
+
+      const bills = [
+        { id: 'bill-1', name: 'Faculdade', amount: 800, dueDay: 5, isActive: true, category: 'Educação', type: 'fixed' as const, userId: USER_ID },
+      ];
+
+      const res = await syncBillsToAgenda(USER_ID, bills, 2026, 8);
+      expect(res).toBe(1);
+      expect(mockAddDoc).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('isSyncedBill & extractBillAmount', () => {
+    it('identifica corretamente compromissos com source ou linkedBillId', () => {
+      expect(isSyncedBill({ source: 'controla_bill', title: 'Conta', date: {} as any, completed: false })).toBe(true);
+      expect(isSyncedBill({ linkedBillId: 'b-1', title: 'Conta', date: {} as any, completed: false })).toBe(true);
+      expect(isSyncedBill({ notes: 'Conta do Controla no valor de R$ 100,00.', title: 'Qualquer', date: {} as any, completed: false })).toBe(true);
+      expect(isSyncedBill({ title: 'Pagar Aluguel', date: {} as any, completed: false })).toBe(true);
+      expect(isSyncedBill({ title: 'Dentista às 14h', date: {} as any, completed: false })).toBe(false);
+      expect(isSyncedBill(null as any)).toBe(false);
+    });
+
+    it('extrai valores numéricos do campo amount ou do texto das notas', () => {
+      expect(extractBillAmount({ amount: 1500, title: 'Aluguel', date: {} as any, completed: false })).toBe(1500);
+      expect(extractBillAmount({ notes: 'Conta do Controla no valor de R$ 250,50.', title: 'Internet', date: {} as any, completed: false })).toBe(250.5);
+      expect(extractBillAmount({ notes: 'Conta do Controla no valor de R$ 1.850,00.', title: 'Aluguel', date: {} as any, completed: false })).toBe(1850);
+      expect(extractBillAmount({ notes: 'Sem valor aqui', title: 'Outro', date: {} as any, completed: false })).toBe(0);
+      expect(extractBillAmount(null as any)).toBe(0);
+    });
+  });
 });
+

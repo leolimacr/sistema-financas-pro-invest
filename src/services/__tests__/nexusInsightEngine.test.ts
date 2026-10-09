@@ -7,6 +7,7 @@ import {
   isMarginStable,
   hasFinancialTension,
   dismissPrioritizedInsight,
+  buildInsightTraceability,
 } from '../nexusInsightEngine';
 import type { BudgetInsightData, BudgetCategoryData } from '../nexusInsightEngine';
 
@@ -297,5 +298,68 @@ describe('Budget Insights — orçamento ativo', () => {
     expect(insight?.id).not.toBe('budget-margin-pressure');
     expect(insight?.id).not.toBe('budget-burn-rate');
     expect(insight?.id).not.toBe('budget-category-at-risk');
+  });
+  describe('Rastreabilidade Quantitativa Fiel (Frente 3)', () => {
+    it('gera rastreabilidade com métricas exatas para iminência de fatura', () => {
+      const ctx = buildUserContext({
+        hasFinancialProfile: true,
+        launchCount: 10,
+        marcoZero: 3000,
+        upcomingCreditCardBill: { daysToClose: 2, estimatedValue: 1850.75 },
+      });
+
+      const trace = buildInsightTraceability('fatima_reserva', ctx);
+      expect(trace.reason).toContain('1.850,75');
+      expect(trace.reason).toContain('2 dias');
+      expect(trace.period).toBe('Ciclo da fatura');
+      expect(trace.sources).toContain('Cartões de crédito');
+
+      const valMetric = trace.metrics.find((m) => m.label === 'Fatura Prevista');
+      const daysMetric = trace.metrics.find((m) => m.label === 'Dias p/ Fechamento');
+      const bufferMetric = trace.metrics.find((m) => m.label === 'Colchão Emergencial');
+
+      expect(valMetric?.value).toContain('1.850,75');
+      expect(daysMetric?.value).toBe('2 dias');
+      expect(bufferMetric?.value).toContain('3.000,00');
+    });
+
+    it('anexa traceability em getPrioritizedInsight para home-sovereign-deficit', () => {
+      const ctx = buildUserContext({
+        hasFinancialProfile: true,
+        launchCount: 12,
+        sovereignFreeBalance: -450,
+        freedomDeficit: 450,
+        marcoZero: 2000,
+      });
+
+      const insight = getPrioritizedInsight(ctx);
+      expect(insight?.id).toBe('home-sovereign-deficit');
+      expect(insight?.traceability).toBeDefined();
+      expect(insight?.traceability?.reason).toContain('450,00');
+      expect(insight?.traceability?.sources).toContain('Colchão Emergencial');
+
+      const deficitMetric = insight?.traceability?.metrics.find((m) => m.label === 'Déficit de Liberdade');
+      expect(deficitMetric?.value).toContain('450,00');
+    });
+
+    it('anexa rastreabilidade contábil nas recomendações centrais de dívidas', () => {
+      const ctx = buildUserContext({
+        hasFinancialProfile: true,
+        launchCount: 8,
+        hasDebts: true,
+        debts: [
+          { id: 'd1', name: 'Cartão Rotativo', saldoDevedor: 3500, taxaMensal: 14.5 } as any,
+          { id: 'd2', name: 'Empréstimo Pessoal', saldoDevedor: 6000, taxaMensal: 3.2 } as any,
+        ],
+      });
+
+      const central = getCentralInsights(ctx);
+      expect(central.length).toBeGreaterThan(0);
+      const debtInsight = central.find((c) => c.traceability?.metrics.some((m) => m.label === 'Saldo Devedor Total'));
+      expect(debtInsight).toBeDefined();
+      expect(debtInsight?.traceability?.metrics.find((m) => m.label === 'Saldo Devedor Total')?.value).toContain('9.500,00');
+      expect(debtInsight?.traceability?.metrics.find((m) => m.label === 'Maior Taxa Cadastrada')?.value).toBe('14.50% a.m.');
+      expect(debtInsight?.traceability?.metrics.find((m) => m.label === 'Dívidas Ativas')?.value).toBe('2');
+    });
   });
 });

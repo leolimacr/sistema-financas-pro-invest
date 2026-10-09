@@ -110,6 +110,14 @@ export const module06: CourseModule = {
         },
         {
           type: 'tool-cta',
+          tool: 'fire',
+          title: 'Calcule seu Tempo até a Independência Financeira',
+          content:
+            'Descubra com exatidão matemática quanto tempo você ainda precisa trabalhar. A Calculadora de Independência Financeira (FIRE) do app sincroniza seu patrimônio e custo de vida para calcular os marcos da sua liberdade.',
+          buttonLabel: 'Abrir Calculadora FIRE',
+        },
+        {
+          type: 'tool-cta',
           tool: 'nexus-ai',
           title: 'Converse com o Nexus sobre sua carteira soberana',
           content:

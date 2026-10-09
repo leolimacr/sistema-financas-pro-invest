@@ -217,4 +217,78 @@ describe('TransactionForm - Blindagem e Bloqueio de Fatura (isBillPayment)', () 
     // Gerenciar categorias visível
     expect(screen.getByText('Gerenciar Categorias')).toBeInTheDocument();
   });
+
+  it('nunca trata conta fixa recorrente (ex: Conta de Luz Brumado / IPTV) como fatura de cartão de crédito', async () => {
+    const handleSave = vi.fn().mockResolvedValue(undefined);
+    const recurringBillList = [
+      {
+        id: 'bill-luz-brumado',
+        userId: 'user-test-123',
+        name: 'Conta de Luz Brumado',
+        amount: 130,
+        dueDay: 1,
+        category: 'Água',
+        type: 'fixed' as const,
+        isActive: true,
+      },
+    ];
+
+    render(
+      <TransactionForm
+        initialData={{
+          type: 'expense',
+          category: 'Água',
+          amount: 130,
+          description: 'Conta de Luz Brumado',
+          date: '2026-09-25',
+          autoFocusAmount: true,
+          linkedRecurringBillId: 'bill-luz-brumado',
+          // Mesmo que um dado legado venha com isBillPayment: true, linkedRecurringBillId prevalece como Conta Fixa
+          isBillPayment: true,
+        }}
+        categories={[
+          ...defaultCategories,
+          { id: 'cat-agua', name: 'Água', color: '#0ea5e9', icon: 'droplet', type: 'expense' as const },
+        ]}
+        recurringBills={recurringBillList}
+        onSave={handleSave}
+        onCancel={vi.fn()}
+        onSaveCategory={vi.fn()}
+        onDeleteCategory={vi.fn()}
+        transactions={[]}
+      />
+    );
+
+    // 1. NUNCA deve exibir o aviso de fatura de cartão de crédito
+    expect(
+      screen.queryByText(/Este lançamento representa o pagamento consolidado da fatura do cartão/i)
+    ).not.toBeInTheDocument();
+
+    // 2. Campos de Valor, Descrição e Meio de Pagamento devem estar 100% HABILITADOS
+    const amountInput = screen.getByPlaceholderText('R$ 0,00') as HTMLInputElement;
+    expect(amountInput).not.toBeDisabled();
+
+    const descInput = screen.getByDisplayValue('Conta de Luz Brumado') as HTMLInputElement;
+    expect(descInput).not.toBeDisabled();
+
+    const moneyBtn = screen.getByRole('button', { name: /Dinheiro/i });
+    expect(moneyBtn).not.toBeDisabled();
+
+    // 3. Deve exibir o badge verde de vínculo com a conta fixa
+    expect(screen.getByTestId('transaction-linked-bill-badge')).toHaveTextContent('Conta de Luz Brumado');
+
+    // 4. O botão deve ser "Salvar" (novo lançamento) e não "Atualizar"
+    const saveBtn = screen.getByRole('button', { name: /^Salvar$/i });
+    expect(saveBtn).toBeInTheDocument();
+
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => {
+      expect(handleSave).toHaveBeenCalledTimes(1);
+    });
+
+    const savedPayload = handleSave.mock.calls[0][0];
+    expect(savedPayload.linkedRecurringBillId).toBe('bill-luz-brumado');
+    expect(savedPayload.isBillPayment).toBe(false);
+  });
 });

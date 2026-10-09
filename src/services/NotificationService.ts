@@ -134,7 +134,12 @@ export const NotificationService = {
             id: NOTIFICATION_IDS.daily_reminder,
             title,
             body,
-            schedule: { at: scheduledTime, repeats: true },
+            schedule: {
+              at: scheduledTime,
+              repeats: true,
+              every: 'day',
+              allowWhileIdle: true,
+            },
             sound: 'default',
             smallIcon: 'ic_stat_fpi',
             largeIcon: 'ic_stat_logo',
@@ -211,7 +216,7 @@ export const NotificationService = {
             iconColor: '#0284c7',
             extra: {
               deepLink: `app://mark-bill-paid/${bill.id}`,
-              targetRoute: '/app/controla',
+              targetRoute: `/app/controla?view=contas&highlightBill=${bill.id}`,
               eventType: 'recurring_bill_due',
               billId: bill.id, // Passar o ID da conta para o deepLink
               userId,

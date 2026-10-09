@@ -19,17 +19,17 @@ const RecurringIntroModal: React.FC<RecurringIntroModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="bg-surface-primary w-full max-w-sm rounded-4xl shadow-2xl border border-surface-elevated overflow-hidden p-6 space-y-6 animate-in zoom-in duration-300">
+      <div className="bg-surface-primary dark:bg-slate-900 w-full max-w-sm rounded-4xl shadow-2xl border border-surface-elevated dark:border-slate-800 overflow-hidden p-6 space-y-6 animate-in zoom-in duration-300">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-brand-secondary/10 rounded-2xl text-brand-secondary">
             <RefreshCw size={24} className="animate-spin-slow" />
           </div>
-          <h3 className="text-xl font-black text-text-primary tracking-tight leading-tight">
+          <h3 className="text-xl font-black text-text-primary dark:text-white tracking-tight leading-tight">
             {NEXUS_COPY.recurringIntroTitle}
           </h3>
         </div>
 
-        <p className="text-sm font-medium text-text-secondary leading-relaxed">
+        <p className="text-sm font-medium text-text-secondary dark:text-slate-300 leading-relaxed">
           {NEXUS_COPY.recurringIntroBody}
         </p>
 
@@ -40,11 +40,11 @@ const RecurringIntroModal: React.FC<RecurringIntroModalProps> = ({
                 type="checkbox" 
                 checked={dontShowFor15Days}
                 onChange={(e) => setDontShowFor15Days(e.target.checked)}
-                className="peer appearance-none w-5 h-5 border-2 border-surface-elevated rounded-lg checked:bg-brand-secondary checked:border-brand-secondary transition-all"
+                className="peer appearance-none w-5 h-5 border-2 border-surface-elevated dark:border-slate-700 rounded-lg checked:bg-brand-secondary checked:border-brand-secondary transition-all"
               />
               <Check size={12} className="absolute left-1 text-white opacity-0 peer-checked:opacity-100 transition-opacity" />
             </div>
-            <span className="text-xxs font-bold text-text-muted uppercase tracking-widest group-hover:text-text-secondary transition-colors">
+            <span className="text-xxs font-bold text-text-muted dark:text-slate-400 uppercase tracking-widest group-hover:text-text-secondary dark:group-hover:text-slate-300 transition-colors">
               Não mostrar novamente nos próximos 15 dias
             </span>
           </label>

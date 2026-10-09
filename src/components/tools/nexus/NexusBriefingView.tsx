@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
-import { useAiAgent } from '../../../hooks/useAiAgent';
+import { useAiAgent, type NexusAnalysisBasis, type NexusDecisionObject } from '../../../hooks/useAiAgent';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Sparkles,
@@ -67,6 +67,8 @@ const NexusBriefingView: React.FC<{
 
   const [briefing, setBriefing] = useState<string | null>(null);
   const [options, setOptions] = useState<string[]>([]);
+  const [analysisBasis, setAnalysisBasis] = useState<NexusAnalysisBasis | undefined>();
+  const [decisionObject, setDecisionObject] = useState<NexusDecisionObject | undefined>();
 
   const userName = useMemo(() => {
     if (user?.displayName) return user.displayName.split(' ')[0];
@@ -102,6 +104,8 @@ const NexusBriefingView: React.FC<{
 
         setBriefing(cleanText);
         setOptions(cleanOptions);
+        setAnalysisBasis(response.analysisBasis);
+        setDecisionObject(response.decisionObject);
       }
     };
 
@@ -131,6 +135,8 @@ const NexusBriefingView: React.FC<{
 
         setBriefing(cleanText);
         setOptions(cleanOptions);
+        setAnalysisBasis(response.analysisBasis);
+        setDecisionObject(response.decisionObject);
       }
   };
 
@@ -204,6 +210,66 @@ const NexusBriefingView: React.FC<{
         ) : briefing && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
             {renderBlocks(briefing)}
+
+            {decisionObject && (
+              <aside className="mt-5 rounded-2xl border border-indigo-200 bg-indigo-50/60 p-5 text-xs leading-relaxed text-slate-700 shadow-sm" aria-label="Objeto de decisão estratégica do Nexus">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-indigo-800">
+                    Decisão Estratégica Nexus
+                  </span>
+                  <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 uppercase tracking-wider">
+                    Confiança {decisionObject.confidenceLevel}
+                  </span>
+                </div>
+                <p className="font-bold text-slate-900 text-sm mb-1.5">
+                  {decisionObject.observedFact}
+                </p>
+                <p className="text-slate-600 text-xs">
+                  <strong className="text-slate-700">Impacto esperado:</strong> {decisionObject.impact}
+                </p>
+                {decisionObject.invalidatingCondition && (
+                  <p className="text-amber-800 text-[11px] mt-2 font-medium">
+                    ⚠️ <span className="font-bold">Condição de invalidação:</span> {decisionObject.invalidatingCondition}
+                  </p>
+                )}
+
+                <details className="group mt-3 pt-3 border-t border-indigo-200/80 text-xs">
+                  <summary className="cursor-pointer font-bold text-indigo-800 hover:text-indigo-950 transition-colors list-none flex items-center justify-between">
+                    <span>Por que o Nexus disse isso?</span>
+                    <span className="text-[10px] group-open:rotate-180 transition-transform">▾</span>
+                  </summary>
+                  <div className="mt-2.5 space-y-2 text-slate-600 text-[11px] leading-relaxed">
+                    <p>
+                      <strong className="text-slate-800">Recorte temporal:</strong> {decisionObject.analyzedPeriod}
+                    </p>
+                    {decisionObject.sourcesUsed.length > 0 && (
+                      <p>
+                        <strong className="text-slate-800">Fontes auditadas:</strong> {decisionObject.sourcesUsed.join(', ')}
+                      </p>
+                    )}
+                    {decisionObject.assumptions.length > 0 && (
+                      <div>
+                        <strong className="text-slate-800">Premissas contábeis adotadas:</strong>
+                        <ul className="list-disc list-inside mt-1 space-y-0.5 pl-1">
+                          {decisionObject.assumptions.map((assump, aIdx) => (
+                            <li key={aIdx}>{assump}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </details>
+              </aside>
+            )}
+
+            {analysisBasis && (
+              <aside className="mt-5 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs leading-relaxed text-slate-600" aria-label="Base da análise do Nexus">
+                <p className="font-black uppercase tracking-widest text-[10px] text-slate-700">Base da análise</p>
+                <p className="mt-1">{analysisBasis.sources.length > 0 ? `Dados considerados: ${analysisBasis.sources.join(', ')}.` : 'Sem dados financeiros suficientes para um diagnóstico individual.'}</p>
+                <p>Recorte: {analysisBasis.period}.</p>
+                {analysisBasis.limitations.map((limitation) => <p key={limitation} className="mt-1 text-amber-700">{limitation}</p>)}
+              </aside>
+            )}
 
             <div className="mt-12 space-y-4">
                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 text-center mb-6">Qual seu próximo passo?</p>

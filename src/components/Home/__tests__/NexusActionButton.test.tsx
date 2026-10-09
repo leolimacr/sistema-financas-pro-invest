@@ -27,6 +27,10 @@ vi.mock('../../PaywallModal', () => ({
     open ? <div data-testid="paywall-stub">PAYWALL</div> : null,
 }));
 
+vi.mock('../../../services/nexusAnalyticsService', () => ({
+  trackActionStarted: vi.fn(),
+}));
+
 const insight = {
   id: 'ins-1',
   action: { label: 'Reservar valor', type: 'reserve', requiresPlan: 'pro' },
@@ -52,5 +56,22 @@ describe('NexusActionButton (Etapa 7 — E7-10 fonte única)', () => {
     fireEvent.click(screen.getByRole('button', { name: /reservar valor/i }));
     expect(actionsMocks.executeAction).toHaveBeenCalledWith('u1', 'ins-1', insight.action);
     expect(screen.queryByTestId('paywall-stub')).not.toBeInTheDocument();
+  });
+
+  it('orientação abre a área correta sem sinalizar uma operação como concluída', () => {
+    const onNavigate = vi.fn();
+    const navigationInsight = {
+      id: 'ins-navigation',
+      deepLink: 'minhas-dividas',
+      priority: 'alta',
+      action: { label: 'Atacar agora', type: 'attack_debt' },
+    } as unknown as NexusInsight;
+
+    render(<NexusActionButton insight={navigationInsight} userId="u1" onNavigate={onNavigate} />);
+    fireEvent.click(screen.getByRole('button', { name: /atacar agora/i }));
+
+    expect(onNavigate).toHaveBeenCalledWith('minhas-dividas');
+    expect(actionsMocks.executeAction).not.toHaveBeenCalled();
+    expect(screen.queryByText(/operação concluída/i)).not.toBeInTheDocument();
   });
 });

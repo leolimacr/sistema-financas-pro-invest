@@ -9,6 +9,11 @@ export const courses = allCourses.map(course => ({
   icon: course.meta.id === 'plano-realista-para-sair-das-dividas' ? '💳' : '📈',
   modules: course.meta.modulesCount,
   duration: course.meta.estimatedDuration,
+  level: course.meta.level || 'Iniciante',
+  badge: course.meta.id === 'plano-realista-para-sair-das-dividas' ? 'Trilha de Recuperação' : 'Formação CFP®',
+  image: course.meta.id === 'plano-realista-para-sair-das-dividas'
+    ? '/assets/images/courses/curso-dividas-cover.jpg'
+    : '/assets/images/courses/curso-investidor-cover.jpg',
   component: CursoInvestidorIniciante
 }));
 

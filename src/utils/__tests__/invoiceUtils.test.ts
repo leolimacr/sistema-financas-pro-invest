@@ -148,4 +148,14 @@ describe('invoiceUtils - isBillPaid (contrato seguro)', () => {
     expect(isBillPaid(bill, [tx({ type: 'income', linkedRecurringBillId: 'b1' })])).toBe(false);
     expect(isBillPaid(bill, [tx({ date: '2026-04-12', linkedRecurringBillId: 'b1' })])).toBe(false);
   });
+
+  it('Regra 0: bill.lastPaidDate no mês corrente marca como paga mesmo sem transações', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
+    const paidBill = { ...bill, lastPaidDate: '2026-05-10' };
+    expect(isBillPaid(paidBill, [])).toBe(true);
+
+    const oldPaidBill = { ...bill, lastPaidDate: '2026-04-10' };
+    expect(isBillPaid(oldPaidBill, [])).toBe(false);
+  });
 });

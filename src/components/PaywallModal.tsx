@@ -229,7 +229,7 @@ export default function PaywallModal({ open, onClose, feature }: PaywallModalPro
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
       <div
-        className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300"
+        className="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative bg-gradient-to-br from-slate-900 to-slate-800 px-6 pt-8 pb-6 text-center">
@@ -245,7 +245,7 @@ export default function PaywallModal({ open, onClose, feature }: PaywallModalPro
           <h2 className="text-white text-lg font-black tracking-tight mb-1">
             {context.title}
           </h2>
-          <p className="text-slate-500 text-xs leading-relaxed max-w-xs mx-auto font-medium">
+          <p className="text-slate-400 text-xs leading-relaxed max-w-xs mx-auto font-medium">
             {context.subtitle}
           </p>
         </div>
@@ -254,10 +254,10 @@ export default function PaywallModal({ open, onClose, feature }: PaywallModalPro
           <div className="px-6 py-5 space-y-3">
             {context.benefits.map((b, i) => (
               <div key={i} className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                <div className="w-7 h-7 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center shrink-0">
                   {b.icon}
                 </div>
-                <span className="text-slate-700 text-sm font-bold tracking-tight">{b.text}</span>
+                <span className="text-slate-700 dark:text-slate-200 text-sm font-bold tracking-tight">{b.text}</span>
               </div>
             ))}
           </div>
@@ -273,7 +273,7 @@ export default function PaywallModal({ open, onClose, feature }: PaywallModalPro
           </button>
           <button
             onClick={onClose}
-            className="w-full text-slate-500 hover:text-slate-600 font-bold text-[10px] uppercase tracking-widest py-2 transition-colors"
+            className="w-full text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-bold text-[10px] uppercase tracking-widest py-2 transition-colors"
           >
             {context.secondaryCta}
           </button>

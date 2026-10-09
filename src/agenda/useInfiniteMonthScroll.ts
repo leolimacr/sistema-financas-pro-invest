@@ -392,12 +392,22 @@ export function useInfiniteMonthScroll(options: InfiniteMonthScrollOptions): Inf
       }
     };
 
-    const onScroll = () => {
+    const onScroll = (e?: Event) => {
       lastScrollEventRef.current = Date.now();
       // Cada evento real de scroll adia a poda (pós-settle) — ver
       // schedulePruneAttempt. A extensão, se houver, é uma operação separada
       // que NUNCA dispara poda síncrona.
       schedulePruneAttempt();
+
+      if (
+        e?.target instanceof HTMLElement &&
+        e.target !== scrollContainerRef.current
+      ) {
+        const ov = getComputedStyle(e.target).overflowY;
+        if (ov === 'auto' || ov === 'scroll') {
+          scrollContainerRef.current = e.target;
+        }
+      }
 
       // Direção física do gesto ANTES de qualquer condição de retorno: o offset
       // de referência é SEMPRE atualizado, inclusive em scrolls programáticos
@@ -439,10 +449,20 @@ export function useInfiniteMonthScroll(options: InfiniteMonthScrollOptions): Inf
       });
     };
 
+    if (!scrollContainerRef.current || scrollContainerRef.current === window) {
+      scrollContainerRef.current = resolveScrollContainer(notebookRef.current);
+    }
     const sc = scrollContainerRef.current ?? window;
     sc.addEventListener('scroll', onScroll, { passive: true });
+    const isWindow = sc === window || !(sc instanceof HTMLElement);
+    if (!isWindow) {
+      window.addEventListener('scroll', onScroll, { capture: true, passive: true });
+    }
     return () => {
       sc.removeEventListener('scroll', onScroll);
+      if (!isWindow) {
+        window.removeEventListener('scroll', onScroll, { capture: true });
+      }
       if (scrollRafRef.current != null) {
         cancelAnimationFrame(scrollRafRef.current);
         scrollRafRef.current = null;

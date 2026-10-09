@@ -119,22 +119,22 @@ const VoucherStatement: React.FC<VoucherStatementProps> = ({
   return (
     <div className="mt-6 space-y-6" data-testid={`voucher-statement-${card.id}`}>
       {/* Resumo do Cartão Voucher */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-surface-primary p-4 rounded-2xl border border-surface-elevated">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-surface-primary dark:bg-slate-900 p-4 rounded-2xl border border-surface-elevated dark:border-slate-800">
         <div>
-          <p className="text-[9px] font-black uppercase tracking-wider text-text-muted">Saldo Atual Disponível</p>
-          <p className="text-base font-black text-emerald-600 mt-0.5">
+          <p className="text-[9px] font-black uppercase tracking-wider text-text-muted dark:text-slate-400">Saldo Atual Disponível</p>
+          <p className="text-base font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
             R$ {summary.availableBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
         </div>
         <div>
-          <p className="text-[9px] font-black uppercase tracking-wider text-text-muted">Total em Recargas</p>
-          <p className="text-base font-black text-text-primary mt-0.5">
+          <p className="text-[9px] font-black uppercase tracking-wider text-text-muted dark:text-slate-400">Total em Recargas</p>
+          <p className="text-base font-black text-text-primary dark:text-white mt-0.5">
             + R$ {summary.totalIncomes.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
         </div>
         <div>
-          <p className="text-[9px] font-black uppercase tracking-wider text-text-muted">Total em Despesas</p>
-          <p className="text-base font-black text-text-primary mt-0.5">
+          <p className="text-[9px] font-black uppercase tracking-wider text-text-muted dark:text-slate-400">Total em Despesas</p>
+          <p className="text-base font-black text-text-primary dark:text-white mt-0.5">
             − R$ {summary.totalExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
         </div>
@@ -142,21 +142,21 @@ const VoucherStatement: React.FC<VoucherStatementProps> = ({
 
       {/* Barra de Ações Rápidas */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">
+        <span className="text-[10px] font-black uppercase tracking-widest text-text-muted dark:text-slate-400">
           Histórico de Movimentações ({voucherTransactions.length})
         </span>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={handleLaunchExpense}
-            className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-[9px] font-black uppercase tracking-wider transition-colors flex items-center gap-1.5 active:scale-95"
+            className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-xl text-[9px] font-black uppercase tracking-wider transition-colors flex items-center gap-1.5 active:scale-95"
           >
             <Plus size={12} /> Registrar Gasto
           </button>
           <button
             type="button"
             onClick={handleLaunchIncome}
-            className="px-3 py-1.5 bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary rounded-xl text-[9px] font-black uppercase tracking-wider transition-colors flex items-center gap-1.5 active:scale-95"
+            className="px-3 py-1.5 bg-brand-primary/10 dark:bg-slate-800 hover:bg-brand-primary/20 text-brand-primary dark:text-emerald-400 rounded-xl text-[9px] font-black uppercase tracking-wider transition-colors flex items-center gap-1.5 active:scale-95"
           >
             <Plus size={12} /> Registrar Recarga
           </button>
@@ -165,26 +165,26 @@ const VoucherStatement: React.FC<VoucherStatementProps> = ({
 
       {/* Linha do Tempo de Movimentações */}
       {monthlyGroups.length > 0 ? (
-        <div className="space-y-6 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-surface-elevated">
+        <div className="space-y-6 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-surface-elevated dark:before:bg-slate-800">
           {monthlyGroups.map((group) => (
             <div key={group.monthKey} className="relative pl-8 space-y-3">
               {/* Marcador na Timeline */}
-              <div className="absolute left-0 top-1 w-6 h-6 rounded-full border-4 border-surface-secondary bg-emerald-500 flex items-center justify-center">
+              <div className="absolute left-0 top-1 w-6 h-6 rounded-full border-4 border-surface-secondary dark:border-slate-800 bg-emerald-500 flex items-center justify-center">
                 <div className="w-1.5 h-1.5 rounded-full bg-white" />
               </div>
 
               {/* Cabeçalho do Mês */}
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-[11px] font-black uppercase tracking-widest text-text-primary">
+                  <h4 className="text-[11px] font-black uppercase tracking-widest text-text-primary dark:text-white">
                     {group.monthLabel}
                   </h4>
-                  <p className="text-[9px] font-bold text-text-muted uppercase tracking-tighter mt-0.5">
+                  <p className="text-[9px] font-bold text-text-muted dark:text-slate-400 uppercase tracking-tighter mt-0.5">
                     {group.transactions.length} movimentaç{group.transactions.length > 1 ? 'ões' : 'ão'}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs font-black text-text-primary">
+                  <p className="text-xs font-black text-text-primary dark:text-white">
                     Fluxo: {group.netFlow >= 0 ? '+' : '−'} R$ {Math.abs(group.netFlow).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 </div>
@@ -197,26 +197,26 @@ const VoucherStatement: React.FC<VoucherStatementProps> = ({
                   return (
                     <div
                       key={t.id}
-                      className="flex items-center justify-between bg-surface-primary p-3 rounded-2xl border border-surface-elevated text-xs group/item hover:border-emerald-500/30 transition-all shadow-sm"
+                      className="flex items-center justify-between bg-surface-primary dark:bg-slate-900 p-3 rounded-2xl border border-surface-elevated dark:border-slate-800 text-xs group/item hover:border-emerald-500/30 dark:hover:border-emerald-500/40 transition-all shadow-sm"
                     >
                       <div className="flex items-center gap-3">
                         <div
                           className={`p-2 rounded-xl shrink-0 ${
-                            isIncome ? 'bg-emerald-100 text-emerald-700' : 'bg-surface-secondary text-text-muted'
+                            isIncome ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400' : 'bg-surface-secondary dark:bg-slate-800 text-text-muted dark:text-slate-400'
                           }`}
                         >
                           {isIncome ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                         </div>
                         <div className="flex flex-col">
-                          <span className="font-bold text-text-primary text-[11px]">
+                          <span className="font-bold text-text-primary dark:text-white text-[11px]">
                             {t.description || (isIncome ? 'Recarga de Voucher' : 'Compra Voucher')}
                           </span>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-text-muted text-[9px] font-medium">
+                            <span className="text-text-muted dark:text-slate-400 text-[9px] font-medium">
                               {new Date(t.date.replace(/-/g, '/')).toLocaleDateString('pt-BR')}
                             </span>
                             {t.category && (
-                              <span className="px-1.5 py-0.5 bg-surface-secondary text-text-muted text-[8px] font-black rounded-md uppercase">
+                              <span className="px-1.5 py-0.5 bg-surface-secondary dark:bg-slate-800 text-text-muted dark:text-slate-400 text-[8px] font-black rounded-md uppercase">
                                 {t.category}
                               </span>
                             )}
@@ -225,7 +225,7 @@ const VoucherStatement: React.FC<VoucherStatementProps> = ({
                       </div>
 
                       <div className="flex items-center gap-3 shrink-0">
-                        <span className={`font-black text-xs ${isIncome ? 'text-emerald-600' : 'text-text-primary'}`}>
+                        <span className={`font-black text-xs ${isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-primary dark:text-white'}`}>
                           {isIncome ? '+' : '−'} R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                         <button
@@ -234,7 +234,7 @@ const VoucherStatement: React.FC<VoucherStatementProps> = ({
                             onCloseParent?.();
                             onEditTransaction(t);
                           }}
-                          className="p-2 text-text-muted hover:text-brand-primary hover:bg-brand-primary/10 rounded-xl transition-all opacity-100 md:opacity-0 md:group-hover/item:opacity-100"
+                          className="p-2 text-text-muted dark:text-slate-400 hover:text-brand-primary dark:hover:text-emerald-400 hover:bg-brand-primary/10 dark:hover:bg-slate-800 rounded-xl transition-all opacity-100 md:opacity-0 md:group-hover/item:opacity-100"
                           title="Editar lançamento"
                           aria-label="Editar lançamento"
                         >
@@ -249,11 +249,11 @@ const VoucherStatement: React.FC<VoucherStatementProps> = ({
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center py-8 text-center space-y-3 bg-surface-primary/50 rounded-2xl border border-dashed border-surface-elevated">
-          <div className="p-3 bg-surface-secondary rounded-2xl text-text-muted opacity-40">
+        <div className="flex flex-col items-center py-8 text-center space-y-3 bg-surface-primary/50 dark:bg-slate-900/50 rounded-2xl border border-dashed border-surface-elevated dark:border-slate-800">
+          <div className="p-3 bg-surface-secondary dark:bg-slate-800 rounded-2xl text-text-muted dark:text-slate-400 opacity-40">
             <Receipt size={28} />
           </div>
-          <p className="text-xxs text-text-muted font-bold uppercase tracking-widest max-w-[240px]">
+          <p className="text-xxs text-text-muted dark:text-slate-400 font-bold uppercase tracking-widest max-w-[240px]">
             Nenhuma movimentação registrada neste cartão voucher.
           </p>
           <div className="flex items-center gap-2 pt-1">
@@ -267,7 +267,7 @@ const VoucherStatement: React.FC<VoucherStatementProps> = ({
             <button
               type="button"
               onClick={handleLaunchIncome}
-              className="px-4 py-2 bg-surface-primary text-text-primary border border-surface-elevated rounded-xl text-[9px] font-black uppercase tracking-wider hover:bg-surface-secondary transition-all active:scale-95"
+              className="px-4 py-2 bg-surface-primary dark:bg-slate-800 text-text-primary dark:text-white border border-surface-elevated dark:border-slate-700 rounded-xl text-[9px] font-black uppercase tracking-wider hover:bg-surface-secondary dark:hover:bg-slate-700 transition-all active:scale-95"
             >
               Registrar Recarga
             </button>

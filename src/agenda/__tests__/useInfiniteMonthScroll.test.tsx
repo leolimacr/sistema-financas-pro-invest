@@ -260,6 +260,30 @@ describe('useInfiniteMonthScroll — mês ativo (onActiveMonthChange)', () => {
     expect(onActiveMonthChange).toHaveBeenCalledTimes(1);
     expect(onActiveMonthChange).toHaveBeenCalledWith({ year: 2026, month: 1 });
   });
+
+  it('detecta mudança de mês quando o evento de scroll parte de um elemento pai com overflow-y auto (ex: main)', () => {
+    const main = document.createElement('main');
+    main.style.overflowY = 'auto';
+    const dom = buildNotebook();
+    main.appendChild(dom.notebook);
+    main.appendChild(dom.monthHeader);
+    document.body.appendChild(main);
+
+    try {
+      setMonthHeaderBottom(dom.monthHeader, 700);
+      section(dom.notebook, '2026-0', 0, 600);
+      section(dom.notebook, '2026-1', 600, 1200);
+      const { onActiveMonthChange } = setup({}, dom);
+
+      act(() => { main.dispatchEvent(new Event('scroll')); });
+      runNextRaf();
+
+      expect(onActiveMonthChange).toHaveBeenCalledTimes(1);
+      expect(onActiveMonthChange).toHaveBeenCalledWith({ year: 2026, month: 1 });
+    } finally {
+      document.body.removeChild(main);
+    }
+  });
 });
 
 describe('useInfiniteMonthScroll — escopo das seções (notebook, não documento inteiro)', () => {

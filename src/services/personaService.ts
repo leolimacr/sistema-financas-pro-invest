@@ -102,7 +102,7 @@ export const getPersonaVoice = (archetype: Archetype) => {
       prefix: 'Status: Protegido.',
       color: '#10b981',
       firstInsight:
-        'Seu foco é proteger a estrutura antes de expandir. Priorizo reserva, Colchão Inicial e estabilidade do custo de vida.',
+        'Seu foco é proteger a estrutura antes de expandir. Priorizo reserva, Colchão Emergencial e estabilidade do custo de vida.',
       route: ['controla', 'central', 'chat'],
     },
     commander: {

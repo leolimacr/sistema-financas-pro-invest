@@ -98,6 +98,14 @@ export const module05: CourseModule = {
           practicalRule:
             'Reinvista 100% dos seus proventos enquanto estiver na fase de acúmulo. Isso cria um circuito perpétuo de multiplicação patrimonial.',
         },
+        {
+          type: 'tool-cta',
+          tool: 'dividends',
+          title: 'Simule sua Renda Passiva e seu Número Mágico',
+          content:
+            'Acesse o Simulador de Dividendos do Finanças Pro Invest para calcular quando seus proventos mensais de FIIs e ações pagarão suas despesas de vida e descobrir exatamente seu Número Mágico com efeito bola de neve.',
+          buttonLabel: 'Abrir Simulador de Dividendos',
+        },
       ],
     },
   ],

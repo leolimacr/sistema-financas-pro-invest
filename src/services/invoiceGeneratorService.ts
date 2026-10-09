@@ -47,7 +47,7 @@ function getPeriodDates(card: CreditCard, year: number, month: number): { period
 function groupTransactionsByPeriod(card: CreditCard, transactions: Transaction[]): Map<string, PeriodGroup> {
   const groups = new Map<string, PeriodGroup>();
 
-  const cardExpenses = transactions.filter(t => t.cardId === card.id && t.type === 'expense' && !t.isBillPayment);
+  const cardExpenses = transactions.filter(t => t.cardId === card.id && t.type === 'expense' && !(t.isBillPayment && !t.linkedRecurringBillId));
 
   for (const tx of cardExpenses) {
     const key = getPeriodKey(card, tx);

@@ -55,117 +55,101 @@ export const DownloadPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-surface-secondary text-slate-800 font-sans pt-24 pb-16 px-4 md:px-8">
+    <div className="min-h-screen bg-surface-secondary dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans pt-[max(7.5rem,calc(env(safe-area-inset-top)+5.5rem))] sm:pt-28 md:pt-32 pb-16 px-4 md:px-8 transition-colors">
       <div className="max-w-2xl mx-auto space-y-8">
         {/* Header do Convite */}
         <div className="text-center space-y-4">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold uppercase tracking-wider">
-            <Smartphone size={14} className="text-emerald-600" />
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-xs font-bold uppercase tracking-wider">
+            <Smartphone size={14} className="text-emerald-600 dark:text-emerald-400" />
             <span>Acesso Antecipado • Versão Android</span>
           </div>
 
-          <h1 className="text-3xl md:text-4xl font-black text-slate-950 tracking-tight leading-tight">
-            Baixe o <span className="text-emerald-600">Finanças Pro Invest</span> no seu celular
+          <h1 className="text-3xl md:text-4xl font-black text-slate-950 dark:text-white tracking-tight leading-tight">
+            Baixe o <span className="text-emerald-600 dark:text-emerald-400">Finanças Pro Invest</span> no seu celular
           </h1>
 
-          <p className="text-sm md:text-base text-slate-500 max-w-lg mx-auto leading-relaxed">
+          <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 max-w-lg mx-auto leading-relaxed">
             Instale o aplicativo Android gratuito, crie sua conta e organize seu fluxo de caixa diário e compromissos com total clareza.
           </p>
         </div>
 
         {/* Card Principal de Download */}
-        <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-soft space-y-6">
-          <div className="flex items-center gap-4 border-b border-slate-100 pb-6">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 border border-slate-200 dark:border-slate-800 shadow-soft space-y-6">
+          <div className="flex items-center gap-4 border-b border-slate-100 dark:border-slate-800 pb-6">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0 p-1.5 overflow-hidden">
               <img src="/assets/images/brand/logo.png" alt="Finanças Pro Invest" className="w-full h-full object-cover" />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-black text-slate-900 tracking-tight">
-                Finanças Pro Invest Android
+              <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                Finanças Pro Invest • Versão Web & PWA
               </h2>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                Arquivo de Instalação Direta (APK) • ~54 MB • Versão 1.0.0
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                Acesso Instantâneo e Seguro • Multiplataforma (Android, iOS e Desktop)
               </p>
             </div>
           </div>
 
-          {/* Ação Condicional: Mobile (Download direto) vs Desktop (QR Code) */}
-          {isMobile ? (
-            <a
-              href={apkUrl}
-              download="FinancasProInvest.apk"
-              className="w-full py-4 px-6 rounded-2xl bg-slate-950 hover:bg-slate-800 text-white font-black text-sm uppercase tracking-widest shadow-floating active:scale-[0.99] transition-all flex items-center justify-center gap-3"
+          {/* Ação: Acesso Imediato ao Web App */}
+          <div className="space-y-4">
+            <button
+              onClick={() => navigate('/app/central')}
+              className="w-full py-4 px-6 rounded-2xl bg-slate-950 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white font-black text-sm uppercase tracking-widest shadow-floating active:scale-[0.99] transition-all flex items-center justify-center gap-3"
             >
-              <Download size={20} className="text-emerald-400 animate-bounce" />
-              <span>Baixar Aplicativo Android (.apk)</span>
-            </a>
-          ) : (
-            <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl p-6 md:p-8 flex flex-col items-center justify-center text-center space-y-4">
-              <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-                <QRCodeSVG
-                  value={shareUrl}
-                  size={180}
-                  level="H"
-                  includeMargin={false}
-                />
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs font-black uppercase tracking-wider text-slate-800">
-                  Aponte a câmera do seu celular
-                </p>
-                <p className="text-xs text-slate-500 max-w-sm">
-                  O aplicativo é exclusivo para dispositivos Android. Escaneie o código acima com a câmera do seu celular para baixar e instalar diretamente no aparelho.
-                </p>
-              </div>
-            </div>
-          )}
+              <ArrowRight size={20} className="text-emerald-400 dark:text-white" />
+              <span>Acessar Plataforma Agora</span>
+            </button>
 
-          {/* Instruções de Instalação */}
+            <p className="text-center text-xs text-slate-500 dark:text-slate-400">
+              Funciona diretamente em qualquer celular ou navegador sem ocupar espaço na memória.
+            </p>
+          </div>
+
+          {/* Instruções de Adição à Tela Inicial (PWA) */}
           <div className="space-y-3 pt-2">
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-700">
-              Como instalar em 2 passos simples:
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
+              Como usar como aplicativo no seu celular (PWA):
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-start gap-3">
-                <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 font-bold text-xs flex items-center justify-center shrink-0">
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex items-start gap-3">
+                <span className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-bold text-xs flex items-center justify-center shrink-0">
                   1
                 </span>
                 <div className="text-xs space-y-1">
-                  <p className="font-bold text-slate-800">Baixe e Abra o Arquivo</p>
-                  <p className="text-slate-500 leading-relaxed">
-                    Clique no botão acima. Quando o download terminar, toque em <strong>Abrir</strong> na barra de notificações do seu celular.
+                  <p className="font-bold text-slate-800 dark:text-slate-200">No seu Navegador (Chrome ou Safari)</p>
+                  <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Abra o Finanças Pro Invest no seu celular e toque no menu de opções (três pontinhos no Chrome ou ícone de Compartilhar no Safari).
                   </p>
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-start gap-3">
-                <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 font-bold text-xs flex items-center justify-center shrink-0">
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex items-start gap-3">
+                <span className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-bold text-xs flex items-center justify-center shrink-0">
                   2
                 </span>
                 <div className="text-xs space-y-1">
-                  <p className="font-bold text-slate-800">Autorize a Instalação</p>
-                  <p className="text-slate-500 leading-relaxed">
-                    Se o Android perguntar sobre "Fontes desconhecidas" ou "Permitir desta fonte", selecione <strong>Sim / Permitir</strong> e toque em <strong>Instalar</strong>.
+                  <p className="font-bold text-slate-800 dark:text-slate-200">Adicione à Tela de Início</p>
+                  <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Selecione a opção <strong>"Adicionar à tela inicial"</strong> ou <strong>"Instalar aplicativo"</strong>. O ícone oficial aparecerá na tela do seu aparelho.
                   </p>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 p-3 bg-emerald-50/60 rounded-xl border border-emerald-100 text-[11px] text-emerald-800">
-            <ShieldCheck size={16} className="text-emerald-600 shrink-0" />
-            <span>Aplicativo 100% seguro, verificado e compilado diretamente pelo ambiente oficial do Finanças Pro Invest.</span>
+          <div className="flex items-center gap-2 p-3 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-xl border border-emerald-100 dark:border-emerald-900/40 text-[11px] text-emerald-800 dark:text-emerald-300">
+            <ShieldCheck size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>Plataforma protegida com criptografia ponta a ponta e sincronização segura em tempo real.</span>
           </div>
         </div>
 
         {/* Card de Compartilhamento / Convidar Amigos */}
-        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="space-y-1 text-center sm:text-left">
-            <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight">
+            <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">
               Indique para um amigo
             </h4>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Envie o link de download direto pelo WhatsApp ou copie o link da página.
             </p>
           </div>
@@ -183,10 +167,10 @@ export const DownloadPage: React.FC = () => {
             <button
               type="button"
               onClick={handleCopyLink}
-              className="py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 active:scale-95 border border-slate-200"
+              className="py-3 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 active:scale-95 border border-slate-200 dark:border-slate-700"
               title="Copiar link"
             >
-              {copied ? <Check size={15} className="text-emerald-600" /> : <Copy size={15} />}
+              {copied ? <Check size={15} className="text-emerald-600 dark:text-emerald-400" /> : <Copy size={15} />}
               <span>{copied ? 'Copiado!' : 'Copiar'}</span>
             </button>
           </div>
@@ -197,7 +181,7 @@ export const DownloadPage: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="text-xs font-bold text-slate-500 hover:text-slate-900 inline-flex items-center gap-1.5 transition-colors"
+            className="text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 inline-flex items-center gap-1.5 transition-colors"
           >
             <span>Prefere usar no navegador do computador ou celular? Acessar versão web</span>
             <ExternalLink size={13} />

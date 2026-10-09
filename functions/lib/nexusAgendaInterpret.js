@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.nexusAgendaInterpret = void 0;
+exports.nexusAgendaInterpret = exports.TIME_GAP_REFINEMENT = void 0;
 exports.deleteScanCutoffMs = deleteScanCutoffMs;
 exports.requireAuth = requireAuth;
 exports.buildSystemPrompt = buildSystemPrompt;
@@ -69,6 +69,10 @@ const HISTORY_CHARS_PER_TOKEN = 4;
 const MIN_HISTORY_MESSAGES = 2;
 const FRIENDLY_INVALID_QUESTION = 'Não consegui organizar essa solicitação. Você pode me dizer, por exemplo, o nome do compromisso, a data e o horário?';
 const TIME_GAP_QUESTION = 'Você quer inserir o horário neste compromisso?';
+exports.TIME_GAP_REFINEMENT = {
+    question: TIME_GAP_QUESTION,
+    suggestions: ['Sem horário', '09:00', '14:00', '19:00'],
+};
 const SCHEDULING_VERB_RE = /\b(agend(?:ar|e|ada|amos)?|marque|marcar|adicionar|incluir|anotar|reservar|criar|crie)\b/i;
 const DATE_SIGNAL_RE = /(?:^|[^a-z0-9])(hoje|amanh[aã]|depois\s+de\s+amanh[aã]|segunda|ter[cç]a|quarta|quinta|sexta|s[aá]bado|domingo|pr[oó]xim[ao]|dia\s+\d{1,2}|\d{1,2}\/\d{1,2}|semana\s+que\s+vem|no\s+m[eê]s|de\s+(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro))(?![a-z0-9])/i;
 const TIME_PRESENT_RE = /(?:^|[^a-z0-9])(\d{1,2}\s*[hH](?:\d{2})?|\d{1,2}:\d{2}|[àa]s\s+\d{1,2}|de\s+manh[aã]|[àa]\s+tarde|[àa]\s+noite|meio[- ]?dia|meia[- ]?noite)(?![a-z0-9])/i;
@@ -412,7 +416,7 @@ function clarification(missing, ambiguous, refinement, primaryQuestion) {
         },
     };
 }
-const RECURRENCE_REFINEMENT_QUESTION = 'Entendi que você quer uma recorrência. Você quer que eu agende isso para todas as terças até uma data limite, ou devo preencher a terça mais próxima e gerar até o limite máximo de compromissos da sua agenda?';
+const RECURRENCE_REFINEMENT_QUESTION = 'Entendi que você quer uma recorrência. Até quando gostaria de repetir esse compromisso?';
 const RECURRENCE_REFINEMENT_SUGGESTIONS = ['Até o final do ano', 'Sem prazo máximo'];
 function detectRecurrenceAmbiguity(envelope) {
     if (envelope.intent !== 'create' || !envelope.entities.recurrence)
@@ -874,7 +878,7 @@ async function runInterpretation(uid, data, dependencies, previousContext) {
         catch {
             if (hasCreateWithoutTimeEvidence(data.prompt)) {
                 logStage(requestId, 'normalize_time_gap', { reason: 'retry_indisponivel_com_evidencia' });
-                return { response: clarification(['startTime'], [], undefined, TIME_GAP_QUESTION), established: null };
+                return { response: clarification(['startTime'], [], exports.TIME_GAP_REFINEMENT, TIME_GAP_QUESTION), established: null };
             }
             return { response: clarification([], [FRIENDLY_INVALID_QUESTION]), established: null };
         }
@@ -882,7 +886,7 @@ async function runInterpretation(uid, data, dependencies, previousContext) {
         if (!parsed.ok) {
             if (hasCreateWithoutTimeEvidence(data.prompt)) {
                 logStage(requestId, 'normalize_time_gap', { reason: 'retry_falhou_com_evidencia', parseErrors: parsed.errors.slice(0, 3) });
-                return { response: clarification(['startTime'], [], undefined, TIME_GAP_QUESTION), established: null };
+                return { response: clarification(['startTime'], [], exports.TIME_GAP_REFINEMENT, TIME_GAP_QUESTION), established: null };
             }
             return { response: clarification([], [FRIENDLY_INVALID_QUESTION]), established: null };
         }
@@ -919,7 +923,7 @@ async function runInterpretation(uid, data, dependencies, previousContext) {
             : undefined;
         if (missing.length === 0 && hasCreateWithoutTimeEvidence(data.prompt)) {
             logStage(requestId, 'normalize_time_gap', { reason: 'validacao_sem_campo_obrigatorio_com_evidencia', errors: validated.errors.slice(0, 3) });
-            return { response: clarification(['startTime'], [], undefined, TIME_GAP_QUESTION), established };
+            return { response: clarification(['startTime'], [], exports.TIME_GAP_REFINEMENT, TIME_GAP_QUESTION), established };
         }
         return { response: clarification(missing, ambiguous, undefined, question), established };
     }
@@ -940,7 +944,7 @@ async function runInterpretation(uid, data, dependencies, previousContext) {
             const onlyStartTimeGap = envelope.missing.length === 1 && envelope.missing[0] === 'startTime';
             if (envelope.missing.length === 0 || onlyStartTimeGap) {
                 logStage(requestId, 'normalize_time_gap', { reason: onlyStartTimeGap ? 'clarify_startTime_com_evidencia' : 'clarify_vazio_com_evidencia', missing: envelope.missing });
-                return { response: clarification(['startTime'], [], undefined, TIME_GAP_QUESTION), established };
+                return { response: clarification(['startTime'], [], exports.TIME_GAP_REFINEMENT, TIME_GAP_QUESTION), established };
             }
         }
         return { response: clarification(envelope.missing, envelope.ambiguous), established };

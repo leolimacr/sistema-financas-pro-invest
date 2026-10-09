@@ -6,6 +6,7 @@ import {
   removeCachedCommitment,
   replaceCachedCommitmentId,
   clearAllAgendaCache,
+  searchCachedCommitments,
 } from '../agendaCache';
 import type { AgendaCommitment } from '../../services/agendaService';
 
@@ -119,4 +120,32 @@ describe('agendaCache', () => {
     expect(loadMonthCache('user-A', year, month)).toBeNull();
     expect(loadMonthCache('user-B', year, month)?.[0].title).toBe('User B');
   });
+
+  it('deve pesquisar compromissos em múltiplos meses com normalização de maiúsculas e acentos', () => {
+    saveMonthCache(userId, 2026, 8, [
+      { id: 'c1', title: 'Catequese da Joana', date: new Date('2026-09-14T19:00:00.000Z') as any, completed: false },
+      { id: 'c2', title: 'Médico Cardiologista', date: new Date('2026-09-20T10:00:00.000Z') as any, completed: false },
+    ]);
+
+    saveMonthCache(userId, 2026, 9, [
+      { id: 'c3', title: 'Catequese 19h com o Padre', date: new Date('2026-10-05T19:00:00.000Z') as any, completed: false },
+      { id: 'c4', title: 'Dentista revisão', date: new Date('2026-10-12T14:00:00.000Z') as any, completed: false },
+    ]);
+
+    // Busca case-insensitive e sem acento
+    const res = searchCachedCommitments(userId, 'catequese');
+    expect(res.length).toBe(2);
+    expect(res[0].title).toBe('Catequese da Joana');
+    expect(res[1].title).toBe('Catequese 19h com o Padre');
+
+    // Busca por termo com acento procurando palavra sem acento ou vice-versa
+    const resMed = searchCachedCommitments(userId, 'medico');
+    expect(resMed.length).toBe(1);
+    expect(resMed[0].title).toBe('Médico Cardiologista');
+
+    // Busca vazia retorna array vazio
+    expect(searchCachedCommitments(userId, '')).toEqual([]);
+    expect(searchCachedCommitments(userId, '   ')).toEqual([]);
+  });
 });
+

@@ -30,6 +30,7 @@ export declare class MultiModelRouter {
     static getInstance(): MultiModelRouter;
     private initializeProviders;
     updateApiKeys(keys: {
+        gemini?: string;
         groq?: string;
         openrouter?: string;
     }): void;
@@ -37,6 +38,7 @@ export declare class MultiModelRouter {
         temperature?: number;
         maxTokens?: number;
         tools?: any[];
+        cacheScope?: string;
         fallbackContext?: {
             primaryIntent?: string;
             userName?: string;

@@ -93,16 +93,23 @@ export const useNexusActions = () => {
 
       if (action.type === 'attack_debt') {
         setIsExecuting(false);
-        trackActionCompleted(insightId, priority || 'alta', action.type);
-        return { success: true, debtId: action.payload?.debtId };
+        return {
+          success: false,
+          status: 'navigation_required' as const,
+          error: 'A priorização da dívida precisa ser revisada na tela de estratégia.',
+          debtId: action.payload?.debtId,
+        };
       }
 
-      // Simula latência para outros tipos de ação placeholders
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
       setIsExecuting(false);
-      trackActionCompleted(insightId, priority || 'media', action.type);
-      return { success: true };
+      // Não existe confirmação de negócio para os demais tipos. Reportar
+      // explicitamente a necessidade de navegar evita que a interface mostre
+      // uma operação como concluída quando apenas há uma recomendação.
+      return {
+        success: false,
+        status: 'navigation_required' as const,
+        error: 'Esta recomendação precisa ser concluída na área indicada.',
+      };
     } catch (error) {
       console.error('[NexusAction] Erro ao executar ação:', error);
       setIsExecuting(false);

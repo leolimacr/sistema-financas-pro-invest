@@ -93,6 +93,7 @@ export interface Transaction {
   installments?: number;        // Total de parcelas (ex: 12)
   currentInstallment?: number; // Parcela atual (ex: 1)
   installmentId?: string;      // ID único para agrupar as parcelas de uma mesma compra
+  purchaseDate?: string;       // Data original da compra física (YYYY-MM-DD)
   createdAtMs?: number;        // Momento técnico de criação
   sortKey?: string;            // Chave composta para ordenação e paginação
 }
@@ -130,6 +131,7 @@ export interface FinancialProfile {
   monthlyIncome: number;
   emergencyReserveTarget: number;
   emergencyReserveCurrent: number;
+  colchaoCurrent?: number;
   marcoZero?: number;
   protectionMonths?: number;
   declaredNoDebts?: boolean;
@@ -172,6 +174,9 @@ export interface UserMeta {
   /** Legado (Etapa 7 — E7-06): ver `LegacySubscription`. */
   subscription?: LegacySubscription;
   persona?: PersonaContext; // [NEXUS] Inteligência de Persona
+  email?: string;
+  role?: string;
+  isAdmin?: boolean;
 }
 
 export * from './market';

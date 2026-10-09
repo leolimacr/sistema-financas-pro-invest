@@ -1,5 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { traceInsightShown, traceNavigation, collectFollowUp, getEffectivePriorityDelta, getDomainSuppressionMultiplier, getToneMarker } from '../insightResponseObserver';
+import {
+  traceInsightShown,
+  traceNavigation,
+  collectFollowUp,
+  getEffectivePriorityDelta,
+  getDomainSuppressionMultiplier,
+  getToneMarker,
+  mergeDomainBehaviors,
+  mergeTraces,
+  type DomainBehaviorEntry,
+  type InsightTrace
+} from '../insightResponseObserver';
 import type { NexusInsight, UserContext } from '../nexusInsightEngine';
 
 describe('insightResponseObserver', () => {
@@ -139,12 +150,58 @@ describe('insightResponseObserver', () => {
     expect(result!.text).toContain('reduziu');
   });
 
-  it('não rastreia evento de dívida por prefixo (fora dos 3 domínios)', () => {
-    const insight = makeInsight({ id: 'nexus-event-debt-created', deepLink: 'minhas-dividas' });
+  it('não rastreia evento desconhecido fora dos domínios mapeados', () => {
+    const insight = makeInsight({ id: 'nexus-unknown-trigger-event', deepLink: 'outros' });
     const ctx = makeCtx({ marcoZero: 1000, reserveCurrent: 500 });
     traceInsightShown(insight, ctx);
-    traceNavigation('nexus-event-debt-created');
+    traceNavigation('nexus-unknown-trigger-event');
     expect(collectFollowUp(ctx)).toBeNull();
+  });
+
+  it('rastreia evento de dívidas e gera follow-up quando saldo devedor reduz', () => {
+    const insight = makeInsight({ id: 'nexus-event-debt-pressure', deepLink: 'minhas-dividas' });
+    const ctxShown = makeCtx({
+      debts: [{ id: 'd1', name: 'Empréstimo', totalAmount: 10000, remainingAmount: 8000 } as any],
+    });
+    traceInsightShown(insight, ctxShown);
+    traceNavigation('nexus-event-debt-pressure');
+
+    const ctxNow = makeCtx({
+      debts: [{ id: 'd1', name: 'Empréstimo', totalAmount: 10000, remainingAmount: 5000 } as any],
+    });
+    const result = collectFollowUp(ctxNow);
+    expect(result).not.toBeNull();
+    expect(result!.domain).toBe('dividas');
+    expect(result!.text).toContain('dívidas');
+    expect(result!.text).toContain('saldo devedor diminuiu');
+  });
+
+  it('rastreia evento de investimentos e gera follow-up quando patrimônio avança', () => {
+    const insight = makeInsight({ id: 'nexus-event-invest-opportunity', deepLink: 'investimentos' });
+    const ctxShown = makeCtx({ totalAssetsValue: 50000 });
+    traceInsightShown(insight, ctxShown);
+    traceNavigation('nexus-event-invest-opportunity');
+
+    const ctxNow = makeCtx({ totalAssetsValue: 65000 });
+    const result = collectFollowUp(ctxNow);
+    expect(result).not.toBeNull();
+    expect(result!.domain).toBe('investimentos');
+    expect(result!.text).toContain('investimentos');
+    expect(result!.text).toContain('patrimônio investido avançou');
+  });
+
+  it('rastreia evento de caixa e gera follow-up quando margem livre melhora', () => {
+    const insight = makeInsight({ id: 'nexus-event-cash-flow', deepLink: 'controla' });
+    const ctxShown = makeCtx({ sovereignFreeBalance: 500 });
+    traceInsightShown(insight, ctxShown);
+    traceNavigation('nexus-event-cash-flow');
+
+    const ctxNow = makeCtx({ sovereignFreeBalance: 1800 });
+    const result = collectFollowUp(ctxNow);
+    expect(result).not.toBeNull();
+    expect(result!.domain).toBe('caixa');
+    expect(result!.text).toContain('fluxo de caixa');
+    expect(result!.text).toContain('margem de caixa livre melhorou');
   });
 
   describe('comportamento por domínio', () => {
@@ -234,5 +291,90 @@ describe('insightResponseObserver', () => {
     });
     collectFollowUp(ctxNow);
     expect(collectFollowUp(ctxNow)).toBeNull();
+  });
+
+  describe('sincronização multi-dispositivo (CRDT & Merge)', () => {
+    it('mergeDomainBehaviors mescla contadores mais altos e timestamps mais recentes', () => {
+      const local: Record<string, DomainBehaviorEntry> = {
+        orcamento: {
+          domain: 'orcamento',
+          shownCount: 3,
+          navigatedCount: 1,
+          improvedCount: 0,
+          lastShownAt: 1000,
+          lastResponseAt: 1200,
+        },
+      };
+
+      const remote: Record<string, DomainBehaviorEntry> = {
+        orcamento: {
+          domain: 'orcamento',
+          shownCount: 4,
+          navigatedCount: 2,
+          improvedCount: 1,
+          lastShownAt: 1500,
+          lastResponseAt: 1600,
+        },
+        protecao: {
+          domain: 'protecao',
+          shownCount: 2,
+          navigatedCount: 1,
+          improvedCount: 1,
+          lastShownAt: 2000,
+          lastResponseAt: 2100,
+        },
+      };
+
+      const merged = mergeDomainBehaviors(local, remote);
+      expect(merged.orcamento.shownCount).toBe(4);
+      expect(merged.orcamento.navigatedCount).toBe(2);
+      expect(merged.orcamento.improvedCount).toBe(1);
+      expect(merged.orcamento.lastShownAt).toBe(1500);
+      expect(merged.orcamento.lastResponseAt).toBe(1600);
+      expect(merged.protecao).toBeDefined();
+      expect(merged.protecao.shownCount).toBe(2);
+    });
+
+    it('mergeTraces deduplica mantendo status de navegação e timestamps mais recentes', () => {
+      const local: InsightTrace[] = [
+        {
+          insightId: 'ins-1',
+          domain: 'orcamento',
+          shownAt: 1000,
+          deepLink: 'budget',
+          metricKey: 'pct',
+          metricValue: 80,
+          navigated: false,
+        },
+      ];
+
+      const remote: InsightTrace[] = [
+        {
+          insightId: 'ins-1',
+          domain: 'orcamento',
+          shownAt: 1200,
+          deepLink: 'budget',
+          metricKey: 'pct',
+          metricValue: 80,
+          navigated: true,
+        },
+        {
+          insightId: 'ins-2',
+          domain: 'protecao',
+          shownAt: 1500,
+          deepLink: 'central',
+          metricKey: 'buffer',
+          metricValue: 5000,
+          navigated: false,
+        },
+      ];
+
+      const merged = mergeTraces(local, remote, 10);
+      expect(merged.length).toBe(2);
+      expect(merged[0].insightId).toBe('ins-2');
+      expect(merged[1].insightId).toBe('ins-1');
+      expect(merged[1].navigated).toBe(true);
+      expect(merged[1].shownAt).toBe(1200);
+    });
   });
 });

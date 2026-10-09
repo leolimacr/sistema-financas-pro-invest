@@ -16,11 +16,67 @@ describe('deepLinkRouter - Resolução Soberana de Rotas', () => {
     });
   });
 
+  describe('URLs Absolutas e Esquemas Nativos (E-mails e Deep Links)', () => {
+    it('resolve URLs HTTPS canônicas de e-mails para relatórios e ferramentas', () => {
+      expect(
+        resolveAppRoute('https://www.financasproinvest.com.br/app/dashboard?origin=email_weekly_summary')
+      ).toBe('/app/dashboard?origin=email_weekly_summary');
+
+      expect(
+        resolveAppRoute('https://financas-pro-invest.web.app/app/dashboard?origin=email_monthly_close')
+      ).toBe('/app/dashboard?origin=email_monthly_close');
+
+      expect(
+        resolveAppRoute('https://financasproinvest.com.br/app/controla?action=new-transaction&origin=email_inactivity')
+      ).toBe('/app/controla?action=new-transaction&origin=email_inactivity');
+
+      expect(
+        resolveAppRoute('https://www.financasproinvest.com.br/app/minhas-dividas?view=estrategia&origin=email_debt_due')
+      ).toBe('/app/minhas-dividas?view=estrategia&origin=email_debt_due');
+
+      expect(
+        resolveAppRoute('https://www.financasproinvest.com.br/app/metas?origin=email_goal_aport')
+      ).toBe('/app/metas?origin=email_goal_aport');
+    });
+
+    it('resolve esquema customizado nativo financaspro:// com parâmetros', () => {
+      expect(
+        resolveAppRoute('financaspro://app/dashboard?origin=email_weekly_summary')
+      ).toBe('/app/dashboard?origin=email_weekly_summary');
+
+      expect(
+        resolveAppRoute('financaspro:/app/dashboard?origin=email_monthly_close')
+      ).toBe('/app/dashboard?origin=email_monthly_close');
+
+      expect(
+        resolveAppRoute('financaspro://agenda')
+      ).toBe('/app/agenda');
+    });
+
+    it('converte raiz do domínio oficial para a Central', () => {
+      expect(resolveAppRoute('https://www.financasproinvest.com.br')).toBe('/app/central');
+      expect(resolveAppRoute('https://financas-pro-invest.web.app/')).toBe('/app/central');
+      expect(resolveAppRoute('/')).toBe('/app/central');
+    });
+
+    it('conduz termos e apelidos de relatórios para /app/dashboard', () => {
+      expect(resolveAppRoute('relatorio')).toBe('/app/dashboard');
+      expect(resolveAppRoute('relatorios')).toBe('/app/dashboard');
+      expect(resolveAppRoute('relatório')).toBe('/app/dashboard');
+      expect(resolveAppRoute('relatórios')).toBe('/app/dashboard');
+      expect(resolveAppRoute('fechamento')).toBe('/app/dashboard');
+      expect(resolveAppRoute('resumo')).toBe('/app/dashboard');
+      expect(resolveAppRoute('report')).toBe('/app/dashboard');
+      expect(resolveAppRoute('resumo?origin=email')).toBe('/app/dashboard?origin=email');
+    });
+  });
+
   describe('Normalização de Apelidos de Módulos (Sem prefixo)', () => {
     it('conduz termos de agenda para /app/agenda', () => {
       expect(resolveAppRoute('agenda')).toBe('/app/agenda');
       expect(resolveAppRoute('compromissos')).toBe('/app/agenda');
       expect(resolveAppRoute('calendario')).toBe('/app/agenda');
+      expect(resolveAppRoute('agenda?view=week&highlight=123&date=2026-09-20')).toBe('/app/agenda?view=week&highlight=123&date=2026-09-20');
     });
 
     it('conduz termos de despesas, contas e lançamentos para /app/controla', () => {
@@ -64,17 +120,28 @@ describe('deepLinkRouter - Resolução Soberana de Rotas', () => {
       expect(resolveAppRoute('bens')).toBe('/app/passivos');
     });
 
-    it('conduz metas para /app/metas', () => {
+    it('conduz metas para /app/metas e normaliza rota individual /metas/:id', () => {
       expect(resolveAppRoute('metas')).toBe('/app/metas');
       expect(resolveAppRoute('meta')).toBe('/app/metas');
       expect(resolveAppRoute('objetivos')).toBe('/app/metas');
+      expect(resolveAppRoute('/metas/goal-123')).toBe('/app/metas?highlight=goal-123');
+      expect(resolveAppRoute('/metas/goal-123?origin=push')).toBe('/app/metas?highlight=goal-123&origin=push');
     });
 
-    it('conduz IA e consultor para /app/ia', () => {
+    it('conduz IA e consultor para /app/ia e preserva contexto', () => {
       expect(resolveAppRoute('ia')).toBe('/app/ia');
       expect(resolveAppRoute('chat')).toBe('/app/ia');
       expect(resolveAppRoute('nexus')).toBe('/app/ia');
       expect(resolveAppRoute('consultor')).toBe('/app/ia');
+      expect(resolveAppRoute('/nexus?context=patrimonio')).toBe('/app/ia?context=patrimonio');
+    });
+
+    it('preserva parâmetros contextuais em ferramentas financeiras', () => {
+      expect(resolveAppRoute('controla?view=contas&filter=next5days')).toBe('/app/controla?view=contas&filter=next5days');
+      expect(resolveAppRoute('minhas-dividas?highlight=debt-99')).toBe('/app/minhas-dividas?highlight=debt-99');
+      expect(resolveAppRoute('minhas-dividas?view=estrategia')).toBe('/app/minhas-dividas?view=estrategia');
+      expect(resolveAppRoute('central?view=base-protecao')).toBe('/app/central?view=base-protecao');
+      expect(resolveAppRoute('investimentos?action=new-asset')).toBe('/app/investimentos?action=new-asset');
     });
   });
 

@@ -89,7 +89,7 @@ export async function registerVipInterest(data: VipInterestData): Promise<void> 
       body: `Você está na lista prioritária para o plano ${tierLabel} (${cycleLabel}). Avisaremos você em primeira mão assim que as assinaturas forem liberadas com condições exclusivas de lançamento.`,
       ctaLabel: 'Ver Detalhes',
     },
-    deepLink: 'mais',
+    deepLink: 'pricing',
     cooldownHours: 24,
     expiresInHours: 720, // 30 dias
     resourceId: `vip_${data.tier}`,

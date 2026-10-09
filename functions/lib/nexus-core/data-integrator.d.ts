@@ -48,6 +48,8 @@ export declare class DataIntegrator {
     static formatAssetsSummary(assets: any[]): string;
     static formatPassivesSummary(passives: any[]): string;
     static formatDebtsSummary(debts: any[]): string;
+    static formatBillsSummary(bills: any[]): string;
+    static formatCardsSummary(cards: any[], invoices?: any[]): string;
     static formatPatrimonioVisaoGerencial(assets: any[], passives: any[]): string;
     static formatSimulationsForPrompt(simulations: UserSimulation[], _context: any): string;
     private static filterRelevantTransactions;

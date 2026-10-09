@@ -8,6 +8,7 @@ import { useAuth } from '../../../../contexts/AuthContext';
 import { useCards } from '../../../../hooks/useCards';
 import { useBills } from '../../../../hooks/useBills';
 import { useBudget } from '../../../../hooks/useBudget';
+import { buildBudgetId, getPreviousBudgetId } from '../../../../utils/budgetUtils';
 import { useIsMobile } from '../../../../hooks/useIsMobile';
 import { isBillPaid, getCurrentInvoice } from '../../../../utils/invoiceUtils';
 import { useInvoicesByUser } from '../../../../hooks/useCardInvoices';
@@ -22,6 +23,8 @@ import {
   isTransactionVisible,
   hasHistoryAccess as planHasHistoryAccess,
 } from '../../../../utils/historyTimeGate';
+import { generateFinancialReport } from '../../../../utils/reportGenerator';
+import { exportTransactionsToCsv } from '../../../../utils/csvExporter';
 import { isCommandMode } from '../../../../services/personaCalibrationService';
 import type { Transaction, Category, UserMeta, CreditCard, CardInvoice } from '../../../../types';
 import type { DebtItem } from '../../../../services/debt';
@@ -125,10 +128,24 @@ export const useDashboardState = (props: DashboardStateProps) => {
   const isMobile = useIsMobile();
   const location = useLocation();
   const { user } = useAuth();
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  const activeMonthKey = useMemo(() => {
+    return buildBudgetId(currentDate.getFullYear(), currentDate.getMonth() + 1);
+  }, [currentDate]);
+
+  const prevMonthKey = useMemo(() => {
+    return getPreviousBudgetId(activeMonthKey);
+  }, [activeMonthKey]);
 
   const { cards: userCards } = useCards(user?.uid);
   const { bills: recurringBills } = useBills(user?.uid);
-  const { budget: currentBudget, isLoading: budgetLoading } = useBudget(user?.uid);
+  const {
+    budget: currentBudget,
+    isLoading: budgetLoading,
+    deleteBudget,
+  } = useBudget(user?.uid, activeMonthKey);
+  const { budget: previousBudget } = useBudget(user?.uid, prevMonthKey);
   const { invoices: storedInvoices } = useInvoicesByUser(user?.uid);
   const { data: userDebts = [] } = useDebts(user?.uid);
 
@@ -158,7 +175,6 @@ export const useDashboardState = (props: DashboardStateProps) => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense'>('all');
   const [viewMode, setViewMode] = useState<'day' | 'month' | 'year' | 'all' | 'period'>('month');
-  const [currentDate, setCurrentDate] = useState(new Date());
   const [startDate, setStartDate] = useState(getLocalDateString(new Date(new Date().getFullYear(), new Date().getMonth(), 1)));
   const [endDate, setEndDate] = useState(getLocalDateString());
   const [sortMode, setSortMode] = useState<'date-desc' | 'date-asc' | 'category-asc' | 'category-desc'>('date-desc');
@@ -218,6 +234,11 @@ export const useDashboardState = (props: DashboardStateProps) => {
   // Efeito para abrir a gestão de cartões, aplicar filtro de cartão, ou limpar filtro via estado de navegação
   useEffect(() => {
     const state = location.state as Record<string, unknown> | null;
+    if (state?.openBudgetSetup) {
+      setIsBudgetSetupOpen(true);
+      window.history.replaceState({}, document.title);
+      return;
+    }
     if (state?.openCards) {
       setIsCardModalOpen(true);
       setFocusedCardId((state?.focusedCardId as string) || null);
@@ -487,6 +508,8 @@ export const useDashboardState = (props: DashboardStateProps) => {
         isVirtual: true,
         isFutureLaunch: true,
         cardId: inv.cardId,
+        linkedCardId: inv.cardId,
+        linkedInvoicePeriodEnd: inv.periodEnd,
       }));
   }, [activeInvoices, hasHydrated]);
 
@@ -889,7 +912,32 @@ export const useDashboardState = (props: DashboardStateProps) => {
     const fromTx = safeTransactions.map((t: TxLike) => t?.category).filter(Boolean);
     return Array.from(new Set([...fromDb, ...fromTx])).sort();
   }, [categories, safeTransactions]);
-  const handleExportPDF = () => {};
+  const isHistoryLockedMonth = !hasHistoryAccess && isDateBeforeCurrentMonth(currentDate);
+
+  const handleExportPDF = useCallback(async () => {
+    if (!hasHistoryAccess) {
+      setShowHistoryPaywall(true);
+      return;
+    }
+    await generateFinancialReport(
+      filtered,
+      selectedCategories.length > 0 ? selectedCategories.join(', ') : 'Todas as Categorias',
+      userMeta?.nickname || user?.displayName || 'Investidor',
+      commandMode
+    );
+  }, [hasHistoryAccess, filtered, selectedCategories, userMeta, user, commandMode]);
+
+  const handleExportCSV = useCallback(async () => {
+    if (!hasHistoryAccess) {
+      setShowHistoryPaywall(true);
+      return;
+    }
+    await exportTransactionsToCsv(filtered, periodLabel);
+  }, [hasHistoryAccess, filtered, periodLabel]);
+
+  const handleReturnToCurrentMonth = useCallback(() => {
+    setCurrentDate(new Date());
+  }, []);
   const handleClearCardFilter = () => {
     setFilterCardId(null);
     setFilterCardName('');
@@ -937,7 +985,17 @@ export const useDashboardState = (props: DashboardStateProps) => {
     dontShowFor15Days,
     setDontShowFor15Days,
     currentBudget,
+    previousBudget,
+    activeMonthKey,
     budgetLoading,
+    deleteBudget,
+    fixedObligationsTotal: totalPendingBills,
+    creditInvoicesTotal: Math.max(0, activeInvoices.reduce((sum, inv) => {
+      const remaining = inv.storedRemaining !== undefined && inv.storedRemaining > 0
+        ? inv.storedRemaining
+        : inv.total - (inv.storedPaidAmount || 0);
+      return sum + Math.max(0, remaining);
+    }, 0)),
     isBudgetSetupOpen,
     setIsBudgetSetupOpen,
     selectedCategories,
@@ -1002,6 +1060,9 @@ export const useDashboardState = (props: DashboardStateProps) => {
     changeDate: guardedChangeDate,
     handleDateSelect: guardedDateSelect,
     handleExportPDF,
+    handleExportCSV,
+    isHistoryLockedMonth,
+    handleReturnToCurrentMonth,
     historyLocked,
     showHistoryPaywall,
     setShowHistoryPaywall,

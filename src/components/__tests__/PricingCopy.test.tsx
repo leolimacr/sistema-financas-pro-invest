@@ -43,8 +43,8 @@ describe('PricingPage copy consistency (E7-11)', () => {
     expect(screen.queryByText(/todas as 8 ferramentas/i)).not.toBeInTheDocument();
     expect(screen.getByText(/todas as 7 ferramentas/i)).toBeInTheDocument();
     expect(PLANS.PRO.id).toBe('pro_monthly');
-    expect(PLANS.PRO.price).toBe(9.9);
-    expect(PLANS.PREMIUM.price).toBe(19.9);
-    expect(PLANS.PREMIUM_ANNUAL.price).toBe(199);
+    expect(PLANS.PRO.price).toBe(19.9);
+    expect(PLANS.PREMIUM.price).toBe(39.9);
+    expect(PLANS.PREMIUM_ANNUAL.price).toBe(399);
   });
 });

@@ -64,7 +64,7 @@ describe("useNexusAdvisorTriggers", () => {
         id: "nexus-alert-negative-free-balance",
         title: "Atenção ao Saldo Livre",
         urgency: "high",
-        deepLink: "manager",
+        deepLink: "controla?view=contas",
       })
     );
   });
@@ -95,7 +95,7 @@ describe("useNexusAdvisorTriggers", () => {
         id: "nexus-alert-debt-interest",
         title: "Impacto dos Juros no Fluxo",
         urgency: "high",
-        deepLink: "minhas-dividas",
+        deepLink: "minhas-dividas?view=estrategia",
       })
     );
   });
@@ -165,7 +165,7 @@ describe("useNexusAdvisorTriggers", () => {
         id: "nexus-alert-idle-cash",
         title: "Oportunidade de Alocação",
         urgency: "medium",
-        deepLink: "investimentos",
+        deepLink: "investimentos?action=new-asset",
       })
     );
   });
@@ -206,7 +206,7 @@ describe("useNexusAdvisorTriggers", () => {
         id: `nexus-alert-bills-5d-${todayDay}`,
         title: "Atenção ao Caixa nos Próximos Dias",
         urgency: "high",
-        deepLink: "manager",
+        deepLink: "controla?view=contas&filter=next5days",
       })
     );
   });
@@ -245,7 +245,7 @@ describe("useNexusAdvisorTriggers", () => {
         id: `nexus-alert-agenda-7d-${new Date().getDate()}`,
         title: "Compromisso na sua Semana",
         urgency: "medium",
-        deepLink: "agenda",
+        deepLink: expect.stringContaining("agenda?view=week&highlight=comm-1"),
       })
     );
   });

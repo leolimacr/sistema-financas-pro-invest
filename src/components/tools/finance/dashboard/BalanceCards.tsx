@@ -87,14 +87,14 @@ const BalanceCards: React.FC<BalanceCardsProps> = ({
   // Loading skeleton — exibido até os dados do mês corrente estarem carregados
   if (saldoReal === null) {
     return (
-      <div className="bg-surface-primary border border-border-strong rounded-panel p-5 shadow-panel border-l-4 border-l-brand-primary/40 animate-pulse">
-        <div className="h-3 w-24 bg-surface-secondary rounded-full mb-3" />
-        <div className="h-4 w-16 bg-surface-secondary rounded-full mb-1" />
-        <div className="h-8 w-36 bg-surface-secondary rounded-xl mt-4" />
-        <div className="border-t border-surface-elevated pt-3 mt-4 space-y-2">
-          <div className="flex justify-between"><div className="h-3 w-28 bg-surface-secondary rounded-full" /><div className="h-4 w-20 bg-surface-secondary rounded-full" /></div>
-          <div className="flex justify-between"><div className="h-3 w-24 bg-surface-secondary rounded-full" /><div className="h-4 w-20 bg-surface-secondary rounded-full" /></div>
-          <div className="flex justify-between"><div className="h-3 w-32 bg-surface-secondary rounded-full" /><div className="h-4 w-20 bg-surface-secondary rounded-full" /></div>
+      <div className="bg-surface-primary dark:bg-slate-900 border border-border-strong dark:border-slate-800 rounded-panel p-5 shadow-panel border-l-4 border-l-brand-primary/40 animate-pulse">
+        <div className="h-3 w-24 bg-surface-secondary dark:bg-slate-800 rounded-full mb-3" />
+        <div className="h-4 w-16 bg-surface-secondary dark:bg-slate-800 rounded-full mb-1" />
+        <div className="h-8 w-36 bg-surface-secondary dark:bg-slate-800 rounded-xl mt-4" />
+        <div className="border-t border-surface-elevated dark:border-slate-800 pt-3 mt-4 space-y-2">
+          <div className="flex justify-between"><div className="h-3 w-28 bg-surface-secondary dark:bg-slate-800 rounded-full" /><div className="h-4 w-20 bg-surface-secondary dark:bg-slate-800 rounded-full" /></div>
+          <div className="flex justify-between"><div className="h-3 w-24 bg-surface-secondary dark:bg-slate-800 rounded-full" /><div className="h-4 w-20 bg-surface-secondary dark:bg-slate-800 rounded-full" /></div>
+          <div className="flex justify-between"><div className="h-3 w-32 bg-surface-secondary dark:bg-slate-800 rounded-full" /><div className="h-4 w-20 bg-surface-secondary dark:bg-slate-800 rounded-full" /></div>
         </div>
       </div>
     );
@@ -129,20 +129,20 @@ const BalanceCards: React.FC<BalanceCardsProps> = ({
   const saldoAnterior = calculatePreviousMonthClose(transactions, new Date());
 
   return (
-    <div className="bg-surface-primary border border-border-strong rounded-panel p-5 shadow-panel border-l-4 border-l-brand-primary/40">
+    <div className="bg-surface-primary dark:bg-slate-900 border border-border-strong dark:border-slate-800 rounded-panel p-5 shadow-panel border-l-4 border-l-brand-primary/40">
       <div className="flex flex-col gap-4">
         {/* Título */}
-        <h2 className="text-sm font-black text-text-primary tracking-tight">
+        <h2 className="text-sm font-black text-text-primary dark:text-white tracking-tight">
           Saldo Atual
         </h2>
-        <p className="text-[10px] text-text-muted font-medium -mt-2 leading-relaxed">
+        <p className="text-[10px] text-text-muted dark:text-slate-400 font-medium -mt-2 leading-relaxed">
           {totalVoucherCents > 0
             ? 'Total de recursos disponíveis hoje (conta bancária e cartões de benefício).'
             : 'Dinheiro que realmente está na sua conta bancária hoje.'}
-          <span className="block mt-0.5 text-[9px] text-text-muted italic">
+          <span className="block mt-0.5 text-[9px] text-text-muted dark:text-slate-400 italic">
             {totalVoucherCents > 0
               ? 'Marque os cartões voucher abaixo para desconsiderá-los e visualizar estritamente o saldo em conta bancária.'
-              : 'Reflete o fluxo de caixa efetivado em conta: receitas menos despesas à vista e pagamentos de cartão. Compras no cartão de crédito e obrigações a prazo não são deduzidas aqui.'}
+              : 'Reflete o fluxo de caixa efetivado em conta: receitas menos despesas à vista e pagamentos de cartão. As opções abaixo simulam a separação da sua Proteção Financeira (Colchão e Reserva).'}
           </span>
         </p>
 
@@ -150,7 +150,7 @@ const BalanceCards: React.FC<BalanceCardsProps> = ({
         <div className="flex items-baseline justify-between">
           <h2
             className={`text-3xl font-black tabular-nums tracking-tight ${
-              isSaldoBaseNegative ? 'text-status-danger' : 'text-text-primary'
+              isSaldoBaseNegative ? 'text-status-danger dark:text-rose-400' : 'text-text-primary dark:text-white'
             }`}
           >
             {fmt(saldoBase)}
@@ -158,7 +158,7 @@ const BalanceCards: React.FC<BalanceCardsProps> = ({
         </div>
 
         {/* Decomposição mensal */}
-        <div className="border-t border-surface-elevated pt-1" role="group" aria-label="Decomposição do saldo: Saldo anterior + Receitas do mês − Despesas do mês = Saldo Atual">
+        <div className="border-t border-surface-elevated dark:border-slate-800 pt-1" role="group" aria-label="Decomposição do saldo: Saldo anterior + Receitas do mês − Despesas do mês = Saldo Atual">
           <FinanceLine
             label={`Saldo anterior de ${labelAnterior}`}
             value={fmt(saldoAnterior)}
@@ -181,14 +181,14 @@ const BalanceCards: React.FC<BalanceCardsProps> = ({
               checked={excluirReserva}
               onChange={toggleReserva}
               title="Retirar minha reserva de emergência"
-              hint={`Simulação: ${fmt(reserveTarget)} abatidos do SALDO ATUAL. Valor separado para proteção — não é despesa do mês.`}
+              hint={`Simulação: ${fmt(reserveTarget)} separados mentalmente para a Reserva de Emergência.`}
               value={fmt(reserveTarget)}
             />
             <FinanceCheckLine
               checked={excluirColchao}
               onChange={toggleColchao}
               title="Retirar o meu Colchão emergencial"
-              hint={`Simulação: ${fmt(colchaoTarget)} abatidos do SALDO ATUAL. Valor separado para proteção — não é despesa do mês.`}
+              hint={`Simulação: ${fmt(colchaoTarget)} separados mentalmente para o Colchão Emergencial.`}
               value={fmt(colchaoTarget)}
             />
             {voucherCards.map(card => {
@@ -214,7 +214,7 @@ const BalanceCards: React.FC<BalanceCardsProps> = ({
                     <button
                       type="button"
                       onClick={() => onOpenCardManager(card.id)}
-                      className="ml-2 p-1.5 text-text-muted hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all shrink-0 active:scale-95"
+                      className="ml-2 p-1.5 text-text-muted dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-800 rounded-lg transition-all shrink-0 active:scale-95"
                       title={`Ver extrato do cartão ${card.name}`}
                       aria-label={`Ver extrato do cartão ${card.name}`}
                     >
@@ -234,9 +234,9 @@ const BalanceCards: React.FC<BalanceCardsProps> = ({
         </div>
 
         {/* Nota explicativa */}
-        <p className="text-[9px] text-text-muted font-medium leading-relaxed">
+        <p className="text-[9px] text-text-muted dark:text-slate-400 font-medium leading-relaxed">
           O saldo do fechamento de {labelAnterior} forma o saldo atual de {labelAtual}.
-          <span className="block mt-0.5 text-text-muted">
+          <span className="block mt-0.5 text-text-muted dark:text-slate-400">
             O Extrato / filtragem geral inclui o fluxo bruto (todas as despesas), enquanto o Saldo Atual reflete apenas o fluxo de caixa efetivado em conta.
           </span>
         </p>

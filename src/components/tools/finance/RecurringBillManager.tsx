@@ -87,58 +87,58 @@ const RecurringBillManager: React.FC<RecurringBillManagerProps> = ({ isOpen, onC
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-surface-primary w-full max-w-md rounded-4xl shadow-2xl border border-surface-elevated overflow-hidden flex flex-col max-h-[85vh]">
-        <div className="p-6 border-b border-surface-elevated flex items-center justify-between bg-surface-secondary/50">
+      <div className="bg-surface-primary dark:bg-slate-900 w-full max-w-md rounded-4xl shadow-2xl border border-surface-elevated dark:border-slate-800 overflow-hidden flex flex-col max-h-[85vh]">
+        <div className="p-6 border-b border-surface-elevated dark:border-slate-800 flex items-center justify-between bg-surface-secondary/50 dark:bg-slate-800/60">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-brand-primary/10 rounded-xl text-brand-primary">
               <RefreshCw size={20} />
             </div>
-            <h2 className="text-lg font-black text-text-primary uppercase tracking-tight">Assinaturas e Fixas</h2>
+            <h2 className="text-lg font-black text-text-primary dark:text-white uppercase tracking-tight">Assinaturas e Fixas</h2>
           </div>
-          <button onClick={() => onClose(bills)} className="p-2 hover:bg-surface-elevated rounded-full transition-colors text-text-muted">
+          <button onClick={() => onClose(bills)} className="p-2 hover:bg-surface-elevated dark:hover:bg-slate-700 rounded-full transition-colors text-text-muted dark:text-slate-400">
             <X size={20} />
           </button>
         </div>
 
         <div className="p-6 space-y-6 overflow-y-auto flex-1">
           {/* NOTA EDUCATIVA (NOVO) */}
-          <div className="flex gap-3 p-4 bg-brand-secondary/5 border border-brand-secondary/10 rounded-3xl">
+          <div className="flex gap-3 p-4 bg-brand-secondary/5 dark:bg-sky-950/20 border border-brand-secondary/10 dark:border-sky-900/30 rounded-3xl">
             <div className="p-2 bg-brand-secondary/10 rounded-2xl text-brand-secondary h-fit">
               <Clock size={18} />
             </div>
-            <p className="text-xxs font-medium text-text-secondary leading-relaxed">
+            <p className="text-xxs font-medium text-text-secondary dark:text-slate-300 leading-relaxed">
               <span className="font-black text-brand-secondary uppercase tracking-widest block mb-1">Dica para contas variáveis</span>
               Para Luz, Água ou Gás, informe um <strong>valor médio</strong>. Isso permite ao Controla provisionar sua folga do mês. No dia do pagamento, você poderá ajustar para o valor real.
             </p>
           </div>
 
           {/* Formulário de Adição — colapsável quando já existem contas */}
-          <div className="space-y-4 bg-surface-secondary/30 p-4 rounded-3xl border border-surface-elevated">
+          <div className="space-y-4 bg-surface-secondary/30 dark:bg-slate-800/40 p-4 rounded-3xl border border-surface-elevated dark:border-slate-800">
             <button
               onClick={() => setFormExpanded((prev) => !prev)}
               className="w-full flex items-center justify-between text-left"
             >
-              <p className="text-[10px] font-black text-text-muted uppercase tracking-widest">Novo Compromisso</p>
+              <p className="text-[10px] font-black text-text-muted dark:text-slate-400 uppercase tracking-widest">Novo Compromisso</p>
               {bills.length > 0 && (
                 <ChevronDown
                   size={16}
-                  className={`text-text-muted transition-transform duration-200 ${formExpanded ? '' : '-rotate-90'}`}
+                  className={`text-text-muted dark:text-slate-400 transition-transform duration-200 ${formExpanded ? '' : '-rotate-90'}`}
                 />
               )}
             </button>
 
             {formExpanded && (
               <>
-                <div className="flex bg-surface-primary p-1 rounded-2xl border border-surface-elevated mb-2">
+                <div className="flex bg-surface-primary dark:bg-slate-800 p-1 rounded-2xl border border-surface-elevated dark:border-slate-700 mb-2">
                   <button 
                     onClick={() => setType('fixed')} 
-                    className={`flex-1 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${type === 'fixed' ? 'bg-surface-elevated text-text-primary shadow-soft' : 'text-text-muted'}`}
+                    className={`flex-1 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${type === 'fixed' ? 'bg-surface-elevated dark:bg-slate-700 text-text-primary dark:text-white shadow-soft' : 'text-text-muted dark:text-slate-400'}`}
                   >
                     Conta Fixa
                   </button>
                   <button 
                     onClick={() => setType('subscription')} 
-                    className={`flex-1 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${type === 'subscription' ? 'bg-surface-elevated text-text-primary shadow-soft' : 'text-text-muted'}`}
+                    className={`flex-1 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${type === 'subscription' ? 'bg-surface-elevated dark:bg-slate-700 text-text-primary dark:text-white shadow-soft' : 'text-text-muted dark:text-slate-400'}`}
                   >
                     Assinatura
                   </button>
@@ -150,22 +150,22 @@ const RecurringBillManager: React.FC<RecurringBillManagerProps> = ({ isOpen, onC
                     placeholder="Nome (ex: Aluguel, Netflix)"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-surface-primary p-4 rounded-2xl text-text-primary font-medium outline-none border border-surface-elevated focus:border-brand-primary text-sm shadow-sm"
+                    className="w-full bg-surface-primary dark:bg-slate-800 p-4 rounded-2xl text-text-primary dark:text-white font-medium outline-none border border-surface-elevated dark:border-slate-700 focus:border-brand-primary text-sm shadow-sm"
                   />
                   
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <label className="text-[9px] font-black text-text-muted uppercase tracking-widest ml-1">Valor Mensal</label>
+                      <label className="text-[9px] font-black text-text-muted dark:text-slate-400 uppercase tracking-widest ml-1">Valor Mensal</label>
                       <input
                         type="number"
                         placeholder="R$ 0,00"
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
-                        className="w-full bg-surface-primary p-3 rounded-xl text-text-primary font-bold outline-none border border-surface-elevated focus:border-brand-primary text-xs"
+                        className="w-full bg-surface-primary dark:bg-slate-800 p-3 rounded-xl text-text-primary dark:text-white font-bold outline-none border border-surface-elevated dark:border-slate-700 focus:border-brand-primary text-xs"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[9px] font-black text-text-muted uppercase tracking-widest ml-1">Dia Vencimento</label>
+                      <label className="text-[9px] font-black text-text-muted dark:text-slate-400 uppercase tracking-widest ml-1">Dia Vencimento</label>
                       <input
                         type="number"
                         min="1"
@@ -173,20 +173,20 @@ const RecurringBillManager: React.FC<RecurringBillManagerProps> = ({ isOpen, onC
                         placeholder="Ex: 10"
                         value={dueDay}
                         onChange={(e) => setDueDay(e.target.value)}
-                        className="w-full bg-surface-primary p-3 rounded-xl text-text-primary font-bold outline-none border border-surface-elevated focus:border-brand-primary text-xs"
+                        className="w-full bg-surface-primary dark:bg-slate-800 p-3 rounded-xl text-text-primary dark:text-white font-bold outline-none border border-surface-elevated dark:border-slate-700 focus:border-brand-primary text-xs"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[9px] font-black text-text-muted uppercase tracking-widest ml-1">Categoria</label>
+                    <label className="text-[9px] font-black text-text-muted dark:text-slate-400 uppercase tracking-widest ml-1">Categoria</label>
                     <select
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
-                      className="w-full bg-surface-primary p-3 rounded-xl text-text-primary font-bold outline-none border border-surface-elevated focus:border-brand-primary text-xs appearance-none"
+                      className="w-full bg-surface-primary dark:bg-slate-800 p-3 rounded-xl text-text-primary dark:text-white font-bold outline-none border border-surface-elevated dark:border-slate-700 focus:border-brand-primary text-xs appearance-none"
                     >
                       {categories.filter(c => c.type === 'expense').map(cat => (
-                        <option key={cat.id || cat.name} value={cat.name}>{cat.name}</option>
+                        <option key={cat.id || cat.name} value={cat.name} className="dark:bg-slate-800 dark:text-white">{cat.name}</option>
                       ))}
                     </select>
                   </div>
@@ -206,32 +206,32 @@ const RecurringBillManager: React.FC<RecurringBillManagerProps> = ({ isOpen, onC
           {/* Lista de Contas */}
           <div className="space-y-3">
             <div className="flex items-center justify-between ml-1">
-              <p className="text-[10px] font-black text-text-muted uppercase tracking-widest">
+              <p className="text-[10px] font-black text-text-muted dark:text-slate-400 uppercase tracking-widest">
                 Compromissos Cadastrados
               </p>
-              {isLoading && <RefreshCw size={12} className="animate-spin text-text-muted" />}
+              {isLoading && <RefreshCw size={12} className="animate-spin text-text-muted dark:text-slate-400" />}
             </div>
             
             {bills.length === 0 ? (
-              <div className="text-center py-8 bg-surface-secondary/30 rounded-3xl border border-dashed border-surface-elevated">
-                <p className="text-xxs text-text-muted font-bold uppercase tracking-widest leading-loose px-4">
+              <div className="text-center py-8 bg-surface-secondary/30 dark:bg-slate-800/40 rounded-3xl border border-dashed border-surface-elevated dark:border-slate-800">
+                <p className="text-xxs text-text-muted dark:text-slate-400 font-bold uppercase tracking-widest leading-loose px-4">
                   Nenhuma conta fixa ou assinatura cadastrada.
                 </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-2">
                 {bills.map((bill) => (
-                  <div key={bill.id} className="p-4 bg-surface-secondary rounded-3xl border border-surface-elevated group hover:border-text-muted/30 transition-all flex items-center justify-between">
+                  <div key={bill.id} className="p-4 bg-surface-secondary dark:bg-slate-800/60 rounded-3xl border border-surface-elevated dark:border-slate-700/60 group hover:border-text-muted/30 transition-all flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-xl ${bill.type === 'subscription' ? 'bg-status-info/10 text-brand-secondary' : 'bg-brand-primary/10 text-brand-primary'}`}>
                         {bill.type === 'subscription' ? <Check size={16} /> : <Clock size={16} />}
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-sm font-bold text-text-primary">{bill.name}</span>
+                        <span className="text-sm font-bold text-text-primary dark:text-white">{bill.name}</span>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[9px] font-bold text-text-muted uppercase tracking-tighter">Dia {bill.dueDay}</span>
-                          <span className="text-[9px] font-bold text-text-muted opacity-30">•</span>
-                          <span className="text-[9px] font-bold text-action-primaryDark uppercase tracking-tighter">
+                          <span className="text-[9px] font-bold text-text-muted dark:text-slate-400 uppercase tracking-tighter">Dia {bill.dueDay}</span>
+                          <span className="text-[9px] font-bold text-text-muted dark:text-slate-400 opacity-30">•</span>
+                          <span className="text-[9px] font-bold text-action-primaryDark dark:text-emerald-400 uppercase tracking-tighter">
                             R$ {bill.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
@@ -240,7 +240,7 @@ const RecurringBillManager: React.FC<RecurringBillManagerProps> = ({ isOpen, onC
                     
                     <button
                       onClick={() => handleDelete(bill.id)}
-                      className="p-2 text-text-muted hover:text-status-danger hover:bg-status-danger/10 rounded-xl transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
+                      className="p-2 text-text-muted dark:text-slate-400 hover:text-status-danger dark:hover:text-red-400 hover:bg-status-danger/10 dark:hover:bg-red-950/30 rounded-xl transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -251,10 +251,10 @@ const RecurringBillManager: React.FC<RecurringBillManagerProps> = ({ isOpen, onC
           </div>
         </div>
 
-        <div className="p-6 bg-surface-secondary/50 border-t border-surface-elevated">
+        <div className="p-6 bg-surface-secondary/50 dark:bg-slate-800/60 border-t border-surface-elevated dark:border-slate-800">
           <button
             onClick={() => onClose(bills)}
-            className="w-full py-4 bg-surface-elevated text-text-primary font-black rounded-3xl uppercase text-xxs tracking-ultra-wide hover:bg-surface-secondary transition-colors"
+            className="w-full py-4 bg-surface-elevated dark:bg-slate-700 text-text-primary dark:text-white font-black rounded-3xl uppercase text-xxs tracking-ultra-wide hover:bg-surface-secondary dark:hover:bg-slate-600 transition-colors"
           >
             Concluir
           </button>

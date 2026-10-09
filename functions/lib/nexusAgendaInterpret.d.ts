@@ -2,6 +2,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { type AgendaEditSnapshot, type AgendaEnvelope } from './nexus-core/agenda-intent-schema';
 import { type AgendaSessionContext, type SessionStore } from './nexus-core/agenda-session';
 export declare function deleteScanCutoffMs(nowMs?: number): number;
+export declare const TIME_GAP_REFINEMENT: AgendaRefinement;
 export interface InterpretRequestData {
     prompt: string;
     history?: Array<{

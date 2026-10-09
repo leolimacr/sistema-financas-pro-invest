@@ -43,15 +43,62 @@ describe('useAiAgent - erros amigáveis (N3)', () => {
 
   it('retorna answer/actions em sucesso', async () => {
     callableMock.mockResolvedValue({
-      data: { success: true, answer: 'ok', context: { actions: [], metadata: { hasEmergencyReserve: false, userPlan: 'free' } } },
+      data: {
+        success: true,
+        answer: 'ok',
+        context: {
+          actions: [],
+          analysisBasis: {
+            generatedAt: '2026-10-08T12:00:00.000Z',
+            dataStatus: 'ok',
+            sources: ['lançamentos recentes'],
+            period: 'últimos 3 dias',
+            limitations: [],
+          },
+          metadata: { hasEmergencyReserve: false, userPlan: 'free' },
+        },
+      },
     });
     const { result } = renderHook(() => useAiAgent());
-    const box: { current: { answer: string } | null } = { current: null };
+    const box: { current: { answer: string; analysisBasis?: { sources: string[] } } | null } = { current: null };
     await act(async () => {
       box.current = await result.current.sendToNexus('oi', {}, 'Lia', [], true);
     });
 
     expect(box.current?.answer).toBe('ok');
+    expect(box.current?.analysisBasis?.sources).toEqual(['lançamentos recentes']);
     expect(result.current.error).toBeNull();
+  });
+
+  it('extrai e propaga decisionObject estruturado com precisão', async () => {
+    const mockDecision = {
+      observedFact: 'Comprometimento de 35% com despesas fixas.',
+      analyzedPeriod: 'mês corrente',
+      confidenceLevel: 'alta' as const,
+      sourcesUsed: ['extrato'],
+      assumptions: ['Sem receitas extraordinárias'],
+      impact: 'Estabilidade mantida',
+      suggestedActions: [],
+    };
+
+    callableMock.mockResolvedValue({
+      data: {
+        success: true,
+        answer: 'Diagnóstico concluído.',
+        context: {
+          actions: [],
+          decisionObject: mockDecision,
+        },
+      },
+    });
+
+    const { result } = renderHook(() => useAiAgent());
+    let response: any;
+    await act(async () => {
+      response = await result.current.sendToNexus('analisar', {}, 'Lia', [], true);
+    });
+
+    expect(response?.decisionObject).toEqual(mockDecision);
+    expect(response?.decisionObject?.confidenceLevel).toBe('alta');
   });
 });

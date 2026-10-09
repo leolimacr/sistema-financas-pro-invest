@@ -51,13 +51,13 @@ const baseProps = (sovereign: SovereignSnapshotResult) => ({
   exclusionAmount: 0,
 });
 
-describe('CockpitHero - hero = sovereign.heroValue', () => {
-  it('em commandMode, hero exibido === sovereign.heroValue (não accumulatedBalance isolado)', () => {
+describe('CockpitHero - hero = Saldo Total Disponível', () => {
+  it('em commandMode, hero exibido reflete Saldo Total Disponível e card reflete Saldo Livre', () => {
     const snapshot = baseSnapshot({ mode: 'comando', commandMode: true, heroValue: 1234, accumulatedBalance: 99999, sovereignFreeBalance: 1234 });
     const { container } = render(<MemoryRouter><CockpitHero {...baseProps(snapshot)} /></MemoryRouter>);
     const h1 = container.querySelector('h1');
-    expect(h1?.textContent).toContain('R$ 1234.00');
-    expect(h1?.textContent).not.toContain('R$ 99999.00');
+    expect(h1?.textContent).toContain('R$ 99999.00');
+    expect(container.textContent).toContain('R$ 1234.00');
   });
 
   it('em rotina, hero exibido === sovereign.heroValue (=== monthBalance)', () => {

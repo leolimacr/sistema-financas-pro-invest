@@ -55,7 +55,7 @@ describe('sovereignMap – classifyStage', () => {
     const result = classifyStage({ launchCount: 10, sovereignFreeBalance: 2000, protectionShortfall: 3000, leewayDays: 12, freedomDeficit: 0 });
     expect(result.id).toBe('colchao-incompleto');
     expect(result.numericStage).toBe(2);
-    expect(result.nextStep).toContain('Completar o Colchão Inicial');
+    expect(result.nextStep).toContain('Completar o Colchão Emergencial');
   });
 
   it('retorna "estavel" quando protectionShortfall <= 0, freeBalance > 0, leewayDays <= 90', () => {

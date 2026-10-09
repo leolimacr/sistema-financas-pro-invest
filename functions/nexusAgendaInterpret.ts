@@ -74,6 +74,10 @@ const FRIENDLY_INVALID_QUESTION =
  * decidir o horário. NUNCA se refere a nomes técnicos de campos.
  */
 const TIME_GAP_QUESTION = 'Você quer inserir o horário neste compromisso?';
+export const TIME_GAP_REFINEMENT: AgendaRefinement = {
+  question: TIME_GAP_QUESTION,
+  suggestions: ['Sem horário', '09:00', '14:00', '19:00'],
+};
 
 /** Verbos que indicam intenção de criar um compromisso. */
 const SCHEDULING_VERB_RE = /\b(agend(?:ar|e|ada|amos)?|marque|marcar|adicionar|incluir|anotar|reservar|criar|crie)\b/i;
@@ -659,7 +663,7 @@ function clarification(
 }
 
 const RECURRENCE_REFINEMENT_QUESTION =
-  'Entendi que você quer uma recorrência. Você quer que eu agende isso para todas as terças até uma data limite, ou devo preencher a terça mais próxima e gerar até o limite máximo de compromissos da sua agenda?';
+  'Entendi que você quer uma recorrência. Até quando gostaria de repetir esse compromisso?';
 const RECURRENCE_REFINEMENT_SUGGESTIONS = ['Até o final do ano', 'Sem prazo máximo'] as const;
 
 /**
@@ -1272,7 +1276,7 @@ async function runInterpretation(
     } catch {
       if (hasCreateWithoutTimeEvidence(data.prompt)) {
         logStage(requestId, 'normalize_time_gap', { reason: 'retry_indisponivel_com_evidencia' });
-        return { response: clarification(['startTime'], [], undefined, TIME_GAP_QUESTION), established: null };
+        return { response: clarification(['startTime'], [], TIME_GAP_REFINEMENT, TIME_GAP_QUESTION), established: null };
       }
       return { response: clarification([], [FRIENDLY_INVALID_QUESTION]), established: null };
     }
@@ -1280,7 +1284,7 @@ async function runInterpretation(
     if (!parsed.ok) {
       if (hasCreateWithoutTimeEvidence(data.prompt)) {
         logStage(requestId, 'normalize_time_gap', { reason: 'retry_falhou_com_evidencia', parseErrors: parsed.errors.slice(0, 3) });
-        return { response: clarification(['startTime'], [], undefined, TIME_GAP_QUESTION), established: null };
+        return { response: clarification(['startTime'], [], TIME_GAP_REFINEMENT, TIME_GAP_QUESTION), established: null };
       }
       return { response: clarification([], [FRIENDLY_INVALID_QUESTION]), established: null };
     }
@@ -1319,7 +1323,7 @@ async function runInterpretation(
     // com evidência de criação com data sem horário → pergunta natural de horário.
     if (missing.length === 0 && hasCreateWithoutTimeEvidence(data.prompt)) {
       logStage(requestId, 'normalize_time_gap', { reason: 'validacao_sem_campo_obrigatorio_com_evidencia', errors: validated.errors.slice(0, 3) });
-      return { response: clarification(['startTime'], [], undefined, TIME_GAP_QUESTION), established };
+      return { response: clarification(['startTime'], [], TIME_GAP_REFINEMENT, TIME_GAP_QUESTION), established };
     }
     return { response: clarification(missing, ambiguous, undefined, question), established };
   }
@@ -1348,7 +1352,7 @@ async function runInterpretation(
       const onlyStartTimeGap = envelope.missing.length === 1 && envelope.missing[0] === 'startTime';
       if (envelope.missing.length === 0 || onlyStartTimeGap) {
         logStage(requestId, 'normalize_time_gap', { reason: onlyStartTimeGap ? 'clarify_startTime_com_evidencia' : 'clarify_vazio_com_evidencia', missing: envelope.missing });
-        return { response: clarification(['startTime'], [], undefined, TIME_GAP_QUESTION), established };
+        return { response: clarification(['startTime'], [], TIME_GAP_REFINEMENT, TIME_GAP_QUESTION), established };
       }
     }
     return { response: clarification(envelope.missing, envelope.ambiguous), established };

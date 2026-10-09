@@ -10,6 +10,7 @@ const MONTHS = [
 
 vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn(),
+  useSearchParams: () => [new URLSearchParams(), vi.fn()],
 }));
 
 vi.mock('../../contexts/AuthContext', () => ({
@@ -20,10 +21,6 @@ vi.mock('../../contexts/ToastContext', () => ({
   useToast: () => ({ addToast: vi.fn() }),
 }));
 
-vi.mock('../../hooks/useBills', () => ({
-  useBills: () => ({ bills: [] }),
-}));
-
 const mocks = vi.hoisted(() => ({
   fetchMonthCommitments: vi.fn(),
   fetchUpcomingCommitments: vi.fn(),
@@ -32,6 +29,12 @@ const mocks = vi.hoisted(() => ({
   deleteCommitment: vi.fn(),
   toggleCommitment: vi.fn(),
   reorderDayCommitments: vi.fn(),
+  syncBillsToAgenda: vi.fn(() => Promise.resolve(1)),
+  useBills: vi.fn(() => ({ bills: [] as any[] })),
+}));
+
+vi.mock('../../hooks/useBills', () => ({
+  useBills: (...args: any[]) => mocks.useBills(...args),
 }));
 
 let mockResizeObservers: Array<{ trigger: () => void }> = [];
@@ -62,6 +65,15 @@ vi.mock('../../services/agendaService', () => ({
   deleteCommitment: mocks.deleteCommitment,
   toggleCommitment: mocks.toggleCommitment,
   reorderDayCommitments: mocks.reorderDayCommitments,
+  syncBillsToAgenda: mocks.syncBillsToAgenda,
+  isSyncedBill: (c: any) =>
+    Boolean(
+      c?.source === 'controla_bill' ||
+        c?.linkedBillId ||
+        c?.notes?.includes('Conta do Controla') ||
+        (c?.title || '').toLowerCase().startsWith('pagar ')
+    ),
+  extractBillAmount: (c: any) => c?.amount || 0,
 }));
 
 vi.mock('../../services/alarmService', () => ({
@@ -107,6 +119,7 @@ beforeEach(() => {
   localStorage.clear();
   mocks.fetchMonthCommitments.mockResolvedValue([]);
   mocks.fetchUpcomingCommitments.mockResolvedValue([]);
+  mocks.useBills.mockReturnValue({ bills: [] });
 });
 
 function currentLabel() {
@@ -1179,7 +1192,7 @@ describe('AgendaHub — reordenação manual de compromissos no mesmo dia (setas
     mocks.reorderDayCommitments.mockResolvedValue(undefined);
   });
 
-  it('não exibe setas de reordenação quando o dia possui apenas 1 compromisso', async () => {
+  it('não exibe botões de mover quando o dia possui apenas 1 compromisso', async () => {
     mocks.fetchMonthCommitments.mockImplementation((_uid, y, m) => {
       if (y === year && m === month) {
         return Promise.resolve([
@@ -1195,14 +1208,20 @@ describe('AgendaHub — reordenação manual de compromissos no mesmo dia (setas
     });
 
     render(<AgendaHub />);
-    await screen.findByText('Compromisso Único');
+    const commit = await screen.findByText('Compromisso Único');
+    fireEvent.click(commit);
 
-    expect(screen.queryByTestId('agenda-reorder-group-0')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('agenda-reorder-up-0')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('agenda-reorder-down-0')).not.toBeInTheDocument();
+    // Abre diretamente a área editável do compromisso
+    expect(screen.getByTestId('agenda-edit-card-c-single')).toBeInTheDocument();
+    expect(screen.getByTestId('agenda-edit-alarm')).toBeInTheDocument();
+    expect(screen.getByTestId('agenda-edit-delete')).toBeInTheDocument();
+    expect(screen.getByTestId('agenda-edit-confirm')).toBeInTheDocument();
+    expect(screen.queryByTestId('agenda-edit-reorder-group')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('agenda-edit-move-up')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('agenda-edit-move-down')).not.toBeInTheDocument();
   });
 
-  it('exibe setas com desabilitação nas pontas quando o dia possui 2 ou mais compromissos', async () => {
+  it('exibe botões de reordenar na área editável com desabilitação nas pontas quando o dia possui 2 ou mais compromissos', async () => {
     mocks.fetchMonthCommitments.mockImplementation((_uid, y, m) => {
       if (y === year && m === month) {
         return Promise.resolve([
@@ -1226,24 +1245,30 @@ describe('AgendaHub — reordenação manual de compromissos no mesmo dia (setas
     });
 
     render(<AgendaHub />);
-    await screen.findByText('Primeiro do dia');
-    await screen.findByText('Segundo do dia');
+    const first = await screen.findByText('Primeiro do dia');
+    fireEvent.click(first);
 
-    const up0 = screen.getByTestId('agenda-reorder-up-0');
-    const down0 = screen.getByTestId('agenda-reorder-down-0');
-    const up1 = screen.getByTestId('agenda-reorder-up-1');
-    const down1 = screen.getByTestId('agenda-reorder-down-1');
-
-    // Primeiro item: subir desabilitado, descer habilitado
+    // Primeiro item: subir desabilitado, descer habilitado na área editável
+    const up0 = screen.getByTestId('agenda-edit-move-up');
+    const down0 = screen.getByTestId('agenda-edit-move-down');
     expect(up0).toBeDisabled();
     expect(down0).not.toBeDisabled();
 
-    // Último item: subir habilitado, descer desabilitado
+    // Fecha a edição
+    fireEvent.click(screen.getByTestId('agenda-edit-cancel'));
+
+    // Abre o segundo item
+    const second = screen.getByText('Segundo do dia');
+    fireEvent.click(second);
+
+    // Último item: subir habilitado, descer desabilitado na área editável
+    const up1 = screen.getByTestId('agenda-edit-move-up');
+    const down1 = screen.getByTestId('agenda-edit-move-down');
     expect(up1).not.toBeDisabled();
     expect(down1).toBeDisabled();
   });
 
-  it('reordena na UI e chama reorderDayCommitments ao clicar na seta de descer', async () => {
+  it('reordena na UI e chama reorderDayCommitments ao clicar na seta de descer na área editável', async () => {
     mocks.fetchMonthCommitments.mockImplementation((_uid, y, m) => {
       if (y === year && m === month) {
         return Promise.resolve([
@@ -1267,9 +1292,10 @@ describe('AgendaHub — reordenação manual de compromissos no mesmo dia (setas
     });
 
     render(<AgendaHub />);
-    await screen.findByText('Item Alfa');
+    const alfa = await screen.findByText('Item Alfa');
+    fireEvent.click(alfa);
 
-    const down0 = screen.getByTestId('agenda-reorder-down-0');
+    const down0 = screen.getByTestId('agenda-edit-move-down');
     fireEvent.click(down0);
 
     // Deve disparar reorderDayCommitments com a nova ordem
@@ -1283,6 +1309,33 @@ describe('AgendaHub — reordenação manual de compromissos no mesmo dia (setas
         expect.anything()
       );
     });
+  });
+
+  it('abre alarme, exclusão e persiste alteração a partir da área editável do compromisso', async () => {
+    mocks.fetchMonthCommitments.mockImplementation((_uid, y, m) => {
+      if (y === year && m === month) {
+        return Promise.resolve([
+          {
+            id: 'c-test-modal',
+            date: new Date(year, month, day, 9, 0),
+            title: 'Compromisso Teste Modal',
+            completed: false,
+            order: 0,
+          },
+        ]);
+      }
+      return Promise.resolve([]);
+    });
+
+    render(<AgendaHub />);
+    const item = await screen.findByText('Compromisso Teste Modal');
+    fireEvent.click(item);
+
+    expect(screen.getByTestId('agenda-edit-card-c-test-modal')).toBeInTheDocument();
+
+    // Tocar em alarme
+    fireEvent.click(screen.getByTestId('agenda-edit-alarm'));
+    expect(await screen.findByText('Configurar Aviso')).toBeInTheDocument();
   });
 
   describe('AgendaHub — atalho no celular e modal pedagógico', () => {
@@ -1307,6 +1360,82 @@ describe('AgendaHub — reordenação manual de compromissos no mesmo dia (setas
       await waitFor(() => {
         expect(screen.queryByTestId('agenda-shortcut-modal')).not.toBeInTheDocument();
       });
+    });
+  });
+
+  describe('AgendaHub — aba de contas sincronizadas', () => {
+    it('renderiza o botão Contas e abre o painel de Contas Sincronizadas ao clicar', async () => {
+      mocks.fetchMonthCommitments.mockResolvedValue([
+        {
+          id: 'c-sync-1',
+          title: 'Pagar Aluguel',
+          date: { toDate: () => new Date(2026, 8, 10, 9, 0, 0) },
+          completed: false,
+          notes: 'Conta do Controla no valor de R$ 1.500,00.',
+        },
+      ]);
+
+      render(<AgendaHub />);
+
+      const contasBtn = screen.getByTestId('agenda-synced-bills-toggle');
+      expect(contasBtn).toBeInTheDocument();
+
+      fireEvent.click(contasBtn);
+
+      const panel = await screen.findByTestId('agenda-synced-bills-panel');
+      expect(panel).toBeInTheDocument();
+      expect(screen.getByText('Contas Sincronizadas do Controla')).toBeInTheDocument();
+      expect(screen.getByText('Pagar Aluguel')).toBeInTheDocument();
+
+      // Fecha o painel
+      const closeBtn = screen.getByTestId('synced-panel-close');
+      fireEvent.click(closeBtn);
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('agenda-synced-bills-panel')).not.toBeInTheDocument();
+      });
+    });
+
+    it('ao clicar no botão [Sincronizar], abre a caixa de escolha do mês e ao confirmar abre o painel de Contas Sincronizadas', async () => {
+      mocks.useBills.mockReturnValue({
+        bills: [
+          {
+            id: 'b-sync-internet',
+            name: 'Internet',
+            amount: 120,
+            dueDay: 15,
+            isActive: true,
+          } as any,
+        ],
+      });
+
+      mocks.fetchMonthCommitments.mockResolvedValue([
+        {
+          id: 'c-sync-2',
+          title: 'Pagar Internet',
+          date: { toDate: () => new Date(2026, 8, 15, 9, 0, 0) },
+          completed: false,
+          notes: 'Conta do Controla no valor de R$ 120,00.',
+        },
+      ]);
+
+      render(<AgendaHub />);
+
+      const syncBtn = screen.getByTestId('agenda-sync-bills');
+      expect(syncBtn).toBeInTheDocument();
+
+      fireEvent.click(syncBtn);
+
+      const modal = await screen.findByTestId('agenda-sync-bills-modal');
+      expect(modal).toBeInTheDocument();
+      expect(screen.getByText('Sincronizar Contas')).toBeInTheDocument();
+
+      const confirmBtn = screen.getByTestId('sync-confirm-button');
+      fireEvent.click(confirmBtn);
+
+      const panel = await screen.findByTestId('agenda-synced-bills-panel');
+      expect(panel).toBeInTheDocument();
+      expect(screen.getByText('Contas Sincronizadas do Controla')).toBeInTheDocument();
     });
   });
 });

@@ -1,13 +1,14 @@
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { continuousAlarmPlayer } from './continuousAlarmPlayer';
 
 export interface AlarmInfo {
   commitmentId: string;
   title: string;
   dateStr: string;
   alarmAt: Date;
-  /** Modo de aviso gravado no compromisso: notificação e/ou alarme sonoro. */
-  mode?: 'notification' | 'notification_alarm';
+  /** Modo de aviso gravado no compromisso: notificação, alarme contínuo ou ambos. */
+  mode?: 'notification' | 'alarm' | 'notification_alarm';
   userId?: string;
 }
 
@@ -16,6 +17,25 @@ let onAlarmDue: ((info: AlarmInfo) => void) | null = null;
 const firedIds = new Set<string>();
 
 const isNative = Capacitor.isNativePlatform();
+let channelCreated = false;
+
+async function ensureAlarmChannel(): Promise<void> {
+  if (!isNative || channelCreated) return;
+  try {
+    await LocalNotifications.createChannel({
+      id: 'fpi_alarm_channel',
+      name: 'Alarmes da Agenda',
+      description: 'Canal de alta prioridade para alarmes de compromissos financeiros',
+      importance: 5,
+      sound: 'default',
+      vibration: true,
+      visibility: 1,
+    });
+    channelCreated = true;
+  } catch (err) {
+    console.warn('[alarmService] Erro ao criar canal de alarme:', err);
+  }
+}
 
 /** Register callback for when an alarm is due */
 export function setAlarmCallback(cb: (info: AlarmInfo) => void) {
@@ -26,19 +46,27 @@ export function setAlarmCallback(cb: (info: AlarmInfo) => void) {
 export async function scheduleAlarm(info: AlarmInfo) {
   if (isNative) {
     try {
+      const isAlarmMode = info.mode === 'alarm' || info.mode === 'notification_alarm';
+      if (isAlarmMode) {
+        await ensureAlarmChannel();
+      }
+
       await LocalNotifications.schedule({
         notifications: [{
           id: hashId(info.commitmentId),
-          title: 'Agenda',
+          title: isAlarmMode ? `⏰ Alarme: ${info.title}` : 'Agenda',
           body: info.title,
           schedule: { at: info.alarmAt },
           sound: 'default',
+          channelId: isAlarmMode ? 'fpi_alarm_channel' : undefined,
+          ongoing: isAlarmMode,
           smallIcon: 'ic_stat_fpi',
           largeIcon: 'ic_stat_logo',
           iconColor: '#0284c7',
           extra: { 
             commitmentId: info.commitmentId, 
             dateStr: info.dateStr,
+            mode: info.mode || 'notification',
             deepLink: '/app/agenda',
             targetRoute: '/app/agenda',
             eventType: 'agenda.alarm_due',
@@ -104,9 +132,13 @@ export function resetAlarmState() {
 }
 
 function fireAlarm(info: AlarmInfo) {
-  if (!isNative && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+  const isAlarmMode = info.mode === 'alarm' || info.mode === 'notification_alarm';
+  const shouldNotify = info.mode === 'notification' || info.mode === 'notification_alarm' || !info.mode;
+
+  // 1. Notificação do Sistema (Web Notification API)
+  if (shouldNotify && !isNative && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
     try {
-      const n = new Notification('Agenda', {
+      const n = new Notification(isAlarmMode ? `⏰ Alarme: ${info.title}` : 'Agenda', {
         body: info.title,
         icon: '/assets/images/brand/icon.png',
         tag: `agenda-${info.commitmentId}`,
@@ -122,9 +154,22 @@ function fireAlarm(info: AlarmInfo) {
       // fallback
     }
   }
-  if (info.mode === 'notification_alarm') attemptAlarmFeedback();
+
+  // 2. Feedback Sonoro: Alarme Contínuo em Loop vs Notificação Padrão Curta
+  if (isAlarmMode) {
+    continuousAlarmPlayer.start({
+      commitmentId: info.commitmentId,
+      title: info.title,
+      dateStr: info.dateStr,
+      userId: info.userId,
+    });
+  } else {
+    attemptAlarmFeedback();
+  }
+
   if (onAlarmDue) onAlarmDue(info);
 
+  // 3. Registro no PresenceEventService
   if (info.userId) {
     import('./PresenceEventService')
       .then(({ PresenceEventService }) => {
@@ -134,17 +179,49 @@ function fireAlarm(info: AlarmInfo) {
           persona: 'wealth',
           urgency: 'high',
           message: {
-            title: `Lembrete da Agenda: ${info.title}`,
+            title: isAlarmMode ? `Alarme da Agenda: ${info.title}` : `Lembrete da Agenda: ${info.title}`,
             body: `Compromisso agendado para ${info.dateStr}.`,
             ctaLabel: 'Abrir Agenda',
           },
-          deepLink: 'agenda',
+          deepLink: info.commitmentId
+            ? `agenda?view=week&highlight=${info.commitmentId}${info.dateStr ? `&date=${info.dateStr}` : ''}`
+            : 'agenda',
           cooldownHours: 6,
           expiresInHours: 48,
           resourceId: info.commitmentId,
         });
       })
       .catch(() => {});
+  }
+}
+
+/** Para o alarme sonoro contínuo imediatamente */
+export function dismissAlarm(): void {
+  continuousAlarmPlayer.stop();
+}
+
+/** Adia o alarme por X minutos (padrão: 5 min) e reagenda */
+export async function snoozeAlarm(info: AlarmInfo, minutes: number = 5): Promise<void> {
+  continuousAlarmPlayer.stop();
+
+  const snoozedDate = new Date(Date.now() + minutes * 60 * 1000);
+  const snoozedInfo: AlarmInfo = {
+    ...info,
+    alarmAt: snoozedDate,
+  };
+
+  firedIds.delete(info.commitmentId);
+  await scheduleAlarm(snoozedInfo);
+
+  if (info.userId && info.commitmentId && !info.commitmentId.startsWith('temp_')) {
+    try {
+      const { updateCommitment } = await import('./agendaService');
+      await updateCommitment(info.userId, info.commitmentId, {
+        alarmAt: snoozedDate,
+      });
+    } catch (e) {
+      console.warn('[alarmService] Erro ao persistir soneca no Firestore:', e);
+    }
   }
 }
 
@@ -181,9 +258,18 @@ export function attemptAlarmFeedback(): void {
   }
 }
 
-/** Request notification permission (desktop web) */
+/** Request notification permission (desktop web e nativo Android/iOS) */
 export async function requestNotificationPermission(): Promise<boolean> {
-  if (isNative) return true;
+  if (isNative) {
+    try {
+      const perm = await LocalNotifications.checkPermissions();
+      if (perm.display === 'granted') return true;
+      const req = await LocalNotifications.requestPermissions();
+      return req.display === 'granted';
+    } catch {
+      return false;
+    }
+  }
   if (typeof Notification === 'undefined') return false;
   if (Notification.permission === 'granted') return true;
   if (Notification.permission === 'denied') return false;

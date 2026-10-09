@@ -79,3 +79,40 @@ export function diasAteProximoAporte(proximoAporte: Date | null): number | null 
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   return diffDays;
 }
+
+/**
+ * Identifica se a transação é uma parcela herdada de meses anteriores (parcela 2 em diante).
+ */
+export function isPreviousInstallment(t: any): boolean {
+  if (!t) return false;
+  const currentInst = Number(t.currentInstallment);
+  const totalInst = Number(t.installments);
+  if (currentInst > 1 && totalInst > 1) return true;
+  if (currentInst > 1 && t.paymentMethod === 'credit') return true;
+  return false;
+}
+
+/**
+ * Retorna a data original da compra física em formato YYYY-MM-DD.
+ * Se já existir `purchaseDate`, retorna diretamente.
+ * Caso contrário, deduz matematicamente subtraindo (currentInstallment - 1) meses da data contábil.
+ */
+export function getOriginalPurchaseDate(t: { date?: string; purchaseDate?: string; installments?: number; currentInstallment?: number }): string {
+  if (!t) return '';
+  if (t.purchaseDate) return t.purchaseDate;
+  const currentInst = Number(t.currentInstallment);
+  if (currentInst > 1 && t.date) {
+    const [y, m, d] = t.date.split('-').map(Number);
+    if (y && m && d) {
+      const monthsToSubtract = currentInst - 1;
+      const totalMonths = (y * 12 + (m - 1)) - monthsToSubtract;
+      const targetYear = Math.floor(totalMonths / 12);
+      const targetMonth = totalMonths % 12;
+      const maxDaysInTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+      const safeDay = Math.min(d, maxDaysInTargetMonth);
+      const targetDate = new Date(targetYear, targetMonth, safeDay);
+      return getLocalDateString(targetDate);
+    }
+  }
+  return t.date || '';
+}

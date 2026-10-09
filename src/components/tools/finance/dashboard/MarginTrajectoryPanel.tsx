@@ -137,7 +137,7 @@ const MarginTrajectoryPanel: React.FC<MarginTrajectoryPanelProps> = ({
             <Tooltip
               contentStyle={{
                 borderRadius: '12px',
-                border: '1px solid #e2e8f0',
+                border: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
                 boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.18)',
                 fontSize: '11px',
                 background: isDark ? '#1e293b' : '#fff',

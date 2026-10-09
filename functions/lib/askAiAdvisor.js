@@ -48,7 +48,35 @@ const data_integrator_1 = require("./nexus-core/data-integrator");
 const MultiModelRouter_1 = require("./nexus-core/MultiModelRouter");
 const prompt_builder_1 = require("./nexus-core/prompt-builder");
 const action_registry_1 = require("./nexus-core/action-registry");
+const financial_facts_1 = require("./nexus-core/financial-facts");
 const secrets_1 = require("./secrets");
+function buildAnalysisBasis(userData, historyDescription, serverData) {
+    const sources = [];
+    if (userData.recentTransactions.length > 0)
+        sources.push('lançamentos recentes');
+    if (userData.goals.length > 0)
+        sources.push('metas financeiras');
+    if (serverData.debts.length > 0)
+        sources.push('dívidas cadastradas');
+    if (serverData.assets.length > 0 || serverData.passives.length > 0)
+        sources.push('patrimônio cadastrado');
+    if (serverData.bills.length > 0 || serverData.cards.length > 0)
+        sources.push('contas e cartões');
+    const limitations = [];
+    if (userData.dataStatus === 'error')
+        limitations.push('Não foi possível carregar parte dos dados financeiros nesta resposta.');
+    if (userData.recentTransactions.length === 0)
+        limitations.push('Não há lançamentos recentes disponíveis para análise de fluxo.');
+    if (sources.length === 0)
+        limitations.push('O diagnóstico está limitado porque ainda não há dados financeiros cadastrados.');
+    return {
+        generatedAt: new Date().toISOString(),
+        dataStatus: userData.dataStatus,
+        sources,
+        period: historyDescription,
+        limitations,
+    };
+}
 async function getUserPlan(userId) {
     try {
         const db = (0, firestore_1.getFirestore)();
@@ -140,6 +168,45 @@ async function getUserPassives(userId) {
     }
     catch (error) {
         logger.error(`[Passives] Erro ao buscar passivos: ${error.message}`);
+        return [];
+    }
+}
+async function getUserBills(userId) {
+    try {
+        const db = (0, firestore_1.getFirestore)();
+        const snapshot = await db.collection('users').doc(userId).collection('contas_fixas').get();
+        if (snapshot.empty)
+            return [];
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }
+    catch (error) {
+        logger.error(`[Bills] Erro ao buscar contas fixas: ${error.message}`);
+        return [];
+    }
+}
+async function getUserCards(userId) {
+    try {
+        const db = (0, firestore_1.getFirestore)();
+        const snapshot = await db.collection('users').doc(userId).collection('cartoes').get();
+        if (snapshot.empty)
+            return [];
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }
+    catch (error) {
+        logger.error(`[Cards] Erro ao buscar cartões: ${error.message}`);
+        return [];
+    }
+}
+async function getUserInvoices(userId) {
+    try {
+        const db = (0, firestore_1.getFirestore)();
+        const snapshot = await db.collection('users').doc(userId).collection('faturas').limit(20).get();
+        if (snapshot.empty)
+            return [];
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }
+    catch (error) {
+        logger.error(`[Invoices] Erro ao buscar faturas: ${error.message}`);
         return [];
     }
 }
@@ -386,16 +453,17 @@ exports.askAiAdvisor = (0, https_1.onCall)({
         secrets_1.TAVILY_API_KEY,
     ],
 }, async (request) => {
+    const geminiApiKey = process.env.GEMINI_API_KEY;
     const groqApiKey = process.env.GROQ_API_KEY;
     const openrouterApiKey = process.env.OPENROUTER_API_KEY;
     const brapiToken = process.env.BRAPI_TOKEN;
     const router = MultiModelRouter_1.MultiModelRouter.getInstance();
-    router.updateApiKeys({ groq: groqApiKey, openrouter: openrouterApiKey });
+    router.updateApiKeys({ gemini: geminiApiKey, groq: groqApiKey, openrouter: openrouterApiKey });
     try {
         if (!request.auth)
             throw new https_1.HttpsError("unauthenticated", "Login necessário.");
         const { prompt, userName, history = [], isFirstInteraction, context: frontendContext = {} } = request.data;
-        const { assets = [], passives = [], goals = [] } = frontendContext;
+        const { assets = [], passives = [], goals = [], transactions = [] } = frontendContext;
         const safeUserName = (userName || "Investidor").split(' ')[0];
         const userId = request.auth.uid;
         let isFirst;
@@ -419,26 +487,25 @@ exports.askAiAdvisor = (0, https_1.onCall)({
                 return { success: true, answer: greeting, context: { intent: 'greeting', model: 'system' } };
             }
         }
-        const investmentRequestPatterns = [/recomen[dt]/i, /onde (devo |posso )?investir/i, /qual (o melhor|a melhor) investimento/i, /aplicar.*dinheiro/i, /investir.*reais/i, /o que fa[çz]o com.*reais/i, /sugere.*investimento/i, /indica.*investimento/i];
-        if (investmentRequestPatterns.some(p => p.test(prompt))) {
-            logger.warn(`🚫 BLOQUEIO CVM`);
-            return {
-                success: true,
-                answer: `${safeUserName}, não posso fazer recomendações específicas de investimento, pois isso exige análise de perfil completo e está regulamentado pela CVM.\n\nO que posso fazer:\n• Explicar conceitos gerais (ex: o que é renda fixa, ações, etc)\n• Mostrar dados de mercado atuais\n• Tirar dúvidas sobre produtos financeiros\n\nPara recomendações personalizadas, você deve consultar um assessor de investimentos registrado na CVM.\n\nPosso explicar algum conceito ou produto específico?`,
-                context: { intent: 'investment_request_blocked', model: 'system' }
-            };
-        }
         let userData;
         let historyDescription = 'analiso um recorte recente do seu histórico, definido pelo seu plano';
         let serverDebts = [];
         let serverAssets = [];
         let serverPassives = [];
+        let serverBills = [];
+        let serverCards = [];
+        let serverInvoices = [];
         let userPlan;
         try {
             userPlan = await getUserPlan(userId);
-            serverDebts = await getUserDebts(userId);
-            serverAssets = await getUserAssets(userId);
-            serverPassives = await getUserPassives(userId);
+            [serverDebts, serverAssets, serverPassives, serverBills, serverCards, serverInvoices] = await Promise.all([
+                getUserDebts(userId),
+                getUserAssets(userId),
+                getUserPassives(userId),
+                getUserBills(userId),
+                getUserCards(userId),
+                getUserInvoices(userId)
+            ]);
             historyDescription = describeHistoryWindow(userPlan);
             logger.info(`[DEBUG] Plano retornado: "${userPlan}" (tipo: ${typeof userPlan})`);
             userData = await data_integrator_1.DataIntegrator.gatherUserData(userId, userPlan);
@@ -453,10 +520,12 @@ exports.askAiAdvisor = (0, https_1.onCall)({
         const assetsSummary = data_integrator_1.DataIntegrator.formatAssetsSummary(resolvedAssets);
         const passivesSummary = data_integrator_1.DataIntegrator.formatPassivesSummary(resolvedPassives);
         const debtsSummary = (0, data_integrator_1.truncatePromptSegment)(data_integrator_1.DataIntegrator.formatDebtsSummary(serverDebts));
+        const billsSummary = (0, data_integrator_1.truncatePromptSegment)(data_integrator_1.DataIntegrator.formatBillsSummary(serverBills));
+        const cardsSummary = (0, data_integrator_1.truncatePromptSegment)(data_integrator_1.DataIntegrator.formatCardsSummary(serverCards, serverInvoices));
         const patrimonioVisaoGerencialStr = data_integrator_1.DataIntegrator.formatPatrimonioVisaoGerencial(resolvedAssets, resolvedPassives);
         const assetsSource = (assets && assets.length > 0) ? 'frontend' : 'server';
         const passivesSource = (passives && passives.length > 0) ? 'frontend' : 'server';
-        logger.info(`[DEBUG] Resolvidos via ${assetsSource}/${passivesSource}: ${resolvedAssets.length} ativos, ${resolvedPassives.length} passivos`);
+        logger.info(`[DEBUG] Resolvidos via ${assetsSource}/${passivesSource}: ${resolvedAssets.length} ativos, ${resolvedPassives.length} passivos, ${serverBills.length} contas, ${serverCards.length} cartões`);
         const validHistory = Array.isArray(history) ? history.filter((h) => h && h.text && h.text.trim()) : [];
         let marketData = "";
         const extracted = extractTickersFallback(prompt);
@@ -471,11 +540,17 @@ exports.askAiAdvisor = (0, https_1.onCall)({
         const isUserCorrection = userCorrectionPatterns.some(p => p.test(prompt));
         if (isUserCorrection && validHistory.length > 0)
             logger.info("🔄 Usuário corrigindo informação - forçando busca web");
-        const context = discretion_engine_1.DiscretionEngine.analyzeContext(prompt, validHistory, {
+        const analyzedContext = discretion_engine_1.DiscretionEngine.analyzeContext(prompt, validHistory, {
             hasGoals: userData.goals.length > 0,
             hasRecentTransactions: userData.recentTransactions.length > 0,
             hasSimulations: userData.simulations.length > 0
         });
+        const context = {
+            ...analyzedContext,
+            responseMode: /\[PROTOCOL:\s*STRATEGIC_BRIEFING\]/i.test(prompt)
+                ? 'strategic_briefing'
+                : 'concise',
+        };
         let transactionsForPrompt = "Nenhuma transação registrada.";
         if (userData.recentTransactions && userData.recentTransactions.length > 0) {
             transactionsForPrompt = (0, data_integrator_1.truncatePromptSegment)(data_integrator_1.DataIntegrator.formatTransactionsForPrompt(userData.recentTransactions, {
@@ -508,6 +583,18 @@ exports.askAiAdvisor = (0, https_1.onCall)({
                 }
             }
         }
+        const deterministicFacts = financial_facts_1.FinancialFactsEngine.computeFacts({
+            transactions: (transactions && transactions.length > 0) ? transactions : userData.recentTransactions,
+            goals: (goals && goals.length > 0) ? goals : userData.goals,
+            debts: serverDebts,
+            assets: resolvedAssets,
+            passives: resolvedPassives,
+            bills: serverBills,
+            cards: serverCards,
+            invoices: serverInvoices,
+            financialProfile: userData.financialProfile,
+        });
+        const financialFactsSection = financial_facts_1.FinancialFactsEngine.formatForPrompt(deterministicFacts);
         const enhancedSystemPrompt = prompt_builder_1.PromptBuilder.buildSystemPrompt({
             userName: safeUserName,
             context,
@@ -517,12 +604,15 @@ exports.askAiAdvisor = (0, https_1.onCall)({
             passivesSummary,
             patrimonioVisaoGerencialStr,
             debtsSummary,
+            billsSummary,
+            cardsSummary,
             isFirst,
             historyDescription,
             avoidRepetition,
             isUserCorrection,
             transactionsForPrompt,
-            goalsForPrompt
+            goalsForPrompt,
+            financialFactsSection,
         });
         const messages = [
             ...validHistory.slice(-6).map((h) => ({
@@ -540,6 +630,7 @@ exports.askAiAdvisor = (0, https_1.onCall)({
         const firstResponse = await router.routeRequest(messages, enhancedSystemPrompt, {
             temperature: 0.6,
             maxTokens: 1200,
+            cacheScope: userId,
             fallbackContext: { primaryIntent: context.intent, userName: safeUserName }
         });
         let finalAnswer = firstResponse.content || "Desculpe, estou com instabilidade momentânea.";
@@ -558,6 +649,7 @@ exports.askAiAdvisor = (0, https_1.onCall)({
             const secondResponse = await router.routeRequest(messagesWithSearch, enhancedSystemPrompt, {
                 temperature: 0.6,
                 maxTokens: 1200,
+                cacheScope: userId,
                 fallbackContext: { primaryIntent: context.intent, userName: safeUserName }
             });
             finalAnswer = secondResponse.content || finalAnswer;
@@ -572,7 +664,14 @@ exports.askAiAdvisor = (0, https_1.onCall)({
             .replace(/<function.*?>.*?<\/function>/g, '')
             .replace(/\[.*?"function".*?\]/g, '')
             .trim();
-        const { cleanText, actions } = action_registry_1.ActionManager.extractActions(finalAnswer);
+        const analysisBasis = buildAnalysisBasis(userData, historyDescription, {
+            debts: serverDebts,
+            assets: resolvedAssets,
+            passives: resolvedPassives,
+            bills: serverBills,
+            cards: serverCards,
+        });
+        const { cleanText, actions, decision } = action_registry_1.ActionManager.parseDecision(finalAnswer, analysisBasis);
         return {
             success: true,
             answer: cleanText,
@@ -581,7 +680,10 @@ exports.askAiAdvisor = (0, https_1.onCall)({
                 intent: context.intent,
                 hasTransactions: userData.recentTransactions.length > 0,
                 hasGoals: userData.goals.length > 0,
-                actions: actions.length > 0 ? actions : undefined
+                actions: actions.length > 0 ? actions : undefined,
+                analysisBasis,
+                decisionObject: decision,
+                deterministicFacts,
             }
         };
     }

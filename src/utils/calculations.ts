@@ -1,4 +1,5 @@
 import type { FinancialProfile } from '../types';
+import { isBillPaid } from './invoiceUtils';
 
 /** Safe rounding to 2 decimal places using exponential notation.
  *  Avoids IEEE-754 representation errors that Number.EPSILON strategies can miss. */
@@ -16,6 +17,18 @@ export interface SovereignMetrics {
   protectionShortfall: number;
   sovereignFreeBalance: number;
   freedomDeficit: number;
+  /** Saldo de caixa real excedente após obrigações imediatas (accumulatedBalance - virtualImpact - pendingBills - exclusions) */
+  cashSurplus: number;
+  /** Quanto do saldo cobre a meta da Reserva de Emergência (derivado do accumulatedBalance) */
+  reserveCoverage: number;
+  /** Quanto do saldo cobre a meta do Colchão Emergencial (derivado do accumulatedBalance) */
+  colchaoCoverage: number;
+  /** Meta total de proteção estipulada (Reserva + Colchão) */
+  totalProtectionTarget: number;
+  /** Meta da Reserva de Emergência */
+  reserveTarget: number;
+  /** Meta do Colchão Emergencial */
+  colchaoTarget: number;
 }
 
 export interface SovereignSnapshot extends SovereignMetrics {
@@ -38,6 +51,7 @@ export interface SovereignSnapshot extends SovereignMetrics {
 }
 
 export interface SovereignBucketsBreakdown {
+  colchao: number;
   marcoZero: number;
   reserve: number;
   livre: number;
@@ -50,17 +64,24 @@ export interface SovereignBucketsBreakdown {
 }
 
 export function deriveSovereignBuckets(
-  snapshot: Pick<SovereignSnapshot, 'sovereignFreeBalance' | 'obligationsDeduction' | 'freedomDeficit' | 'freedomVelocity' | 'colchaoShortfall' | 'reserveShortfall'>,
-  marcoZero: number,
-  reserveCurrent: number
+  snapshot: Pick<SovereignSnapshot, 'sovereignFreeBalance' | 'obligationsDeduction' | 'freedomDeficit' | 'freedomVelocity' | 'colchaoShortfall' | 'reserveShortfall'> & { reserveCoverage?: number; colchaoCoverage?: number; cashSurplus?: number },
+  colchaoVal?: number,
+  reserveCurrent?: number
 ): SovereignBucketsBreakdown {
+  const colchao = snapshot.colchaoCoverage !== undefined ? snapshot.colchaoCoverage : (colchaoVal ?? 0);
+  const reserve = snapshot.reserveCoverage !== undefined ? snapshot.reserveCoverage : (reserveCurrent ?? 0);
+  const isStructureInvaded = snapshot.cashSurplus !== undefined
+    ? snapshot.cashSurplus < 0
+    : snapshot.sovereignFreeBalance < 0;
+
   return {
-    marcoZero,
-    reserve: reserveCurrent,
+    colchao,
+    marcoZero: colchao,
+    reserve,
     livre: Math.max(0, snapshot.sovereignFreeBalance),
     comprometido: snapshot.obligationsDeduction,
     freedomDeficit: snapshot.freedomDeficit,
-    structureInvaded: snapshot.sovereignFreeBalance < 0,
+    structureInvaded: isStructureInvaded,
     freedomVelocity: snapshot.freedomVelocity,
     colchaoShortfall: snapshot.colchaoShortfall,
     reserveShortfall: snapshot.reserveShortfall,
@@ -174,12 +195,27 @@ export function aggregateAllTimeFlow(transactions: TxLike[]): MonthFlow {
   return { income: r2(income), expenses: r2(expenses), realBalance: r2(realBalance), virtualImpact: r2(virtualImpact), cashExpenses: r2(cashExpenses), creditExpenses: r2(creditExpenses), virtualExpenses: r2(virtualExpenses) };
 }
 
+export function getColchaoCurrent(fp?: FinancialProfile): number {
+  if (fp?.colchaoCurrent !== undefined && fp?.colchaoCurrent !== null) {
+    return fp.colchaoCurrent;
+  }
+  const target = fp?.colchaoInicialTarget || 0;
+  const legacyMarco = fp?.marcoZero || 0;
+  // Se marcoZero for desproporcionalmente maior que o target (ex: 143k vs 15k de meta), limita ao target
+  if (target > 0 && legacyMarco > target) {
+    return target;
+  }
+  return legacyMarco;
+}
+
 export function getProtectionBuffer(financialProfile?: FinancialProfile): number {
-  return (financialProfile?.marcoZero || 0) + (financialProfile?.emergencyReserveCurrent || 0);
+  return getColchaoCurrent(financialProfile) + (financialProfile?.emergencyReserveCurrent || 0);
 }
 
 export function getColchaoShortfall(fp?: FinancialProfile): number {
-  return Math.max(0, (fp?.colchaoInicialTarget || 0) - (fp?.marcoZero || 0));
+  const target = fp?.colchaoInicialTarget || 0;
+  const current = getColchaoCurrent(fp);
+  return Math.max(0, target - current);
 }
 
 export function getReserveShortfall(fp?: FinancialProfile): number {
@@ -198,13 +234,28 @@ export function computeSovereignMetrics(
   financialProfile?: FinancialProfile,
   exclusions?: number
 ): SovereignMetrics {
-  const colchaoShortfall = getColchaoShortfall(financialProfile);
-  const reserveShortfall = getReserveShortfall(financialProfile);
-  const protectionShortfall = colchaoShortfall + reserveShortfall;
-  const protectionBuffer = getProtectionBuffer(financialProfile);
-  const projectedBalance = monthBalance - virtualImpact - pendingBills;
+  const reserveTarget = financialProfile?.emergencyReserveTarget || 0;
+  const colchaoTarget = financialProfile?.colchaoInicialTarget || 0;
+  const totalProtectionTarget = reserveTarget + colchaoTarget;
   const exclusionsAmount = exclusions ?? 0;
-  const sovereignFreeBalance = accumulatedBalance - virtualImpact - pendingBills - protectionShortfall - exclusionsAmount;
+
+  // Saldo efetivo após obrigações para avaliar cobertura das metas
+  const effectiveForProtection = Math.max(0, accumulatedBalance - virtualImpact - pendingBills - exclusionsAmount);
+
+  // Derivar cobertura em camadas hierárquicas segundo a Filosofia dos Dois Escudos:
+  // 1º Escudo: Colchão Emergencial (amortece a rotina imediata para não violar a reserva)
+  // 2º Escudo: Reserva de Emergência (blindagem profunda para proteger a vida e os investimentos)
+  const colchaoCoverage = Math.min(effectiveForProtection, colchaoTarget);
+  const colchaoShortfall = Math.max(0, colchaoTarget - colchaoCoverage);
+  const remainingForReserve = Math.max(0, effectiveForProtection - colchaoCoverage);
+  const reserveCoverage = Math.min(remainingForReserve, reserveTarget);
+  const reserveShortfall = Math.max(0, reserveTarget - reserveCoverage);
+  const protectionShortfall = colchaoShortfall + reserveShortfall;
+  const protectionBuffer = colchaoCoverage + reserveCoverage;
+
+  const projectedBalance = monthBalance - virtualImpact - pendingBills;
+  const cashSurplus = accumulatedBalance - virtualImpact - pendingBills - exclusionsAmount;
+  const sovereignFreeBalance = cashSurplus - totalProtectionTarget;
   const freedomDeficit = sovereignFreeBalance < 0 ? Math.abs(sovereignFreeBalance) : 0;
 
   return {
@@ -217,6 +268,12 @@ export function computeSovereignMetrics(
     protectionShortfall,
     sovereignFreeBalance,
     freedomDeficit,
+    cashSurplus,
+    reserveCoverage,
+    colchaoCoverage,
+    totalProtectionTarget,
+    reserveTarget,
+    colchaoTarget,
   };
 }
 
@@ -631,16 +688,19 @@ export function calculateRealCashBalance(
     const bill = recurringBills[i];
     if (!bill.isActive) continue;
 
-    // Verifica se já foi paga neste mês
+    // Verifica se já foi paga neste mês (link direto ou regra soberana isBillPaid)
     let jaPaga = false;
     for (let j = 0; j < transactions.length; j++) {
       const t = transactions[j];
-      if (t.type === 'expense' && t.isBillPayment && t.linkedRecurringBillId === bill.id) {
+      if (t.type === 'expense' && t.linkedRecurringBillId === bill.id) {
         if (t.date >= `${currentYear}-${String(currentMonth).padStart(2, '0')}-01` && t.date <= hojeStr) {
           jaPaga = true;
           break;
         }
       }
+    }
+    if (!jaPaga && isBillPaid(bill as any, transactions as any)) {
+      jaPaga = true;
     }
     if (jaPaga) continue;
 

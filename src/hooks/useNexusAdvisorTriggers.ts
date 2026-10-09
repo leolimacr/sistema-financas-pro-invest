@@ -65,14 +65,23 @@ export const useNexusAdvisorTriggers = ({
           const firstCommitment = upcomingWeekCommitments[0];
           const firstTitle = firstCommitment.title || 'Compromisso programado';
 
+          const firstDate = firstCommitment.date && typeof (firstCommitment.date as any).toDate === 'function'
+            ? (firstCommitment.date as any).toDate()
+            : new Date((firstCommitment.date as any)?.seconds ? (firstCommitment.date as any).seconds * 1000 : firstCommitment.date);
+          const firstDateStr = firstDate instanceof Date && !isNaN(firstDate.getTime())
+            ? firstDate.toISOString().split('T')[0]
+            : '';
+
+          const agendaDeepLink = `agenda?view=week&highlight=${encodeURIComponent(firstCommitment.id || '')}&date=${firstDateStr}`;
+
           await PresenceEventService.createNexusAdvisorAlert(userId, {
             id: `nexus-alert-agenda-7d-${today.getDate()}`,
             title: count === 1 ? 'Compromisso na sua Semana' : `${count} Compromissos na sua Semana`,
             body: count === 1
               ? `Você tem "${firstTitle}" agendado para os próximos dias. Confira sua Agenda para manter o ritmo sem pressa.`
               : `Você tem ${count} compromissos agendados nos próximos 7 dias, incluindo "${firstTitle}". Organize seus horários para uma semana tranquila.`,
-            ctaLabel: 'Ver Agenda',
-            deepLink: 'agenda',
+            ctaLabel: count === 1 ? 'Ver Compromisso' : 'Ver Semana em Foco',
+            deepLink: agendaDeepLink,
             urgency: 'medium',
             cooldownHours: 72,
           }).catch(() => {});
@@ -86,6 +95,12 @@ export const useNexusAdvisorTriggers = ({
 
         const upcomingBills = bills.filter((b) => {
           if (!b.isActive) return false;
+          if (b.lastPaidDate) {
+            const pDate = new Date(b.lastPaidDate.replace(/-/g, '/'));
+            if (!isNaN(pDate.getTime()) && pDate.getMonth() === today.getMonth() && pDate.getFullYear() === today.getFullYear()) {
+              return false;
+            }
+          }
           return b.dueDay >= currentDay && b.dueDay <= next5Days;
         });
 
@@ -100,7 +115,7 @@ export const useNexusAdvisorTriggers = ({
               title: 'Atenção ao Caixa nos Próximos Dias',
               body: `Você possui ${formattedTotal} em contas a vencer nos próximos 5 dias. Recomendo segurar gastos não essenciais nestes dias para manter tudo em dia com tranquilidade.`,
               ctaLabel: 'Ver Contas',
-              deepLink: 'manager',
+              deepLink: 'controla?view=contas&filter=next5days',
               urgency: 'high',
               cooldownHours: 72,
             }).catch(() => {});
@@ -115,13 +130,13 @@ export const useNexusAdvisorTriggers = ({
           title: 'Atenção ao Saldo Livre',
           body: 'Seu saldo livre projetado está no negativo este mês. Recomendo dar uma olhada nas contas pendentes no Controla para manter sua reserva protegida.',
           ctaLabel: 'Revisar Fluxo',
-          deepLink: 'manager',
+          deepLink: 'controla?view=contas',
           urgency: 'high',
           cooldownHours: 48,
         }).catch(() => {});
       }
 
-      // 2. Dívidas Ativas: Custo de Oportunidade Estratégico ou Sangria Geral de Juros
+      // 3. Dívidas Ativas: Custo de Oportunidade Estratégico ou Sangria Geral de Juros
       const hasInterestDebts = debts.some((d) => (d.taxaMensal || 0) > 0);
       const hasHighDebt = debts.some((d) => (d.taxaMensal || 0) > 3.5);
       const hasLiquidity = assets.some((a) => a.flexibility === 'liquidez' && a.currentValue >= 500);
@@ -132,7 +147,7 @@ export const useNexusAdvisorTriggers = ({
           title: 'Custo de Oportunidade',
           body: 'O custo das suas dívidas supera o rendimento esperado de aplicações de liquidez. Avalie priorizar a quitação para estancar a perda real.',
           ctaLabel: 'Comparar e Quitar',
-          deepLink: 'minhas-dividas',
+          deepLink: 'minhas-dividas?view=estrategia',
           urgency: 'high',
           cooldownHours: 72,
         }).catch(() => {});
@@ -142,7 +157,7 @@ export const useNexusAdvisorTriggers = ({
           title: 'Impacto dos Juros no Fluxo',
           body: 'Você possui dívidas com juros ativos consumindo margem da sua folga. Simule uma rota de amortização para estancar essa perda.',
           ctaLabel: 'Ver Estratégia',
-          deepLink: 'minhas-dividas',
+          deepLink: 'minhas-dividas?view=estrategia',
           urgency: 'high',
           cooldownHours: 72,
         }).catch(() => {});
@@ -160,7 +175,7 @@ export const useNexusAdvisorTriggers = ({
           title: 'Oportunidade de Alocação',
           body: 'Sua reserva atingiu o patamar seguro e há saldo livre ocioso sem render. É o momento de direcionar o excedente para seus investimentos.',
           ctaLabel: 'Onde Investir',
-          deepLink: 'investimentos',
+          deepLink: 'investimentos?action=new-asset',
           urgency: 'medium',
           cooldownHours: 96,
         }).catch(() => {});
@@ -177,7 +192,7 @@ export const useNexusAdvisorTriggers = ({
           title: 'Prioridade de Proteção',
           body: 'Sua base de proteção financeira ainda está abaixo da meta. Priorize destinar a folga deste período para recompor sua segurança.',
           ctaLabel: 'Ver Situação',
-          deepLink: 'central',
+          deepLink: 'central?view=protection',
           urgency: 'medium',
           cooldownHours: 96,
         }).catch(() => {});

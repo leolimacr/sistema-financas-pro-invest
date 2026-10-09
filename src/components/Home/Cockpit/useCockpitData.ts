@@ -6,7 +6,7 @@ import { useWealthData } from '../../../hooks/useWealthData';
 import { useCards } from '../../../hooks/useCards';
 import { useWealthHistory } from '../../../hooks/useWealthHistory';
 import { useSovereignSnapshot } from '../../../hooks/useSovereignSnapshot';
-import { useExclusionAmount } from '../../../contexts/ExclusionsContext';
+import { useExclusions } from '../../../contexts/ExclusionsContext';
 import { useNexusEvents } from '../../../hooks/useNexusEvents';
 import { classifyFromSnapshot } from '../../../services/sovereignMap';
 
@@ -32,8 +32,6 @@ export const useCockpitData = (
     patrimonioLiquido, 
     totalDebts,
     debts,
-    marcoZero,
-    reserveCurrent,
     loading: loadingWealth 
   } = useWealthData();
 
@@ -43,9 +41,17 @@ export const useCockpitData = (
 
   const reserveTarget = userMeta?.financialProfile?.emergencyReserveTarget || 0;
   const colchaoTarget = userMeta?.financialProfile?.colchaoInicialTarget || 0;
-  const exclusionAmount = useExclusionAmount(reserveTarget, colchaoTarget);
+  const { excluirVoucherMap } = useExclusions();
+  const voucherExclusion = useMemo(() => {
+    return userCards
+      .filter((c: any) => c.paymentMethod === 'voucher' && excluirVoucherMap[c.id])
+      .reduce((s: number, c: any) => s + (c.balance || 0), 0);
+  }, [userCards, excluirVoucherMap]);
 
-  const sovereign = useSovereignSnapshot(safeTx, userMeta, false, undefined, exclusionAmount);
+  const sovereign = useSovereignSnapshot(safeTx, userMeta, false, undefined, voucherExclusion);
+
+  const colchaoCurrent = sovereign.colchaoCoverage;
+  const reserveCurrent = sovereign.reserveCoverage;
 
   // Estágio do Mapa de Soberania
   const stage = useMemo(
@@ -90,7 +96,9 @@ export const useCockpitData = (
       investments: totalInvestments,
       bens: totalProperty,
       controlaBalance,
-      marcoZero,
+      colchaoCurrent,
+      colchaoTarget,
+      marcoZero: colchaoCurrent,
       reserveCurrent,
       hasCards: userCards.length > 0,
       hasDebts: debts.length > 0,
@@ -99,7 +107,7 @@ export const useCockpitData = (
       hasIncompleteCards: userCards.some(c => !c.closingDay || !c.dueDay),
       validatedModules: wealthHistory[0]?.validatedModules || {}
     };
-  }, [totalDebts, userCards, safeTx, totalInvestments, totalProperty, debts.length, wealthHistory, reserveCurrent, marcoZero]);
+  }, [totalDebts, userCards, safeTx, totalInvestments, totalProperty, debts.length, wealthHistory, reserveCurrent, colchaoCurrent, colchaoTarget]);
 
   const investmentComposition = useMemo(() => {
     const categories: Record<string, number> = {};
@@ -191,7 +199,9 @@ export const useCockpitData = (
     totalInvestments,
     totalDebts,
     totalProperty,
-    marcoZero,
+    colchaoCurrent,
+    colchaoTarget,
+    marcoZero: colchaoCurrent,
     reserveCurrent,
     stage,
     contextualEvent,

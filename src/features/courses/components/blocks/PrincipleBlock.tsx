@@ -15,7 +15,7 @@ export const PrincipleBlock: React.FC<Props> = ({
   practicalRule,
 }) => {
   return (
-    <div className="my-6 rounded-2xl border-2 border-slate-900/10 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 text-white p-6 md:p-8 shadow-md relative overflow-hidden">
+    <div className="my-6 rounded-2xl border-2 border-slate-900/10 dark:border-slate-800 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 text-white p-6 md:p-8 shadow-md relative overflow-hidden">
       {/* Detalhe de fundo sutil */}
       <div className="absolute -right-8 -bottom-8 w-40 h-40 rounded-full bg-blue-500/10 blur-2xl pointer-events-none" />
       <div className="absolute right-6 top-6 opacity-10 pointer-events-none">

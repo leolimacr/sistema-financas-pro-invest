@@ -74,7 +74,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               document.getElementById('secao-ferramentas')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }, 100);
           }}
-          className="hidden md:flex mb-4 items-center gap-2 text-text-muted hover:text-brand-secondary transition-all font-black uppercase text-xxs tracking-ultra-wide"
+          className="hidden md:flex mb-4 items-center gap-2 text-text-muted dark:text-slate-400 hover:text-brand-secondary transition-all font-black uppercase text-xxs tracking-ultra-wide"
         >
           ← Voltar
         </button>
@@ -83,21 +83,21 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         <div className="flex items-center gap-3">
           <img
             src="/assets/images/brand/icone_controla210726.png"            alt="Ícone do Controla"
-            className="hidden md:block w-8 h-8 md:w-9 md:h-9 rounded-xl shadow-soft border border-surface-elevated bg-surface-primary object-cover"
+            className="hidden md:block w-8 h-8 md:w-9 md:h-9 rounded-xl shadow-soft border border-surface-elevated dark:border-slate-700 bg-surface-primary dark:bg-slate-800 object-cover"
           />
           <div className="flex flex-col">
-            <h2 className="hidden md:block text-lg md:text-2xl font-black text-text-primary tracking-tight uppercase leading-tight">
+            <h2 className="hidden md:block text-lg md:text-2xl font-black text-text-primary dark:text-white tracking-tight uppercase leading-tight">
               Controla
             </h2>
             <div className="flex items-center gap-2">
-              <p className="text-text-muted text-xxs md:text-xs font-bold uppercase tracking-ultra-wide">
+              <p className="text-text-muted dark:text-slate-400 text-xxs md:text-xs font-bold uppercase tracking-ultra-wide">
                 {periodLabel}
               </p>
               <div className="flex items-center gap-2">
                 {streak > 1 && (
                   <div className="relative">
                     <div
-                      className="flex items-center gap-1.5 px-2.5 py-0.5 bg-surface-secondary border border-surface-elevated rounded-full animate-in fade-in slide-in-from-top-1 cursor-help"
+                      className="flex items-center gap-1.5 px-2.5 py-0.5 bg-surface-secondary dark:bg-slate-800 border border-surface-elevated dark:border-slate-700 rounded-full animate-in fade-in slide-in-from-top-1 cursor-help"
                       onMouseEnter={() => !isMobile && setShowStreakTooltip(true)}
                       onMouseLeave={() => setShowStreakTooltip(false)}
                       onFocus={() => setShowStreakTooltip(true)}
@@ -106,13 +106,13 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                       role="tooltip"
                       aria-label="Dias de consistência: dias consecutivos com registro"
                     >
-                      <span className="text-text-muted text-[9px] md:text-[10px] font-black uppercase tracking-widest leading-none">
+                      <span className="text-text-muted dark:text-slate-400 text-[9px] md:text-[10px] font-black uppercase tracking-widest leading-none">
                         {streak} dias · consistência
                       </span>
                     </div>
                     {!isMobile && showStreakTooltip && (
-                      <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-[110] w-64 p-4 bg-surface-primary border border-surface-elevated rounded-2xl shadow-2xl animate-in fade-in zoom-in duration-200 pointer-events-none">
-                        <p className="text-[11px] leading-relaxed text-text-secondary font-medium">
+                      <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-[110] w-64 p-4 bg-surface-primary dark:bg-slate-900 border border-surface-elevated dark:border-slate-800 rounded-2xl shadow-2xl animate-in fade-in zoom-in duration-200 pointer-events-none">
+                        <p className="text-[11px] leading-relaxed text-text-secondary dark:text-slate-300 font-medium">
                           Dias de consistência: quantidade de dias consecutivos, incluindo hoje, em que você registrou pelo menos um lançamento no Controla.
                         </p>
                       </div>
@@ -121,7 +121,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 )}
                 <div className="relative">
                   <div
-                    className="flex items-center gap-1.5 px-2.5 py-0.5 bg-surface-secondary border border-surface-elevated rounded-full animate-in fade-in slide-in-from-top-1 cursor-help"
+                    className="flex items-center gap-1.5 px-2.5 py-0.5 bg-surface-secondary dark:bg-slate-800 border border-surface-elevated dark:border-slate-700 rounded-full animate-in fade-in slide-in-from-top-1 cursor-help"
                     onMouseEnter={() => !isMobile && setShowMonthlyTooltip(true)}
                     onMouseLeave={() => setShowMonthlyTooltip(false)}
                     onFocus={() => setShowMonthlyTooltip(true)}
@@ -130,13 +130,13 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                     role="tooltip"
                     aria-label="Dias lançados no mês"
                   >
-                    <span className="text-text-muted text-[9px] md:text-[10px] font-black uppercase tracking-widest leading-none">
+                    <span className="text-text-muted dark:text-slate-400 text-[9px] md:text-[10px] font-black uppercase tracking-widest leading-none">
                       {monthlyConsistency.current}/{monthlyConsistency.total} no mês
                     </span>
                   </div>
                   {!isMobile && showMonthlyTooltip && (
-                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-[110] w-64 p-4 bg-surface-primary border border-surface-elevated rounded-2xl shadow-2xl animate-in fade-in zoom-in duration-200 pointer-events-none">
-                      <p className="text-[11px] leading-relaxed text-text-secondary font-medium">
+                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-[110] w-64 p-4 bg-surface-primary dark:bg-slate-900 border border-surface-elevated dark:border-slate-800 rounded-2xl shadow-2xl animate-in fade-in zoom-in duration-200 pointer-events-none">
+                      <p className="text-[11px] leading-relaxed text-text-secondary dark:text-slate-300 font-medium">
                         Dias lançados no mês: quantidade de dias corridos deste mês em que houve pelo menos um lançamento. Ex.: {monthlyConsistency.current}/{monthlyConsistency.total} significa {monthlyConsistency.current} dias com registro em {monthlyConsistency.total} dias já decorridos no mês.
                       </p>
                     </div>
@@ -154,7 +154,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               onClick={handleRecurringButtonClick}
               onMouseEnter={() => !isMobile && setShowTooltip(true)}
               onMouseLeave={() => setShowTooltip(false)}
-              className="p-2.5 md:p-3 rounded-3xl bg-surface-primary border border-brand-accent/30 text-brand-accent hover:bg-brand-accent/10 hover:border-brand-accent/60 transition-all active:scale-95 shadow-soft"
+              className="p-2.5 md:p-3 rounded-3xl bg-surface-primary dark:bg-slate-800 border border-brand-accent/30 dark:border-amber-500/40 text-brand-accent dark:text-amber-400 hover:bg-brand-accent/10 dark:hover:bg-amber-950/30 hover:border-brand-accent/60 transition-all active:scale-95 shadow-soft"
               aria-label="Contas fixas e assinaturas"
             >
               <CalendarPlus size={18} />
@@ -162,14 +162,14 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
             {/* Tooltip Desktop */}
             {!isMobile && showTooltip && (
-              <div className="absolute top-full mt-3 right-0 z-[110] w-64 p-4 bg-surface-primary border border-surface-elevated rounded-2xl shadow-2xl animate-in fade-in zoom-in duration-200 pointer-events-none">
+              <div className="absolute top-full mt-3 right-0 z-[110] w-64 p-4 bg-surface-primary dark:bg-slate-900 border border-surface-elevated dark:border-slate-800 rounded-2xl shadow-2xl animate-in fade-in zoom-in duration-200 pointer-events-none">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="p-1 bg-brand-secondary/10 rounded-lg text-brand-secondary">
                     <Info size={14} />
                   </div>
-                  <span className="text-[10px] font-black text-text-primary uppercase tracking-widest">Planejamento Estratégico</span>
+                  <span className="text-[10px] font-black text-text-primary dark:text-white uppercase tracking-widest">Planejamento Estratégico</span>
                 </div>
-                <p className="text-[11px] leading-relaxed text-text-secondary font-medium">
+                <p className="text-[11px] leading-relaxed text-text-secondary dark:text-slate-300 font-medium">
                   Este botão organiza seu futuro. Ao cadastrar contas fixas e assinaturas, o Controla projeta sua folga do mês para o fim do mês, evitando surpresas.
                 </p>
               </div>
@@ -183,22 +183,22 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 onClick={onFutureExpenseClick}
                 onMouseEnter={() => !isMobile && setShowFutureTooltip(true)}
                 onMouseLeave={() => setShowFutureTooltip(false)}
-                className="p-2.5 md:p-3 rounded-3xl bg-surface-primary border border-blue-300/50 text-blue-600 hover:bg-blue-50 hover:border-blue-400 transition-all active:scale-95 shadow-soft"
+                className="p-2.5 md:p-3 rounded-3xl bg-surface-primary dark:bg-slate-800 border border-blue-300/50 dark:border-blue-700/50 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:border-blue-400 transition-all active:scale-95 shadow-soft"
                 aria-label="Agendar despesa futura"
               >
                 <CalendarClock size={18} />
               </button>
 
               {!isMobile && showFutureTooltip && (
-                <div className="absolute top-full mt-3 right-0 z-[110] w-64 p-4 bg-surface-primary border border-surface-elevated rounded-2xl shadow-2xl animate-in fade-in zoom-in duration-200 pointer-events-none">
+                <div className="absolute top-full mt-3 right-0 z-[110] w-64 p-4 bg-surface-primary dark:bg-slate-900 border border-surface-elevated dark:border-slate-800 rounded-2xl shadow-2xl animate-in fade-in zoom-in duration-200 pointer-events-none">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="p-1 bg-blue-100 rounded-lg text-blue-700">
+                    <div className="p-1 bg-blue-100 dark:bg-blue-950/60 rounded-lg text-blue-700 dark:text-blue-400">
                       <Info size={14} />
                     </div>
-                    <span className="text-[10px] font-black text-text-primary uppercase tracking-widest">Despesas Futuras</span>
+                    <span className="text-[10px] font-black text-text-primary dark:text-white uppercase tracking-widest">Despesas Futuras</span>
                   </div>
-                  <p className="text-[11px] leading-relaxed text-text-secondary font-medium">
-                    Despesas pontuais que você sabe que vão acontecer, mas ainda não ocorreram. <strong className="text-text-primary">Não é para despesa recorrente</strong> — esse cadastro fica no botão <span className="text-brand-secondary font-bold">Contas recorrentes</span> ao lado.
+                  <p className="text-[11px] leading-relaxed text-text-secondary dark:text-slate-300 font-medium">
+                    Despesas pontuais que você sabe que vão acontecer, mas ainda não ocorreram. <strong className="text-text-primary dark:text-white">Não é para despesa recorrente</strong> — esse cadastro fica no botão <span className="text-brand-secondary font-bold">Contas recorrentes</span> ao lado.
                   </p>
                 </div>
               )}
@@ -212,21 +212,21 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               onMouseEnter={() => !isMobile && setShowRefreshTooltip(true)}
               onMouseLeave={() => setShowRefreshTooltip(false)}
               disabled={isRefreshing}
-              className="p-2.5 md:p-3 rounded-3xl bg-surface-primary border border-surface-elevated text-text-muted hover:text-brand-secondary hover:border-brand-secondary transition-all active:scale-95 shadow-soft disabled:opacity-50"
+              className="p-2.5 md:p-3 rounded-3xl bg-surface-primary dark:bg-slate-800 border border-surface-elevated dark:border-slate-700 text-text-muted dark:text-slate-400 hover:text-brand-secondary hover:border-brand-secondary transition-all active:scale-95 shadow-soft disabled:opacity-50"
               aria-label="Atualizar dados"
             >
               <RefreshCw size={18} className={isRefreshing ? 'animate-spin' : ''} />
             </button>
 
             {!isMobile && showRefreshTooltip && (
-              <div className="absolute top-full mt-3 right-0 z-[110] w-64 p-4 bg-surface-primary border border-surface-elevated rounded-2xl shadow-2xl animate-in fade-in zoom-in duration-200 pointer-events-none">
+              <div className="absolute top-full mt-3 right-0 z-[110] w-64 p-4 bg-surface-primary dark:bg-slate-900 border border-surface-elevated dark:border-slate-800 rounded-2xl shadow-2xl animate-in fade-in zoom-in duration-200 pointer-events-none">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="p-1 bg-brand-secondary/10 rounded-lg text-brand-secondary">
                     <Info size={14} />
                   </div>
-                  <span className="text-[10px] font-black text-text-primary uppercase tracking-widest">Atualizar</span>
+                  <span className="text-[10px] font-black text-text-primary dark:text-white uppercase tracking-widest">Atualizar</span>
                 </div>
-                <p className="text-[11px] leading-relaxed text-text-secondary font-medium">
+                <p className="text-[11px] leading-relaxed text-text-secondary dark:text-slate-300 font-medium">
                   Seus dados já sincronizam sozinhos, mas se algo parecer desatualizado, clique aqui para recarregar cartões, contas e faturas na hora.
                 </p>
               </div>
@@ -239,23 +239,23 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               onClick={onTogglePrivacy}
               onMouseEnter={() => !isMobile && setShowPrivacyTooltip(true)}
               onMouseLeave={() => setShowPrivacyTooltip(false)}
-              className="p-2.5 md:p-3 rounded-3xl bg-surface-primary border border-surface-elevated text-text-muted hover:text-text-primary hover:border-text-muted transition-all active:scale-95 shadow-soft"
+              className="p-2.5 md:p-3 rounded-3xl bg-surface-primary dark:bg-slate-800 border border-surface-elevated dark:border-slate-700 text-text-muted dark:text-slate-400 hover:text-text-primary dark:hover:text-white hover:border-text-muted transition-all active:scale-95 shadow-soft"
               aria-label={isPrivacyMode ? 'Desativar modo privado' : 'Ativar modo privado'}
             >
               {isPrivacyMode ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
 
             {!isMobile && showPrivacyTooltip && (
-              <div className="absolute top-full mt-3 right-0 z-[110] w-64 p-4 bg-surface-primary border border-surface-elevated rounded-2xl shadow-2xl animate-in fade-in zoom-in duration-200 pointer-events-none">
+              <div className="absolute top-full mt-3 right-0 z-[110] w-64 p-4 bg-surface-primary dark:bg-slate-900 border border-surface-elevated dark:border-slate-800 rounded-2xl shadow-2xl animate-in fade-in zoom-in duration-200 pointer-events-none">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="p-1 bg-surface-tertiary rounded-lg text-text-muted">
+                  <div className="p-1 bg-surface-tertiary dark:bg-slate-800 rounded-lg text-text-muted dark:text-slate-400">
                     <Info size={14} />
                   </div>
-                  <span className="text-[10px] font-black text-text-primary uppercase tracking-widest">
+                  <span className="text-[10px] font-black text-text-primary dark:text-white uppercase tracking-widest">
                     {isPrivacyMode ? 'Mostrar valores' : 'Ocultar valores'}
                   </span>
                 </div>
-                <p className="text-[11px] leading-relaxed text-text-secondary font-medium">
+                <p className="text-[11px] leading-relaxed text-text-secondary dark:text-slate-300 font-medium">
                   Útil se você está em um local público.
                 </p>
               </div>

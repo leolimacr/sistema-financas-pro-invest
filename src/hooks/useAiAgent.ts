@@ -25,13 +25,35 @@ interface NexusContextInput {
   [key: string]: unknown;
 }
 
-interface AiResponse {
+export interface NexusDecisionObject {
+  observedFact: string;
+  analyzedPeriod: string;
+  confidenceLevel: 'alta' | 'media' | 'baixa';
+  sourcesUsed: string[];
+  assumptions: string[];
+  impact: string;
+  invalidatingCondition?: string;
+  suggestedActions: ContextualAction[];
+}
+
+export interface AiResponse {
   answer: string;
   actions?: ContextualAction[];
+  analysisBasis?: NexusAnalysisBasis;
+  decisionObject?: NexusDecisionObject;
+  deterministicFacts?: any;
   metadata?: {
     hasEmergencyReserve: boolean;
     userPlan: string;
   };
+}
+
+export interface NexusAnalysisBasis {
+  generatedAt: string;
+  dataStatus: 'ok' | 'empty' | 'error';
+  sources: string[];
+  period: string;
+  limitations: string[];
 }
 
 export const useAiAgent = () => {
@@ -65,6 +87,9 @@ export const useAiAgent = () => {
         answer: string;
         context?: {
           actions?: ContextualAction[];
+          analysisBasis?: NexusAnalysisBasis;
+          decisionObject?: NexusDecisionObject;
+          deterministicFacts?: any;
           metadata?: AiResponse['metadata'];
         }
       };
@@ -74,6 +99,9 @@ export const useAiAgent = () => {
       return {
         answer: data.answer,
         actions: data.context?.actions,
+        analysisBasis: data.context?.analysisBasis,
+        decisionObject: data.context?.decisionObject,
+        deterministicFacts: data.context?.deterministicFacts,
         metadata: data.context?.metadata
       } as AiResponse;
     } catch (err: unknown) {

@@ -14,24 +14,23 @@ vi.mock('../../hooks/useNavigation', () => ({
   }),
 }));
 
-describe('MobileBottomNav (Etapa B3 — Barra de Navegação Inferior)', () => {
+describe('MobileBottomNav (Fase 3 — Barra Ergonômica de 5 Pontos de Toque)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     navMocks.currentTool = 'central';
   });
 
-  it('renderiza os 5 itens de navegação e o botão central de Lançar', () => {
+  it('renderiza os 4 itens de navegação lateral e o botão central de Lançar', () => {
     render(<MobileBottomNav onOpenMore={vi.fn()} onAdd={vi.fn()} />);
 
     expect(screen.getByText('Central')).toBeInTheDocument();
     expect(screen.getByText('Controla')).toBeInTheDocument();
     expect(screen.getByText('Lançar')).toBeInTheDocument();
     expect(screen.getByText('Agenda')).toBeInTheDocument();
-    expect(screen.getByText('Explorar')).toBeInTheDocument();
-    expect(screen.getByText('Mais')).toBeInTheDocument();
+    expect(screen.getByText('Menu')).toBeInTheDocument();
   });
 
-  it('navega para Central, Controla, Agenda e Explorar ao clicar', () => {
+  it('navega para Central, Controla e Agenda ao clicar', () => {
     render(<MobileBottomNav onOpenMore={vi.fn()} onAdd={vi.fn()} />);
 
     fireEvent.click(screen.getByText('Central'));
@@ -42,9 +41,6 @@ describe('MobileBottomNav (Etapa B3 — Barra de Navegação Inferior)', () => {
 
     fireEvent.click(screen.getByText('Agenda'));
     expect(navMocks.handleNavigate).toHaveBeenCalledWith('agenda');
-
-    fireEvent.click(screen.getByText('Explorar'));
-    expect(navMocks.handleNavigate).toHaveBeenCalledWith('explorar');
   });
 
   it('aciona onAdd ao clicar em Lançar', () => {
@@ -55,11 +51,11 @@ describe('MobileBottomNav (Etapa B3 — Barra de Navegação Inferior)', () => {
     expect(onAdd).toHaveBeenCalledTimes(1);
   });
 
-  it('aciona onOpenMore ao clicar em Mais', () => {
+  it('aciona onOpenMore ao clicar em Menu', () => {
     const onOpenMore = vi.fn();
     render(<MobileBottomNav onOpenMore={onOpenMore} onAdd={vi.fn()} />);
 
-    fireEvent.click(screen.getByText('Mais'));
+    fireEvent.click(screen.getByText('Menu'));
     expect(onOpenMore).toHaveBeenCalledTimes(1);
   });
 });

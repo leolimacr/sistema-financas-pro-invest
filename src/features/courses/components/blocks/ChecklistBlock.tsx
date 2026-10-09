@@ -22,9 +22,9 @@ const ChecklistBlock: React.FC<Props> = ({ title, items }) => {
   const done = checked.filter(Boolean).length;
 
   return (
-    <div className="mb-5 bg-slate-50 border border-slate-200 rounded-xl p-4">
+    <div className="mb-5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
       {title && (
-        <h3 className="text-base font-semibold text-slate-800 mb-3">{title}</h3>
+        <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100 mb-3">{title}</h3>
       )}
       <ul className="space-y-2">
         {items.map((item, i) => (
@@ -38,7 +38,7 @@ const ChecklistBlock: React.FC<Props> = ({ title, items }) => {
                 ${
                   checked[i]
                     ? 'bg-emerald-600 border-emerald-600'
-                    : 'border-slate-300 group-hover:border-emerald-400'
+                    : 'border-slate-300 dark:border-slate-600 group-hover:border-emerald-400'
                 }`}
             >
               {checked[i] && (
@@ -60,8 +60,8 @@ const ChecklistBlock: React.FC<Props> = ({ title, items }) => {
             <span
               className={`text-sm transition-colors ${
                 checked[i]
-                  ? 'line-through text-slate-500'
-                  : 'text-slate-600'
+                  ? 'line-through text-slate-400 dark:text-slate-500'
+                  : 'text-slate-600 dark:text-slate-300'
               }`}
             >
               {item}
@@ -70,7 +70,7 @@ const ChecklistBlock: React.FC<Props> = ({ title, items }) => {
         ))}
       </ul>
       {done > 0 && (
-        <p className="mt-3 text-xs text-emerald-600 font-medium">
+        <p className="mt-3 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
           {done} de {total} marcados
         </p>
       )}

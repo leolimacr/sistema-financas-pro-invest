@@ -351,18 +351,22 @@ export const fetchAssetQuote = async (symbol: string): Promise<MarketQuote | nul
 };
 // --- Carga Geral do Painel ---
 export const fetchMarketQuotes = async (forceRefresh = false): Promise<MarketResponse> => {
-  if (!forceRefresh) {
+  let previousCachedData: CachedData | null = null;
+  try {
     const cached = localStorage.getItem(CACHE_KEY);
     if (cached) {
-      const { timestamp, data } = JSON.parse(cached) as CachedData;
-      if (Date.now() - timestamp < CACHE_DURATION) {
-        return data;
+      previousCachedData = JSON.parse(cached) as CachedData;
+      if (!forceRefresh && (Date.now() - previousCachedData.timestamp < CACHE_DURATION)) {
+        return previousCachedData.data;
       }
     }
+  } catch {
+    // Silencioso em caso de erro no parse do cache
   }
 
   const quotes: MarketQuote[] = [];
   let isRateLimited = false;
+  let awesomeSuccess = false;
 
   // --- 2. BUSCA MOEDAS E CRIPTO (AwesomeAPI) ---
   try {
@@ -377,9 +381,18 @@ export const fetchMarketQuotes = async (forceRefresh = false): Promise<MarketRes
       if (json.ETHBRL) quotes.push(mapAwesomeItem('ETH/BRL', 'Ethereum', json.ETHBRL, 'crypto'));
       if (json.BNBBRL) quotes.push(mapAwesomeItem('BNB/BRL', 'Binance Coin', json.BNBBRL, 'crypto'));
       if (json.SOLBRL) quotes.push(mapAwesomeItem('SOL/BRL', 'Solana', json.SOLBRL, 'crypto'));
+      awesomeSuccess = true;
     }
   } catch (error) {
-    console.error("Erro ao buscar AwesomeAPI:", error);
+    console.warn('[MarketService] Falha ao consultar AwesomeAPI. Ativando resiliência:', error);
+  }
+
+  // Se AwesomeAPI falhou mas temos cotações anteriores válidas em cache, recuperamos moedas e criptos
+  if (!awesomeSuccess && previousCachedData?.data?.quotes) {
+    const cachedCurrenciesAndCryptos = previousCachedData.data.quotes.filter(
+      (q) => q.category === 'currency' || q.category === 'crypto'
+    );
+    quotes.push(...cachedCurrenciesAndCryptos);
   }
 
   // --- 3. BUSCA ÍNDICES E AÇÕES ---
@@ -446,6 +459,12 @@ export const fetchMarketQuotes = async (forceRefresh = false): Promise<MarketRes
           } catch (e) {}
       }
 
+      // Se Yahoo também falhou, verificar se há índice em cache anterior
+      if (!quotes.some(q => q.symbol === 'IBOV') && previousCachedData?.data?.quotes) {
+        const cachedIbov = previousCachedData.data.quotes.find(q => q.symbol === 'IBOV');
+        if (cachedIbov) quotes.push(cachedIbov);
+      }
+
       if (!quotes.some(q => q.category === 'stock')) {
           STOCK_FALLBACK.forEach(s => {
               quotes.push({
@@ -457,12 +476,22 @@ export const fetchMarketQuotes = async (forceRefresh = false): Promise<MarketRes
       }
   }
 
+  // Se tudo falhar e quotes estiver vazio, retorna cache prévio intacto
+  if (quotes.length === 0 && previousCachedData?.data?.quotes && previousCachedData.data.quotes.length > 0) {
+    console.warn('[MarketService] Rede indisponível. Retornando cotações salvas em cache local.');
+    return previousCachedData.data;
+  }
+
   const result: MarketResponse = { quotes, isRateLimited };
 
-  localStorage.setItem(CACHE_KEY, JSON.stringify({
-    timestamp: Date.now(),
-    data: result
-  }));
+  if (quotes.length > 0) {
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        timestamp: Date.now(),
+        data: result
+      }));
+    } catch {}
+  }
 
   return result;
 };

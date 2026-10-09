@@ -56,7 +56,7 @@ describe('transactionService recurring bill payment', () => {
       type: 'expense',
       category: 'Moradia',
       paymentMethod: 'money',
-      isBillPayment: true,
+      isBillPayment: false,
       linkedRecurringBillId: 'bill-123',
     });
 

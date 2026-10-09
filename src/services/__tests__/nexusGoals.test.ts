@@ -1,7 +1,9 @@
+import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { createNexusReserve } from '../goalService';
 import { useNexusActions } from '../../hooks/useNexusActions';
 import { renderHook } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock do Firestore
 vi.mock('firebase/firestore', () => ({
@@ -31,7 +33,10 @@ describe('Nexus Goals Integration', () => {
   });
 
   it('useNexusActions deve executar a reserva e retornar sucesso com valor', async () => {
-    const { result } = renderHook(() => useNexusActions());
+    const queryClient = new QueryClient();
+    const wrapper = ({ children }: { children: React.ReactNode }) =>
+      React.createElement(QueryClientProvider, { client: queryClient }, children);
+    const { result } = renderHook(() => useNexusActions(), { wrapper });
     
     const action = {
       label: 'Reservar',

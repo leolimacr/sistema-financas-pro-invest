@@ -73,10 +73,12 @@ exports.generateDebtPlan = (0, https_1.onCall)({
             throw new https_1.HttpsError("invalid-argument", "Dados inválidos: " + JSON.stringify(parseResult.error.flatten()));
         }
         const userId = request.auth.uid;
+        const geminiApiKey = process.env.GEMINI_API_KEY;
         const groqApiKey = process.env.GROQ_API_KEY;
         const openrouterApiKey = process.env.OPENROUTER_API_KEY;
         const router = MultiModelRouter_1.MultiModelRouter.getInstance();
         router.updateApiKeys({
+            gemini: geminiApiKey,
             groq: groqApiKey,
             openrouter: openrouterApiKey,
         });

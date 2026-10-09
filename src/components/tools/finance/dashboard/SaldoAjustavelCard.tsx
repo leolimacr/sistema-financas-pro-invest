@@ -173,14 +173,14 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
   // Loading skeleton — até os dados do mês corrente estarem carregados
   if (saldoReal === null) {
     return (
-      <div className="bg-surface-primary border border-slate-200 rounded-panel p-5 shadow-panel animate-pulse">
-        <div className="h-3 w-28 bg-surface-secondary rounded-full mb-3" />
-        <div className="h-4 w-16 bg-surface-secondary rounded-full mb-1" />
-        <div className="h-8 w-36 bg-surface-secondary rounded-xl mt-4" />
-        <div className="border-t border-surface-elevated pt-3 mt-4 space-y-2">
-          <div className="h-3 w-40 bg-surface-secondary rounded-full" />
-          <div className="h-3 w-36 bg-surface-secondary rounded-full" />
-          <div className="h-3 w-32 bg-surface-secondary rounded-full" />
+      <div className="bg-surface-primary dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-panel p-5 shadow-panel animate-pulse">
+        <div className="h-3 w-28 bg-surface-secondary dark:bg-slate-800 rounded-full mb-3" />
+        <div className="h-4 w-16 bg-surface-secondary dark:bg-slate-800 rounded-full mb-1" />
+        <div className="h-8 w-36 bg-surface-secondary dark:bg-slate-800 rounded-xl mt-4" />
+        <div className="border-t border-surface-elevated dark:border-slate-800 pt-3 mt-4 space-y-2">
+          <div className="h-3 w-40 bg-surface-secondary dark:bg-slate-800 rounded-full" />
+          <div className="h-3 w-36 bg-surface-secondary dark:bg-slate-800 rounded-full" />
+          <div className="h-3 w-32 bg-surface-secondary dark:bg-slate-800 rounded-full" />
         </div>
       </div>
     );
@@ -188,25 +188,25 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
 
   return (
     <>
-      <div className="bg-surface-primary border border-slate-200 rounded-panel p-5 shadow-panel">
+      <div className="bg-surface-primary dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-panel p-5 shadow-panel">
         {/* Saldo Atual (fixo no topo) */}
         <div className="flex items-baseline justify-between mb-4">
           <div>
-            <h2 className="text-sm font-black text-text-primary tracking-tight">
+            <h2 className="text-sm font-black text-text-primary dark:text-white tracking-tight">
               Saldo Ajustável
             </h2>
-            <p className="text-[10px] text-text-muted font-medium leading-relaxed mt-0.5">
-              Marque o que deseja abater do saldo atual.
+            <p className="text-[10px] text-text-muted dark:text-slate-400 font-medium leading-relaxed mt-0.5">
+              Simule o abatimento de faturas e contas para ver quanto resta para a proteção (Colchão e Reserva).
             </p>
           </div>
-          <p className="text-2xl font-black tabular-nums tracking-tight text-text-primary">
+          <p className="text-2xl font-black tabular-nums tracking-tight text-text-primary dark:text-white">
             {fmt(saldoBase)}
           </p>
         </div>
 
         {/* Seção: Faturas Fechadas */}
         <div className="mb-3">
-          <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-2 flex items-center gap-1.5">
+          <p className="text-[9px] font-black uppercase tracking-widest text-text-muted dark:text-slate-400 mb-2 flex items-center gap-1.5">
             <CreditCard size={12} />
             Faturas fechadas (não pagas)
           </p>
@@ -223,11 +223,11 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
                       className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-all cursor-pointer ${
                         isOverdue
                           ? isChecked
-                            ? 'bg-red-100 border-red-400'
-                            : 'bg-red-50/40 border-red-300/60'
+                            ? 'bg-red-100 dark:bg-red-950/50 border-red-400 dark:border-red-800'
+                            : 'bg-red-50/40 dark:bg-red-950/20 border-red-300/60 dark:border-red-900/40'
                           : isChecked
-                            ? 'bg-red-50 border-red-200'
-                            : 'bg-surface-subtle border-slate-200'
+                            ? 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800'
+                            : 'bg-surface-subtle dark:bg-slate-800/60 border-slate-200 dark:border-slate-700'
                       }`}
                       onClick={() => abrirComposicao({ tipo: 'fatura', dados: f })}
                     >
@@ -245,11 +245,11 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
                       <div className="flex-1 min-w-0">
                         <p className={`text-xs font-bold truncate flex items-center gap-1.5 ${
                           isOverdue
-                            ? isChecked ? 'text-red-800' : 'text-red-700'
-                            : isChecked ? 'text-red-700' : 'text-text-muted'
+                            ? isChecked ? 'text-red-800 dark:text-red-300' : 'text-red-700 dark:text-red-400'
+                            : isChecked ? 'text-red-700 dark:text-red-300' : 'text-text-muted dark:text-slate-400'
                         }`}>
                           {isOverdue && (
-                            <span className="inline-block px-1.5 py-0.5 rounded-md bg-red-200 text-[8px] font-black uppercase tracking-wider text-red-800 leading-none">
+                            <span className="inline-block px-1.5 py-0.5 rounded-md bg-red-200 dark:bg-red-900/60 text-[8px] font-black uppercase tracking-wider text-red-800 dark:text-red-200 leading-none">
                               Vencida
                             </span>
                           )}
@@ -257,20 +257,20 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
                         </p>
                         <p className={`text-[9px] mt-0.5 ${
                           isOverdue
-                            ? isChecked ? 'text-red-600' : 'text-red-600'
-                            : isChecked ? 'text-red-600' : 'text-text-muted'
+                            ? isChecked ? 'text-red-600 dark:text-red-400' : 'text-red-600 dark:text-red-400'
+                            : isChecked ? 'text-red-600 dark:text-red-400' : 'text-text-muted dark:text-slate-400'
                         }`}>
                           Venceu em {new Date(f.dueDate.replace(/-/g, '/')).toLocaleDateString('pt-BR')}
                         </p>
                       </div>
                       <p className={`text-sm font-black tabular-nums shrink-0 ${
                         isOverdue
-                          ? isChecked ? 'text-red-700' : 'text-red-600'
-                          : isChecked ? 'text-red-600' : 'text-text-muted'
+                          ? isChecked ? 'text-red-700 dark:text-red-300' : 'text-red-600 dark:text-red-400'
+                          : isChecked ? 'text-red-600 dark:text-red-400' : 'text-text-muted dark:text-slate-400'
                       }`}>
                         {fmt(f.remainingAmount)}
                       </p>
-                      <Eye size={14} className="text-text-muted shrink-0" />
+                      <Eye size={14} className="text-text-muted dark:text-slate-400 shrink-0" />
                       <button
                         type="button"
                         onClick={e => { e.stopPropagation(); handleStartPayment(key); }}
@@ -281,9 +281,9 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
                     </div>
 
                     {isPayingThis && (
-                      <div className="mt-2 p-3 bg-surface-secondary rounded-2xl border border-surface-elevated space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <div className="mt-2 p-3 bg-surface-secondary dark:bg-slate-800 rounded-2xl border border-surface-elevated dark:border-slate-700 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
                         <div className="flex items-center gap-3">
-                          <label className="text-[10px] font-bold text-text-muted shrink-0">
+                          <label className="text-[10px] font-bold text-text-muted dark:text-slate-400 shrink-0">
                             Data do pagamento
                           </label>
                           <input
@@ -291,7 +291,7 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
                             value={paymentDate}
                             max={getLocalDateString()}
                             onChange={e => setPaymentDate(e.target.value)}
-                            className="flex-1 px-3 py-2 rounded-xl border border-surface-elevated bg-surface-primary text-xs font-bold text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+                            className="flex-1 px-3 py-2 rounded-xl border border-surface-elevated dark:border-slate-700 bg-surface-primary dark:bg-slate-900 text-xs font-bold text-text-primary dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
                           />
                         </div>
                         <div className="flex items-center gap-2">
@@ -312,7 +312,7 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
                             type="button"
                             disabled={isPaying}
                             onClick={handleCancelPayment}
-                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-surface-elevated text-text-muted text-[9px] font-black uppercase tracking-widest hover:bg-surface-secondary transition-all active:scale-95 disabled:opacity-50"
+                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-surface-elevated dark:border-slate-700 text-text-muted dark:text-slate-300 text-[9px] font-black uppercase tracking-widest hover:bg-surface-secondary dark:hover:bg-slate-700 transition-all active:scale-95 disabled:opacity-50"
                           >
                             <X size={12} />
                             Cancelar
@@ -325,7 +325,7 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
               })}
             </div>
           ) : (
-            <p className="text-[10px] text-text-muted font-medium italic pl-1">
+            <p className="text-[10px] text-text-muted dark:text-slate-400 font-medium italic pl-1">
               Nenhuma fatura fechada pendente.
             </p>
           )}
@@ -340,7 +340,7 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
             {temParceladas && (
               <ChevronDown
                 size={12}
-                className={`text-text-muted transition-transform ${faturasAbertasExpanded ? '' : '-rotate-90'}`}
+                className={`text-text-muted dark:text-slate-400 transition-transform ${faturasAbertasExpanded ? '' : '-rotate-90'}`}
               />
             )}
             <input
@@ -350,12 +350,12 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
               onClick={e => e.stopPropagation()}
               className="h-3.5 w-3.5 rounded border-surface-elevated text-amber-500 focus:ring-amber-400/30 shrink-0"
             />
-            <p className="text-[9px] font-black uppercase tracking-widest text-text-muted flex items-center gap-1.5">
+            <p className="text-[9px] font-black uppercase tracking-widest text-text-muted dark:text-slate-400 flex items-center gap-1.5">
               <CreditCard size={12} />
               Faturas abertas (em curso)
             </p>
             {sortedAbertas.length > 0 && (
-              <span className="text-[8px] font-bold text-text-muted ml-auto">
+              <span className="text-[8px] font-bold text-text-muted dark:text-slate-400 ml-auto">
                 {sortedAbertas.length} {sortedAbertas.length === 1 ? 'fatura' : 'faturas'}
               </span>
             )}
@@ -373,8 +373,8 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
                       <div
                       className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-all cursor-pointer ${
                           isChecked
-                            ? 'bg-amber-50 border-amber-200'
-                            : 'bg-surface-subtle border-slate-200'
+                            ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800'
+                            : 'bg-surface-subtle dark:bg-slate-800/60 border-slate-200 dark:border-slate-700'
                         }`}
                         onClick={() => abrirComposicao({ tipo: 'fatura', dados: f })}
                       >
@@ -386,20 +386,20 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
                           className="w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-400 cursor-pointer shrink-0"
                         />
                         <div className="flex-1 min-w-0">
-                          <p className={`text-xs font-bold truncate flex items-center gap-1.5 ${isChecked ? 'text-amber-700' : 'text-text-muted'}`}>
-                            <span className="inline-block px-1.5 py-0.5 rounded-md bg-amber-100 text-[8px] font-black uppercase tracking-wider text-amber-700 leading-none">
+                          <p className={`text-xs font-bold truncate flex items-center gap-1.5 ${isChecked ? 'text-amber-700 dark:text-amber-300' : 'text-text-muted dark:text-slate-400'}`}>
+                            <span className="inline-block px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/60 text-[8px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-300 leading-none">
                               Fecha {new Date(f.periodEnd.replace(/-/g, '/')).toLocaleDateString('pt-BR')}
                             </span>
                             {f.cardName}
                           </p>
-                          <p className={`text-[9px] mt-0.5 ${isChecked ? 'text-amber-700' : 'text-text-muted'}`}>
+                          <p className={`text-[9px] mt-0.5 ${isChecked ? 'text-amber-700 dark:text-amber-300' : 'text-text-muted dark:text-slate-400'}`}>
                             Vence {new Date(f.dueDate.replace(/-/g, '/')).toLocaleDateString('pt-BR')}
                           </p>
                         </div>
-                        <p className={`text-sm font-black tabular-nums shrink-0 ${isChecked ? 'text-amber-600' : 'text-text-muted'}`}>
+                        <p className={`text-sm font-black tabular-nums shrink-0 ${isChecked ? 'text-amber-600 dark:text-amber-400' : 'text-text-muted dark:text-slate-400'}`}>
                           {fmt(f.remainingAmount)}
                         </p>
-                        <Eye size={14} className="text-text-muted shrink-0" />
+                        <Eye size={14} className="text-text-muted dark:text-slate-400 shrink-0" />
                         <button
                           type="button"
                           onClick={e => { e.stopPropagation(); handleStartPayment(key); }}
@@ -410,9 +410,9 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
                       </div>
 
                       {isPayingThis && (
-                        <div className="mt-2 p-3 bg-surface-secondary rounded-2xl border border-surface-elevated space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                        <div className="mt-2 p-3 bg-surface-secondary dark:bg-slate-800 rounded-2xl border border-surface-elevated dark:border-slate-700 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
                           <div className="flex items-center gap-3">
-                            <label className="text-[10px] font-bold text-text-muted shrink-0">
+                            <label className="text-[10px] font-bold text-text-muted dark:text-slate-400 shrink-0">
                               Data do pagamento
                             </label>
                             <input
@@ -420,7 +420,7 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
                               value={paymentDate}
                               max={getLocalDateString()}
                               onChange={e => setPaymentDate(e.target.value)}
-                              className="flex-1 px-3 py-2 rounded-xl border border-surface-elevated bg-surface-primary text-xs font-bold text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+                              className="flex-1 px-3 py-2 rounded-xl border border-surface-elevated dark:border-slate-700 bg-surface-primary dark:bg-slate-900 text-xs font-bold text-text-primary dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
                             />
                           </div>
                           <div className="flex items-center gap-2">
@@ -441,7 +441,7 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
                               type="button"
                               disabled={isPaying}
                               onClick={handleCancelPayment}
-                              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-surface-elevated text-text-muted text-[9px] font-black uppercase tracking-widest hover:bg-surface-secondary transition-all active:scale-95 disabled:opacity-50"
+                              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-surface-elevated dark:border-slate-700 text-text-muted dark:text-slate-300 text-[9px] font-black uppercase tracking-widest hover:bg-surface-secondary dark:hover:bg-slate-700 transition-all active:scale-95 disabled:opacity-50"
                             >
                               <X size={12} />
                               Cancelar
@@ -454,7 +454,7 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
                 })}
               </div>
             ) : (
-              <p className="text-[10px] text-text-muted font-medium italic pl-1">
+              <p className="text-[10px] text-text-muted dark:text-slate-400 font-medium italic pl-1">
                 Nenhuma fatura aberta no momento.
               </p>
             )
@@ -463,7 +463,7 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
 
         {/* Seção: Gastos futuros no mês */}
         <div className="mb-3">
-          <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-2 flex items-center gap-1.5">
+          <p className="text-[9px] font-black uppercase tracking-widest text-text-muted dark:text-slate-400 mb-2 flex items-center gap-1.5">
             <Clock size={12} />
             Gastos futuros deste mês
           </p>
@@ -477,8 +477,8 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
                     key={key}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all cursor-pointer ${
                       isChecked
-                        ? 'bg-amber-50 border-amber-200'
-                        : 'bg-surface-subtle border-slate-200'
+                        ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800'
+                        : 'bg-surface-subtle dark:bg-slate-800/60 border-slate-200 dark:border-slate-700'
                     }`}
                     onClick={() => abrirComposicao({ tipo: 'gasto-futuro', dados: g })}
                   >
@@ -490,23 +490,23 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
                       className="w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-400 cursor-pointer shrink-0"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className={`text-xs font-bold truncate ${isChecked ? 'text-amber-700' : 'text-text-muted'}`}>
+                      <p className={`text-xs font-bold truncate ${isChecked ? 'text-amber-700 dark:text-amber-300' : 'text-text-muted dark:text-slate-400'}`}>
                         {g.description || 'Sem descrição'}
                       </p>
-                      <p className={`text-[9px] mt-0.5 ${isChecked ? 'text-amber-500' : 'text-text-muted'}`}>
+                      <p className={`text-[9px] mt-0.5 ${isChecked ? 'text-amber-500 dark:text-amber-400' : 'text-text-muted dark:text-slate-400'}`}>
                         {new Date(g.date.replace(/-/g, '/')).toLocaleDateString('pt-BR')}
                       </p>
                     </div>
-                    <p className={`text-sm font-black tabular-nums shrink-0 ${isChecked ? 'text-amber-600' : 'text-text-muted'}`}>
+                    <p className={`text-sm font-black tabular-nums shrink-0 ${isChecked ? 'text-amber-600 dark:text-amber-400' : 'text-text-muted dark:text-slate-400'}`}>
                       {fmt(g.amount)}
                     </p>
-                    <Eye size={14} className="text-text-muted shrink-0" />
+                    <Eye size={14} className="text-text-muted dark:text-slate-400 shrink-0" />
                   </div>
                 );
               })}
             </div>
           ) : (
-            <p className="text-[10px] text-text-muted font-medium italic pl-1">
+            <p className="text-[10px] text-text-muted dark:text-slate-400 font-medium italic pl-1">
               Nenhum gasto futuro previsto neste mês.
             </p>
           )}
@@ -521,7 +521,7 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
             {contasFuturasMes.length > 2 && (
               <ChevronDown
                 size={12}
-                className={`text-text-muted transition-transform ${contasFuturasExpanded ? '' : '-rotate-90'}`}
+                className={`text-text-muted dark:text-slate-400 transition-transform ${contasFuturasExpanded ? '' : '-rotate-90'}`}
               />
             )}
             <input
@@ -531,12 +531,12 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
               onClick={e => e.stopPropagation()}
               className="h-3.5 w-3.5 rounded border-surface-elevated text-purple-500 focus:ring-purple-400/30 shrink-0"
             />
-            <p className="text-[9px] font-black uppercase tracking-widest text-text-muted flex items-center gap-1.5">
+            <p className="text-[9px] font-black uppercase tracking-widest text-text-muted dark:text-slate-400 flex items-center gap-1.5">
               <Receipt size={12} />
               Contas recorrentes a vencer
             </p>
             {contasFuturasMes.length > 0 && (
-              <span className="text-[8px] font-bold text-text-muted ml-auto">
+              <span className="text-[8px] font-bold text-text-muted dark:text-slate-400 ml-auto">
                 {contasFuturasMes.length} {contasFuturasMes.length === 1 ? 'conta' : 'contas'}
               </span>
             )}
@@ -553,8 +553,8 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
                       key={key}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all cursor-pointer ${
                         isChecked
-                          ? 'bg-purple-50 border-purple-200'
-                          : 'bg-surface-subtle border-slate-200'
+                          ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800'
+                          : 'bg-surface-subtle dark:bg-slate-800/60 border-slate-200 dark:border-slate-700'
                       }`}
                       onClick={() => abrirComposicao({ tipo: 'conta-futura', dados: c })}
                     >
@@ -566,23 +566,23 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
                         className="w-4 h-4 rounded border-slate-300 text-purple-500 focus:ring-purple-400 cursor-pointer shrink-0"
                       />
                       <div className="flex-1 min-w-0">
-                        <p className={`text-xs font-bold truncate ${isChecked ? 'text-purple-700' : 'text-text-muted'}`}>
+                        <p className={`text-xs font-bold truncate ${isChecked ? 'text-purple-700 dark:text-purple-300' : 'text-text-muted dark:text-slate-400'}`}>
                           {c.description}
                         </p>
-                        <p className={`text-[9px] mt-0.5 ${isChecked ? 'text-purple-700' : 'text-text-muted'}`}>
+                        <p className={`text-[9px] mt-0.5 ${isChecked ? 'text-purple-700 dark:text-purple-300' : 'text-text-muted dark:text-slate-400'}`}>
                           Dia {new Date(c.date.replace(/-/g, '/')).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                         </p>
                       </div>
-                      <p className={`text-sm font-black tabular-nums shrink-0 ${isChecked ? 'text-purple-600' : 'text-text-muted'}`}>
+                      <p className={`text-sm font-black tabular-nums shrink-0 ${isChecked ? 'text-purple-600 dark:text-purple-400' : 'text-text-muted dark:text-slate-400'}`}>
                         {fmt(c.amount)}
                       </p>
-                      <Eye size={14} className="text-text-muted shrink-0" />
+                      <Eye size={14} className="text-text-muted dark:text-slate-400 shrink-0" />
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <p className="text-[10px] text-text-muted font-medium italic pl-1">
+              <p className="text-[10px] text-text-muted dark:text-slate-400 font-medium italic pl-1">
                 Não há nenhuma conta recorrente a vencer neste mês.
               </p>
             )
@@ -590,21 +590,21 @@ const SaldoAjustavelCard: React.FC<SaldoAjustavelCardProps> = ({
         </div>
 
         {/* Total Ajustado */}
-        <div className="border-t border-surface-elevated pt-4 mt-4">
+        <div className="border-t border-surface-elevated dark:border-slate-800 pt-4 mt-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-ultra-wide text-text-primary">
+              <p className="text-xs font-black uppercase tracking-ultra-wide text-text-primary dark:text-white">
                 Saldo Ajustado
               </p>
-              <p className="text-[9px] text-text-muted font-medium mt-0.5">
+              <p className="text-[9px] text-text-muted dark:text-slate-400 font-medium mt-0.5">
                 {isNegativo
-                  ? 'Após as deduções, seu saldo fica negativo.'
-                  : 'O que sobra após abater os itens marcados.'}
+                  ? 'Após as deduções das contas imediatas, o caixa entra em aperto temporário.'
+                  : 'Saldo operacional restante após pagar as contas imediatas do mês.'}
               </p>
             </div>
             <p
               className={`text-2xl font-black tabular-nums tracking-tight ${
-                isNegativo ? 'text-status-danger' : 'text-text-primary'
+                isNegativo ? 'text-status-danger dark:text-rose-400' : 'text-text-primary dark:text-white'
               }`}
             >
               {isPrivacyMode ? '••••••' : maskCurrency(saldoAjustado)}

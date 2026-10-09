@@ -78,4 +78,17 @@ describe('useCourseProgress hook', () => {
     expect(result.current.progress?.completedLessons).toEqual([]);
     expect(result.current.getCourseCompletionPercentage()).toBe(0);
   });
+
+  it('preserva integridade e persistência offline no localStorage', async () => {
+    const { result } = renderHook(() => useCourseProgress('dividas'));
+
+    await act(async () => {
+      await result.current.markLessonAsCompleted('aula-teste-offline');
+    });
+
+    expect(result.current.isLessonCompleted('aula-teste-offline')).toBe(true);
+    const stored = localStorage.getItem('fpi_course_progress_dividas');
+    expect(stored).not.toBeNull();
+    expect(JSON.parse(stored!).completedLessons).toContain('aula-teste-offline');
+  });
 });

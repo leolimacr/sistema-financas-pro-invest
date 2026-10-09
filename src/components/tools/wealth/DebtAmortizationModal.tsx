@@ -4,6 +4,8 @@ import type { DebtItem, AmortizacaoTipo } from '../../../services/debt';
 import { useAmortizeDebt } from '../../../services/debt/debt.hooks';
 import { useToast } from '../../../contexts/ToastContext';
 import { computeCurrentInstallment, getCurrentSeriesInfo, computeRemainingInstallments } from '../../../services/debt/debt.math';
+import { addTransaction } from '../../../services/transactionService';
+import { getLocalDateString } from '../../../utils/dateHelpers';
 
 interface DebtAmortizationModalProps {
   debt: DebtItem | null;
@@ -32,6 +34,7 @@ export const DebtAmortizationModal: React.FC<DebtAmortizationModalProps> = ({
 }) => {
   const [tipo, setTipo] = useState<AmortizacaoTipo>('normal');
   const [valorExtra, setValorExtra] = useState<string>('');
+  const [syncWithControla, setSyncWithControla] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { mutateAsync: amortize, isPending } = useAmortizeDebt(userId);
   const { addToast } = useToast();
@@ -100,12 +103,30 @@ export const DebtAmortizationModal: React.FC<DebtAmortizationModalProps> = ({
         },
       });
 
+      // Sincronia Automática com o Controla (F4.3.1)
+      if (syncWithControla) {
+        try {
+          await addTransaction(userId, {
+            description: `Amortização ${debt.nome} (${tipo === 'extraordinaria' ? 'Extraordinária' : `Parcela ${proximaParcelaNumero}/${totalParcelas}`})`,
+            amount: valorAbatido,
+            type: 'expense',
+            category: 'Dívidas',
+            date: getLocalDateString(),
+            paymentMethod: 'money',
+          });
+        } catch (syncErr) {
+          console.warn('[DebtAmortizationModal] Falha ao registrar despesa no Controla:', syncErr);
+        }
+      }
+
       const msgTipo = tipo === 'extraordinaria' 
         ? `Amortização extraordinária de ${formatCurrency(valorAbatido)} realizada`
         : `Parcela ${proximaParcelaNumero}/${totalParcelas} abatida`;
+
+      const msgSinc = syncWithControla ? ' e registrada no Controla' : '';
       
       addToast(
-        `${msgTipo}. Saldo: ${formatCurrency(debt.saldoDevedor)} → ${formatCurrency(newSaldo)}`,
+        `${msgTipo}${msgSinc}. Saldo: ${formatCurrency(debt.saldoDevedor)} → ${formatCurrency(newSaldo)}`,
         'success'
       );
       onClose();
@@ -307,6 +328,27 @@ export const DebtAmortizationModal: React.FC<DebtAmortizationModalProps> = ({
             </div>
           </div>
         )}
+
+        {/* Sincronia Automática com o Controla (F4.3.1) */}
+        <div className="mb-6 p-4 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={syncWithControla}
+              onChange={(e) => setSyncWithControla(e.target.checked)}
+              disabled={isSubmitting}
+              className="w-4 h-4 mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"
+            />
+            <div className="space-y-0.5">
+              <span className="text-xs font-bold text-slate-900 block">
+                Registrar despesa no Controla automaticamente
+              </span>
+              <p className="text-[11px] text-slate-500 leading-tight">
+                Lança {formatCurrency(valorAbatido)} no seu fluxo diário de hoje, mantendo o saldo real do caixa rigorosamente alinhado.
+              </p>
+            </div>
+          </label>
+        </div>
 
         <div className="flex gap-3">
           <button

@@ -9,8 +9,8 @@ import BucketDetailDrawer from './BucketDetailDrawer';
 
 export interface SovereignBucketsProps {
   snapshot: SovereignSnapshot;
-  marcoZero: number;
-  reserveCurrent: number;
+  marcoZero?: number;
+  reserveCurrent?: number;
   isPrivacyMode?: boolean;
   variant?: 'light' | 'dark';
 }
@@ -34,25 +34,25 @@ const BUCKET_META: BucketMetaItem[] = [
     icon: AlertTriangle,
   },
   {
-    key: 'marcoZero',
+    key: 'colchao',
     actionId: 'colchao',
-    label: 'Colchão Inicial',
-    sub: 'Já protegido',
+    label: 'Colchão Emergencial',
+    sub: 'Proteção imediata',
     color: '#0ea5e9',
     icon: Shield,
   },
   {
     key: 'reserve',
     actionId: 'reserva',
-    label: 'Reserva',
-    sub: 'Já protegido',
+    label: 'Reserva de Emergência',
+    sub: 'Proteção investida',
     color: '#10b981',
     icon: Lock,
   },
   {
     key: 'colchaoShortfall',
     actionId: 'falta-proteger',
-    label: 'Falta proteger',
+    label: 'Falta no Colchão',
     sub: 'Meta pendente',
     color: '#8b5cf6',
     icon: Target,
@@ -69,7 +69,7 @@ const BUCKET_META: BucketMetaItem[] = [
     key: 'livre',
     actionId: 'disponivel',
     label: 'Disponível',
-    sub: 'Realmente livre',
+    sub: 'Saldo Livre',
     color: '#059669',
     icon: Wallet,
   },
@@ -91,18 +91,29 @@ const SovereignBuckets: React.FC<SovereignBucketsProps> = ({
 
   const deficitAlert = useMemo(() => {
     if (isPrivacyMode) return null;
-    if (buckets.structureInvaded) {
+    const cashSurplus = (snapshot.accumulatedBalance ?? 0) - (snapshot.obligationsDeduction ?? 0);
+    if (cashSurplus < 0) {
       return {
-        type: 'structureInvaded' as const,
-        description: `seu saldo acumulado não cobre cartão, contas e a proteção que ainda falta formar. Sua Disponibilidade Real está em déficit de ${maskCurrency(buckets.freedomDeficit)}.`,
+        title: 'Atenção ao Caixa:',
+        description: `suas contas do mês superam seu caixa em ${maskCurrency(Math.abs(cashSurplus))}. Seu Colchão Emergencial deve ser acionado para amortecer este aperto.`,
         alertClass: isDark
           ? 'bg-rose-950/40 border-rose-800/50 text-rose-300'
           : 'bg-rose-50 border-rose-100 text-rose-700',
       };
     }
+    if (buckets.structureInvaded) {
+      const totalProtected = (buckets.colchao ?? 0) + (buckets.reserve ?? 0);
+      return {
+        title: 'Estrutura Financeira:',
+        description: `Seus compromissos imediatos estão cobertos e você já possui ${maskCurrency(totalProtected)} guardados. Faltam ${maskCurrency(buckets.freedomDeficit)} para atingir 100% da sua meta de reserva.`,
+        alertClass: isDark
+          ? 'bg-sky-950/40 border-sky-800/50 text-sky-300'
+          : 'bg-sky-50 border-sky-100 text-sky-800',
+      };
+    }
     if (snapshot.projectedBalance < 0) {
       return {
-        type: 'flowDeficit' as const,
+        title: 'Déficit de fluxo:',
         description: `o mês não se paga sozinho. Faltam ${maskCurrency(Math.abs(snapshot.projectedBalance))} para equilibrar suas receitas e despesas.`,
         alertClass: isDark
           ? 'bg-amber-950/40 border-amber-800/50 text-amber-300'
@@ -115,7 +126,7 @@ const SovereignBuckets: React.FC<SovereignBucketsProps> = ({
   const barItems = useMemo(() => {
     const items: { value: number; color: string; label: string }[] = [];
     if (buckets.comprometido > 0) items.push({ value: buckets.comprometido, color: '#f97316', label: 'Contas' });
-    if (buckets.marcoZero > 0) items.push({ value: buckets.marcoZero, color: '#0ea5e9', label: 'Colchão' });
+    if ((buckets.colchao ?? buckets.marcoZero) > 0) items.push({ value: (buckets.colchao ?? buckets.marcoZero), color: '#0ea5e9', label: 'Colchão' });
     if (buckets.reserve > 0) items.push({ value: buckets.reserve, color: '#10b981', label: 'Reserva' });
     if (buckets.colchaoShortfall > 0) items.push({ value: buckets.colchaoShortfall, color: '#8b5cf6', label: 'Falta Colchão' });
     if (buckets.reserveShortfall > 0) items.push({ value: buckets.reserveShortfall, color: '#7c3aed', label: 'Falta Reserva' });
@@ -194,7 +205,7 @@ const SovereignBuckets: React.FC<SovereignBucketsProps> = ({
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
         {BUCKET_META.map(({ key, actionId, label, sub, color, icon: Icon }) => {
           const value = (buckets as any)[key];
-          const invaded = key === 'marcoZero' && buckets.structureInvaded;
+          const invaded = (key === 'colchao' || key === 'marcoZero') && buckets.structureInvaded;
           const isShortfall = key === 'colchaoShortfall' || key === 'reserveShortfall';
 
           if (value === 0 && isShortfall) return null;
@@ -257,7 +268,7 @@ const SovereignBuckets: React.FC<SovereignBucketsProps> = ({
           <AlertTriangle size={14} className="shrink-0 mt-0.5" />
           <p className="text-[10px] font-medium leading-relaxed">
             <span className="font-black">
-              {deficitAlert.type === 'structureInvaded' ? 'Disponibilidade negativa:' : 'Déficit de fluxo:'}
+              {deficitAlert.title}
             </span>{' '}
             {deficitAlert.description}
           </p>

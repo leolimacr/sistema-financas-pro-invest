@@ -8,6 +8,7 @@ import { DataIntegrator, truncatePromptSegment } from "./nexus-core/data-integra
 import { MultiModelRouter } from "./nexus-core/MultiModelRouter";
 import { PromptBuilder } from "./nexus-core/prompt-builder";
 import { ActionManager } from "./nexus-core/action-registry";
+import { FinancialFactsEngine } from "./nexus-core/financial-facts";
 import {
   GEMINI_API_KEY as GEMINI_API_KEY_SECRET,
   OPENROUTER_API_KEY as OPENROUTER_API_KEY_SECRET,
@@ -18,6 +19,40 @@ import {
 
 interface CryptoPriceData { price: number; lastUpdated: string; }
 interface CryptoPriceDataDual { priceUSD: number; priceBRL: number; lastUpdated: string; }
+
+interface NexusAnalysisBasis {
+  generatedAt: string;
+  dataStatus: UserDataResult['dataStatus'];
+  sources: string[];
+  period: string;
+  limitations: string[];
+}
+
+function buildAnalysisBasis(
+  userData: UserDataResult,
+  historyDescription: string,
+  serverData: { debts: unknown[]; assets: unknown[]; passives: unknown[]; bills: unknown[]; cards: unknown[] },
+): NexusAnalysisBasis {
+  const sources: string[] = [];
+  if (userData.recentTransactions.length > 0) sources.push('lançamentos recentes');
+  if (userData.goals.length > 0) sources.push('metas financeiras');
+  if (serverData.debts.length > 0) sources.push('dívidas cadastradas');
+  if (serverData.assets.length > 0 || serverData.passives.length > 0) sources.push('patrimônio cadastrado');
+  if (serverData.bills.length > 0 || serverData.cards.length > 0) sources.push('contas e cartões');
+
+  const limitations: string[] = [];
+  if (userData.dataStatus === 'error') limitations.push('Não foi possível carregar parte dos dados financeiros nesta resposta.');
+  if (userData.recentTransactions.length === 0) limitations.push('Não há lançamentos recentes disponíveis para análise de fluxo.');
+  if (sources.length === 0) limitations.push('O diagnóstico está limitado porque ainda não há dados financeiros cadastrados.');
+
+  return {
+    generatedAt: new Date().toISOString(),
+    dataStatus: userData.dataStatus,
+    sources,
+    period: historyDescription,
+    limitations,
+  };
+}
 
 export async function getUserPlan(userId: string): Promise<string | undefined> {
   try {
@@ -121,6 +156,42 @@ async function getUserPassives(userId: string): Promise<any[]> {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error: any) {
     logger.error(`[Passives] Erro ao buscar passivos: ${error.message}`);
+    return [];
+  }
+}
+
+async function getUserBills(userId: string): Promise<any[]> {
+  try {
+    const db = getFirestore();
+    const snapshot = await db.collection('users').doc(userId).collection('contas_fixas').get();
+    if (snapshot.empty) return [];
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error: any) {
+    logger.error(`[Bills] Erro ao buscar contas fixas: ${error.message}`);
+    return [];
+  }
+}
+
+async function getUserCards(userId: string): Promise<any[]> {
+  try {
+    const db = getFirestore();
+    const snapshot = await db.collection('users').doc(userId).collection('cartoes').get();
+    if (snapshot.empty) return [];
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error: any) {
+    logger.error(`[Cards] Erro ao buscar cartões: ${error.message}`);
+    return [];
+  }
+}
+
+async function getUserInvoices(userId: string): Promise<any[]> {
+  try {
+    const db = getFirestore();
+    const snapshot = await db.collection('users').doc(userId).collection('faturas').limit(20).get();
+    if (snapshot.empty) return [];
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error: any) {
+    logger.error(`[Invoices] Erro ao buscar faturas: ${error.message}`);
     return [];
   }
 }
@@ -358,15 +429,16 @@ export const askAiAdvisor = onCall(
     ],
   },
   async (request) => {
+    const geminiApiKey = process.env.GEMINI_API_KEY as string;
     const groqApiKey = process.env.GROQ_API_KEY as string;
     const openrouterApiKey = process.env.OPENROUTER_API_KEY as string;
     const brapiToken = process.env.BRAPI_TOKEN as string;
     const router = MultiModelRouter.getInstance();
-    router.updateApiKeys({ groq: groqApiKey, openrouter: openrouterApiKey });
+    router.updateApiKeys({ gemini: geminiApiKey, groq: groqApiKey, openrouter: openrouterApiKey });
     try {
       if (!request.auth) throw new HttpsError("unauthenticated", "Login necessário.");
       const { prompt, userName, history = [], isFirstInteraction, context: frontendContext = {} } = request.data;
-      const { assets = [], passives = [], goals = [] } = frontendContext;
+      const { assets = [], passives = [], goals = [], transactions = [] } = frontendContext;
       const safeUserName = (userName || "Investidor").split(' ')[0];
       const userId = request.auth.uid;
 
@@ -393,27 +465,25 @@ export const askAiAdvisor = onCall(
         }
       }
 
-      const investmentRequestPatterns = [/recomen[dt]/i, /onde (devo |posso )?investir/i, /qual (o melhor|a melhor) investimento/i, /aplicar.*dinheiro/i, /investir.*reais/i, /o que fa[çz]o com.*reais/i, /sugere.*investimento/i, /indica.*investimento/i];
-      if (investmentRequestPatterns.some(p => p.test(prompt))) {
-        logger.warn(`🚫 BLOQUEIO CVM`);
-        return {
-          success: true,
-          answer: `${safeUserName}, não posso fazer recomendações específicas de investimento, pois isso exige análise de perfil completo e está regulamentado pela CVM.\n\nO que posso fazer:\n• Explicar conceitos gerais (ex: o que é renda fixa, ações, etc)\n• Mostrar dados de mercado atuais\n• Tirar dúvidas sobre produtos financeiros\n\nPara recomendações personalizadas, você deve consultar um assessor de investimentos registrado na CVM.\n\nPosso explicar algum conceito ou produto específico?`,
-          context: { intent: 'investment_request_blocked', model: 'system' }
-        };
-      }
-
       let userData: UserDataResult;
       let historyDescription = 'analiso um recorte recente do seu histórico, definido pelo seu plano';
       let serverDebts: any[] = [];
       let serverAssets: any[] = [];
       let serverPassives: any[] = [];
+      let serverBills: any[] = [];
+      let serverCards: any[] = [];
+      let serverInvoices: any[] = [];
       let userPlan: string | undefined;
       try {
         userPlan = await getUserPlan(userId);
-        serverDebts = await getUserDebts(userId);
-        serverAssets = await getUserAssets(userId);
-        serverPassives = await getUserPassives(userId);
+        [serverDebts, serverAssets, serverPassives, serverBills, serverCards, serverInvoices] = await Promise.all([
+          getUserDebts(userId),
+          getUserAssets(userId),
+          getUserPassives(userId),
+          getUserBills(userId),
+          getUserCards(userId),
+          getUserInvoices(userId)
+        ]);
         historyDescription = describeHistoryWindow(userPlan);
         logger.info(`[DEBUG] Plano retornado: "${userPlan}" (tipo: ${typeof userPlan})`);
         userData = await DataIntegrator.gatherUserData(userId, userPlan);
@@ -430,11 +500,13 @@ export const askAiAdvisor = onCall(
       const assetsSummary = DataIntegrator.formatAssetsSummary(resolvedAssets);
       const passivesSummary = DataIntegrator.formatPassivesSummary(resolvedPassives);
       const debtsSummary = truncatePromptSegment(DataIntegrator.formatDebtsSummary(serverDebts));
+      const billsSummary = truncatePromptSegment(DataIntegrator.formatBillsSummary(serverBills));
+      const cardsSummary = truncatePromptSegment(DataIntegrator.formatCardsSummary(serverCards, serverInvoices));
       const patrimonioVisaoGerencialStr = DataIntegrator.formatPatrimonioVisaoGerencial(resolvedAssets, resolvedPassives);
 
       const assetsSource = (assets && assets.length > 0) ? 'frontend' : 'server';
       const passivesSource = (passives && passives.length > 0) ? 'frontend' : 'server';
-      logger.info(`[DEBUG] Resolvidos via ${assetsSource}/${passivesSource}: ${resolvedAssets.length} ativos, ${resolvedPassives.length} passivos`);
+      logger.info(`[DEBUG] Resolvidos via ${assetsSource}/${passivesSource}: ${resolvedAssets.length} ativos, ${resolvedPassives.length} passivos, ${serverBills.length} contas, ${serverCards.length} cartões`);
 
       const validHistory = Array.isArray(history) ? history.filter((h: any) => h && h.text && h.text.trim()) : [];
 
@@ -453,11 +525,17 @@ export const askAiAdvisor = onCall(
       const isUserCorrection = userCorrectionPatterns.some(p => p.test(prompt));
       if (isUserCorrection && validHistory.length > 0) logger.info("🔄 Usuário corrigindo informação - forçando busca web");
 
-      const context = DiscretionEngine.analyzeContext(prompt, validHistory, {
+      const analyzedContext = DiscretionEngine.analyzeContext(prompt, validHistory, {
         hasGoals: userData.goals.length > 0,
         hasRecentTransactions: userData.recentTransactions.length > 0,
         hasSimulations: userData.simulations.length > 0
       });
+      const context = {
+        ...analyzedContext,
+        responseMode: /\[PROTOCOL:\s*STRATEGIC_BRIEFING\]/i.test(prompt)
+          ? 'strategic_briefing'
+          : 'concise',
+      };
 
       let transactionsForPrompt = "Nenhuma transação registrada.";
       if (userData.recentTransactions && userData.recentTransactions.length > 0) {
@@ -493,6 +571,20 @@ export const askAiAdvisor = onCall(
         }
       }
 
+      // CÁLCULO DETERMINÍSTICO DE FATOS CONTÁBEIS (MOTOR SOBERANO)
+      const deterministicFacts = FinancialFactsEngine.computeFacts({
+        transactions: (transactions && transactions.length > 0) ? transactions : userData.recentTransactions,
+        goals: (goals && goals.length > 0) ? goals : userData.goals,
+        debts: serverDebts,
+        assets: resolvedAssets,
+        passives: resolvedPassives,
+        bills: serverBills,
+        cards: serverCards,
+        invoices: serverInvoices,
+        financialProfile: userData.financialProfile,
+      });
+      const financialFactsSection = FinancialFactsEngine.formatForPrompt(deterministicFacts);
+
       // CONSTRUÇÃO DO PROMPT VIA PROMPTBUILDER
       const enhancedSystemPrompt = PromptBuilder.buildSystemPrompt({
         userName: safeUserName,
@@ -503,12 +595,15 @@ export const askAiAdvisor = onCall(
         passivesSummary,
         patrimonioVisaoGerencialStr,
         debtsSummary,
+        billsSummary,
+        cardsSummary,
         isFirst,
         historyDescription,
         avoidRepetition,
         isUserCorrection,
         transactionsForPrompt,
-        goalsForPrompt
+        goalsForPrompt,
+        financialFactsSection,
       });
 
       const messages = [
@@ -531,6 +626,7 @@ export const askAiAdvisor = onCall(
       const firstResponse = await router.routeRequest(messages, enhancedSystemPrompt, {
         temperature: 0.6,
         maxTokens: 1200,
+        cacheScope: userId,
         fallbackContext: { primaryIntent: context.intent, userName: safeUserName }
       });
 
@@ -553,6 +649,7 @@ export const askAiAdvisor = onCall(
         const secondResponse = await router.routeRequest(messagesWithSearch, enhancedSystemPrompt, {
           temperature: 0.6,
           maxTokens: 1200,
+          cacheScope: userId,
           fallbackContext: { primaryIntent: context.intent, userName: safeUserName }
         });
         finalAnswer = secondResponse.content || finalAnswer;
@@ -568,7 +665,15 @@ export const askAiAdvisor = onCall(
         .replace(/\[.*?"function".*?\]/g, '')
         .trim();
 
-      const { cleanText, actions } = ActionManager.extractActions(finalAnswer);
+      const analysisBasis = buildAnalysisBasis(userData, historyDescription, {
+        debts: serverDebts,
+        assets: resolvedAssets,
+        passives: resolvedPassives,
+        bills: serverBills,
+        cards: serverCards,
+      });
+
+      const { cleanText, actions, decision } = ActionManager.parseDecision(finalAnswer, analysisBasis);
 
       return {
         success: true,
@@ -578,7 +683,10 @@ export const askAiAdvisor = onCall(
           intent: context.intent,
           hasTransactions: userData.recentTransactions.length > 0,
           hasGoals: userData.goals.length > 0,
-          actions: actions.length > 0 ? actions : undefined
+          actions: actions.length > 0 ? actions : undefined,
+          analysisBasis,
+          decisionObject: decision,
+          deterministicFacts,
         }
       };
 

@@ -87,7 +87,7 @@ const ProtectionBar: React.FC<ProtectionBarProps> = ({
     const isEditing = editingField === field;
     return (
       <div className="flex items-center justify-between group">
-        <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">{label}</span>
+        <span className="text-[10px] font-bold text-text-muted dark:text-slate-400 uppercase tracking-wider">{label}</span>
         <div className="flex items-center gap-2">
           {isEditing ? (
             <div className="flex items-center gap-1">
@@ -96,7 +96,7 @@ const ProtectionBar: React.FC<ProtectionBarProps> = ({
                 inputMode="decimal"
                 value={editValue}
                 onChange={(e) => setEditValue(e.target.value)}
-                className="w-24 text-right text-xs font-black bg-white border border-surface-elevated rounded-xl px-2 py-1 tabular-nums outline-none focus:ring-2 focus:ring-brand-primary/30"
+                className="w-24 text-right text-xs font-black bg-white dark:bg-slate-800 border border-surface-elevated dark:border-slate-700 rounded-xl px-2 py-1 tabular-nums outline-none focus:ring-2 focus:ring-brand-primary/30 dark:text-white"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleSave(field);
@@ -114,20 +114,20 @@ const ProtectionBar: React.FC<ProtectionBarProps> = ({
               <button
                 onClick={handleCancel}
                 aria-label="Cancelar edição"
-                className="p-1 rounded-lg text-text-muted hover:bg-surface-secondary transition-colors"
+                className="p-1 rounded-lg text-text-muted dark:text-slate-400 hover:bg-surface-secondary dark:hover:bg-slate-800 transition-colors"
               >
                 <X size={14} />
               </button>
             </div>
           ) : (
             <>
-              <span className="text-xs font-black tabular-nums text-text-primary">
+              <span className="text-xs font-black tabular-nums text-text-primary dark:text-white">
                 {isPrivacyMode ? '••••' : maskCurrency(value)}
               </span>
               <button
                 onClick={() => handleStartEdit(field, value)}
                 aria-label={`Editar ${label}`}
-                className="p-1 rounded-lg text-text-muted opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 focus-visible:opacity-100 hover:bg-surface-secondary transition-all"
+                className="p-1 rounded-lg text-text-muted dark:text-slate-400 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 focus-visible:opacity-100 hover:bg-surface-secondary dark:hover:bg-slate-800 transition-all"
               >
                 <Pencil size={12} />
               </button>
@@ -139,13 +139,13 @@ const ProtectionBar: React.FC<ProtectionBarProps> = ({
   };
 
   return (
-    <div className="bg-surface-primary border border-slate-200 rounded-section p-5 border-l-4 border-l-brand-technical/40 space-y-4">
+    <div className="bg-surface-primary dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-section p-5 border-l-4 border-l-brand-technical/40 space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-black text-text-primary uppercase tracking-ultra-wide">
+        <h3 className="text-xs font-black text-text-primary dark:text-white uppercase tracking-ultra-wide">
           Proteção Financeira
         </h3>
         <div className="flex items-center gap-2">
-          <span className="text-[9px] font-bold text-text-muted">
+          <span className="text-[9px] font-bold text-text-muted dark:text-slate-400">
             {isPrivacyMode ? '••••' : maskCurrency(effectiveBalance)} disponível
           </span>
           {hasTargets && (
@@ -154,8 +154,8 @@ const ProtectionBar: React.FC<ProtectionBarProps> = ({
                 onClick={toggleReserva}
                 className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold border transition-all ${
                   excluirReserva
-                    ? 'bg-violet-100 border-violet-300 text-violet-700'
-                    : 'border-transparent text-text-muted hover:bg-surface-secondary'
+                    ? 'bg-violet-100 dark:bg-violet-950/60 border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-300'
+                    : 'border-transparent text-text-muted dark:text-slate-400 hover:bg-surface-secondary dark:hover:bg-slate-800'
                 }`}
               >
                 – Reserva
@@ -164,8 +164,8 @@ const ProtectionBar: React.FC<ProtectionBarProps> = ({
                 onClick={toggleColchao}
                 className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold border transition-all ${
                   excluirColchao
-                    ? 'bg-emerald-100 border-emerald-300 text-emerald-700'
-                    : 'border-transparent text-text-muted hover:bg-surface-secondary'
+                    ? 'bg-emerald-100 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300'
+                    : 'border-transparent text-text-muted dark:text-slate-400 hover:bg-surface-secondary dark:hover:bg-slate-800'
                 }`}
               >
                 – Colchão
@@ -182,8 +182,8 @@ const ProtectionBar: React.FC<ProtectionBarProps> = ({
               className="absolute inset-y-0 text-center flex flex-col items-center justify-center"
               style={{ left: '0', width: `${reservePct}%` }}
             >
-              <div className="text-[10px] font-bold text-violet-700 leading-tight">Meta Reserva</div>
-              <div className="text-[10px] font-bold text-violet-700 leading-tight">
+              <div className="text-[10px] font-bold text-violet-700 dark:text-violet-400 leading-tight">Meta Reserva</div>
+              <div className="text-[10px] font-bold text-violet-700 dark:text-violet-400 leading-tight">
                 {isPrivacyMode ? '••••' : maskCurrency(reserveTarget)}
               </div>
             </div>
@@ -191,8 +191,8 @@ const ProtectionBar: React.FC<ProtectionBarProps> = ({
               className="absolute inset-y-0 text-center flex flex-col items-center justify-center"
               style={{ left: `${reservePct}%`, width: `${colchaoPct}%` }}
             >
-              <div className="text-[10px] font-bold text-emerald-700 leading-tight">Meta Colchão</div>
-              <div className="text-[10px] font-bold text-emerald-700 leading-tight">
+              <div className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 leading-tight">Meta Colchão</div>
+              <div className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 leading-tight">
                 {isPrivacyMode ? '••••' : maskCurrency(colchaoTarget)}
               </div>
             </div>
@@ -201,8 +201,8 @@ const ProtectionBar: React.FC<ProtectionBarProps> = ({
                 className="absolute inset-y-0 text-center flex flex-col items-center justify-center"
                 style={{ left: `${100 - surplusPct}%`, width: `${surplusPct}%` }}
               >
-                <div className="text-[10px] font-bold text-amber-700 leading-tight">Saldo Excedente</div>
-                <div className="text-[10px] font-bold text-amber-700 leading-tight">
+                <div className="text-[10px] font-bold text-amber-700 dark:text-amber-400 leading-tight">Saldo Excedente</div>
+                <div className="text-[10px] font-bold text-amber-700 dark:text-amber-400 leading-tight">
                   {isPrivacyMode ? '••••' : maskCurrency(surplusAmount)}
                 </div>
               </div>
@@ -211,15 +211,15 @@ const ProtectionBar: React.FC<ProtectionBarProps> = ({
         )}
         <div className="relative w-full">
           {/* Bar track */}
-          <div className="relative h-5 w-full bg-slate-200 rounded-full overflow-hidden ring-1 ring-slate-200">
+          <div className="relative h-5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden ring-1 ring-slate-200 dark:ring-slate-800">
             {hasTargets && (
               <>
                 <div
-                  className="absolute inset-y-0 left-0 bg-violet-300"
+                  className="absolute inset-y-0 left-0 bg-violet-300 dark:bg-violet-600/70"
                   style={{ width: `${reservePct}%` }}
                 />
                 <div
-                  className="absolute inset-y-0 bg-emerald-300"
+                  className="absolute inset-y-0 bg-emerald-300 dark:bg-emerald-600/70"
                   style={{ left: `${reservePct}%`, width: `${colchaoPct}%` }}
                 />
               </>
@@ -232,19 +232,19 @@ const ProtectionBar: React.FC<ProtectionBarProps> = ({
             )}
             {surplusPct > 0 && (
               <div
-                className="absolute inset-y-0 right-0 bg-amber-100 border-2 border-dashed border-amber-500"
+                className="absolute inset-y-0 right-0 bg-amber-100 dark:bg-amber-950/50 border-2 border-dashed border-amber-500 dark:border-amber-400"
                 style={{ width: `${surplusPct}%` }}
               />
             )}
             {!hasTargets && (
-              <div className="absolute inset-y-0 left-0 w-full bg-slate-200 rounded-full" />
+              <div className="absolute inset-y-0 left-0 w-full bg-slate-200 dark:bg-slate-800 rounded-full" />
             )}
 
           </div>
         </div>
 
         {effectiveBalance > 0 && (
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[9px] font-medium text-text-muted">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[9px] font-medium text-text-muted dark:text-slate-400">
             {hasTargets && (
               <>
                 <span className="flex items-center gap-1">
@@ -269,13 +269,13 @@ const ProtectionBar: React.FC<ProtectionBarProps> = ({
                   <span className="w-2 h-2 rounded-full bg-amber-300 border border-amber-600" />
                   Excedente
                 </span>
-                <span className="text-amber-700 font-bold">
+                <span className="text-amber-700 dark:text-amber-400 font-bold">
                   +{maskCurrency(surplusAmount)} acima das metas
                 </span>
               </>
             )}
             {coveragePct > 0 && coveragePct < 100 && surplusPct === 0 && (
-              <span className="text-amber-700">
+              <span className="text-amber-700 dark:text-amber-400">
                 {(coveredAmount / remainingTarget * 100).toFixed(0)}% das metas
               </span>
             )}
@@ -283,13 +283,13 @@ const ProtectionBar: React.FC<ProtectionBarProps> = ({
         )}
 
         {effectiveBalance <= 0 && (
-          <p className="text-[10px] font-medium text-slate-600">
+          <p className="text-[10px] font-medium text-slate-600 dark:text-slate-400">
             Saldo no período abaixo da meta de proteção. Acompanhe as despesas e a evolução da folga para decidir como recompor essa margem.
           </p>
         )}
       </div>
 
-      <div className="border-t border-surface-elevated pt-3 space-y-2">
+      <div className="border-t border-surface-elevated dark:border-slate-800 pt-3 space-y-2">
         <div className="flex gap-4">
           <div className="flex-1 min-w-0">
             {renderEditableValue('reserveTarget', 'Meta da Reserva de Emergência', reserveTarget)}

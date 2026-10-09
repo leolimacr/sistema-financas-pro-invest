@@ -50,6 +50,7 @@ describe('alarmService (mobile nativo)', () => {
       deepLink: '/app/agenda',
       targetRoute: '/app/agenda',
       eventType: 'agenda.alarm_due',
+      mode: 'notification',
     });
   });
 

@@ -70,10 +70,8 @@ describe('buildSovereignSnapshot with exclusions', () => {
   };
 
   it('subtracts exclusions from sovereignFreeBalance', () => {
-    const colchaoShortfall = Math.max(0, 5000 - 2000);
-    const reserveShortfall = Math.max(0, 8000 - 3000);
-    const protectionShortfall = colchaoShortfall + reserveShortfall; // 3000 + 5000 = 8000
-    const expectedFreeBalance = 15000 - 1000 - 500 - protectionShortfall - 1000; // with 1000 exclusions
+    const totalProtectionTarget = 5000 + 8000;
+    const expectedFreeBalance = 15000 - 1000 - 500 - totalProtectionTarget - 1000; // with 1000 exclusions: -500
 
     const result = buildSovereignSnapshot({
       ...commonParams,
@@ -86,14 +84,11 @@ describe('buildSovereignSnapshot with exclusions', () => {
     });
 
     expect(result.sovereignFreeBalance).toBe(expectedFreeBalance);
-    expect(result.protectionShortfall).toBe(protectionShortfall);
   });
 
   it('heroValue reflects exclusions in commandMode', () => {
-    const colchaoShortfall = Math.max(0, 5000 - 2000);
-    const reserveShortfall = Math.max(0, 8000 - 3000);
-    const protectionShortfall = colchaoShortfall + reserveShortfall;
-    const expectedFreeBalance = 15000 - 1000 - 500 - protectionShortfall - 1000;
+    const totalProtectionTarget = 5000 + 8000;
+    const expectedFreeBalance = 15000 - 1000 - 500 - totalProtectionTarget - 1000;
 
     const result = buildSovereignSnapshot({
       ...commonParams,
@@ -111,10 +106,8 @@ describe('buildSovereignSnapshot with exclusions', () => {
   });
 
   it('handles zero exclusions without changing behavior', () => {
-    const colchaoShortfall = Math.max(0, 5000 - 2000);
-    const reserveShortfall = Math.max(0, 8000 - 3000);
-    const protectionShortfall = colchaoShortfall + reserveShortfall;
-    const expectedFreeBalance = 15000 - 1000 - 500 - protectionShortfall;
+    const totalProtectionTarget = 5000 + 8000;
+    const expectedFreeBalance = 15000 - 1000 - 500 - totalProtectionTarget; // 500
 
     const result = buildSovereignSnapshot({
       ...commonParams,
@@ -130,10 +123,8 @@ describe('buildSovereignSnapshot with exclusions', () => {
   });
 
   it('handles undefined exclusions as zero', () => {
-    const colchaoShortfall = Math.max(0, 5000 - 2000);
-    const reserveShortfall = Math.max(0, 8000 - 3000);
-    const protectionShortfall = colchaoShortfall + reserveShortfall;
-    const expectedFreeBalance = 15000 - 1000 - 500 - protectionShortfall;
+    const totalProtectionTarget = 5000 + 8000;
+    const expectedFreeBalance = 15000 - 1000 - 500 - totalProtectionTarget; // 500
 
     const result = buildSovereignSnapshot({
       ...commonParams,
@@ -257,11 +248,9 @@ describe('sovereignFreeBalance canonical truth', () => {
     expect(result.heroValue).not.toBe(result.sovereignFreeBalance);
   });
 
-  it('sovereignFreeBalance formula: accumulated - virtualImpact - pendingBills - protectionShortfall', () => {
-    const colchaoShortfall = Math.max(0, 5000 - 2000);
-    const reserveShortfall = Math.max(0, 8000 - 3000);
-    const protectionShortfall = colchaoShortfall + reserveShortfall; // 3000 + 5000 = 8000
-    const expectedFreeBalance = 15000 - 1000 - 500 - protectionShortfall; // 15000 - 1000 - 500 - 8000 = 5500
+  it('sovereignFreeBalance formula: accumulated - virtualImpact - pendingBills - totalProtectionTarget', () => {
+    const totalProtectionTarget = 5000 + 8000;
+    const expectedFreeBalance = 15000 - 1000 - 500 - totalProtectionTarget; // 15000 - 1500 - 13000 = 500
 
     const result = buildSovereignSnapshot({
       ...commonParams,
@@ -273,6 +262,68 @@ describe('sovereignFreeBalance canonical truth', () => {
     });
 
     expect(result.sovereignFreeBalance).toBe(expectedFreeBalance);
-    expect(result.protectionShortfall).toBe(protectionShortfall);
+    expect(result.protectionShortfall).toBe(0);
+  });
+
+  it('cenário canônico do usuário: saldo 59.720,40 cobre reserva 43.743 e colchão 15.000 com folga de 977,40', () => {
+    const result = buildSovereignSnapshot({
+      monthBalance: 977.40,
+      accumulatedBalance: 59720.40,
+      accumulatedIncome: 100000,
+      accumulatedExpenses: 40279.60,
+      obligationPressure: 0,
+      pendingBills: 0,
+      commandMode: true,
+      income: 5000,
+      expenses: 3000,
+      financialProfile: {
+        monthlyIncome: 5000,
+        emergencyReserveTarget: 43743,
+        emergencyReserveCurrent: 0, // Ignorado pelo cálculo derivado
+        colchaoInicialTarget: 15000,
+      },
+    });
+
+    expect(result.reserveCoverage).toBe(43743);
+    expect(result.reserveShortfall).toBe(0);
+    expect(result.colchaoCoverage).toBe(15000);
+    expect(result.colchaoShortfall).toBe(0);
+    expect(result.protectionShortfall).toBe(0);
+    expect(result.sovereignFreeBalance).toBeCloseTo(977.40, 2);
+    expect(result.heroValue).toBeCloseTo(977.40, 2);
+  });
+
+  it('cenário real do usuário: saldo 59.720,40 com obrigações de 1.848,76 preenche Colchão 15k e deixa Reserva em 42.871,64 (faltando apenas 871,36)', () => {
+    const result = buildSovereignSnapshot({
+      monthBalance: 1000,
+      accumulatedBalance: 59720.40,
+      accumulatedIncome: 100000,
+      accumulatedExpenses: 40279.60,
+      obligationPressure: 1848.76,
+      pendingBills: 0,
+      commandMode: true,
+      income: 5000,
+      expenses: 3000,
+      financialProfile: {
+        monthlyIncome: 5000,
+        emergencyReserveTarget: 43743,
+        colchaoInicialTarget: 15000,
+      },
+    });
+
+    // 1º Escudo: Colchão totalmente protegido (15.000)
+    expect(result.colchaoCoverage).toBe(15000);
+    expect(result.colchaoShortfall).toBe(0);
+
+    // 2º Escudo: Reserva recebe todo o excedente restante (57.871,64 - 15.000 = 42.871,64)
+    expect(result.reserveCoverage).toBeCloseTo(42871.64, 2);
+    expect(result.reserveShortfall).toBeCloseTo(871.36, 2);
+    expect(result.protectionShortfall).toBeCloseTo(871.36, 2);
+
+    // Caixa após obrigações é positivo e não invadido
+    expect(result.cashSurplus).toBeCloseTo(57871.64, 2);
+
+    // Saldo livre (Disponibilidade Real) indica que faltam 871,36 para blindagem de 100%
+    expect(result.sovereignFreeBalance).toBeCloseTo(-871.36, 2);
   });
 });

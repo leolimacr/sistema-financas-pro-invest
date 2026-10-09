@@ -22,6 +22,7 @@ import {
   saveMonthCache,
   upsertCachedCommitment,
   removeCachedCommitment,
+  searchCachedCommitments,
 } from '../agenda/agendaCache';
 import {
   enqueueAgendaOp,
@@ -31,12 +32,13 @@ import {
 export type RecurrenceFreq = 'daily' | 'weekly' | 'monthly';
 
 /**
- * Modo de aviso de um compromisso (gravado pelo Nexus na confirmação):
- * 'notification' = apenas notificação visual; 'notification_alarm' = notificação
- * + som/vibração quando o dispositivo permitir. Ausência (undefined) significa
- * que o compromisso não tem aviso ativo.
+ * Modo de aviso de um compromisso:
+ * 'notification' = apenas notificação visual/sonora padrão (rápida, sem loop);
+ * 'alarm' = alarme contínuo em loop com tela ativa de despertar até dispensar;
+ * 'notification_alarm' = notificação de sistema E alarme contínuo em loop.
+ * Ausência (undefined) significa que o compromisso não tem aviso ativo.
  */
-export type AgendaReminderMode = 'notification' | 'notification_alarm';
+export type AgendaReminderMode = 'notification' | 'alarm' | 'notification_alarm';
 
 /**
  * Regra de recorrência de uma série de compromissos (espelho do que o Nexus
@@ -73,6 +75,14 @@ export interface AgendaCommitment {
   /** Ordem manual dentro do dia (reordenação pela UI). Ausente em compromissos
    * legados — estes caem no fallback (time → createdAt) ao ordenar. */
   order?: number;
+  /** Origem do compromisso */
+  source?: 'controla_bill' | 'manual' | 'nexus';
+  /** ID da conta fixa vinculada no Controla */
+  linkedBillId?: string;
+  /** Valor monetário associado */
+  amount?: number;
+  /** Categoria da despesa associada */
+  category?: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
@@ -94,6 +104,10 @@ export interface AgendaCommitmentInput {
   participants?: string[];
   notes?: string;
   order?: number;
+  source?: 'controla_bill' | 'manual' | 'nexus';
+  linkedBillId?: string;
+  amount?: number;
+  category?: string;
 }
 
 const getCollection = (userId: string): CollectionReference<DocumentData> => {
@@ -120,13 +134,17 @@ export const fetchMonthCommitments = async (
     getCollection(userId),
     where('date', '>=', startOfMonth),
     where('date', '<', startOfNextMonth),
-    orderBy('date', 'asc'),
-    orderBy('time', 'asc')
+    orderBy('date', 'asc')
   );
 
   try {
     const snapshot = await getDocs(q);
     const remoteData = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as AgendaCommitment));
+    remoteData.sort((a, b) => {
+      const timeA = a.time || '';
+      const timeB = b.time || '';
+      return timeA.localeCompare(timeB);
+    });
 
     // Mescla itens pendentes na fila de sync local para este mês que ainda não subiram
     const pendingOps = getPendingAgendaOps(userId);
@@ -149,6 +167,10 @@ export const fetchMonthCommitments = async (
         participants: op.input.participants,
         notes: op.input.notes,
         order: op.input.order,
+        source: op.input.source,
+        linkedBillId: op.input.linkedBillId,
+        amount: op.input.amount,
+        category: op.input.category,
       } as AgendaCommitment));
 
     const combined = [...remoteData];
@@ -194,13 +216,19 @@ export const fetchUpcomingCommitments = async (
     getCollection(userId),
     where('date', '>=', today),
     orderBy('date', 'asc'),
-    orderBy('time', 'asc'),
-    limit(max)
+    limit(max * 2)
   );
 
   try {
     const snapshot = await getDocs(q);
-    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as AgendaCommitment));
+    const remoteData = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as AgendaCommitment));
+    remoteData.sort((a, b) => {
+      const dateA = a.date instanceof Date ? a.date.getTime() : a.date?.toDate?.().getTime() || 0;
+      const dateB = b.date instanceof Date ? b.date.getTime() : b.date?.toDate?.().getTime() || 0;
+      if (dateA !== dateB) return dateA - dateB;
+      return (a.time || '').localeCompare(b.time || '');
+    });
+    return remoteData.slice(0, max);
   } catch (err) {
     const currentMonthData = loadMonthCache(userId, today.getFullYear(), today.getMonth()) || [];
     return currentMonthData
@@ -240,6 +268,10 @@ export const addCommitment = async (
   if (data.participants !== undefined) docData.participants = data.participants;
   if (data.notes !== undefined) docData.notes = data.notes;
   docData.order = data.order ?? null;
+  if (data.source !== undefined) docData.source = data.source;
+  if (data.linkedBillId !== undefined) docData.linkedBillId = data.linkedBillId;
+  if (data.amount !== undefined) docData.amount = data.amount;
+  if (data.category !== undefined) docData.category = data.category;
 
   if (isOffline) {
     const tempId = 'temp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
@@ -260,6 +292,10 @@ export const addCommitment = async (
       participants: data.participants,
       notes: data.notes,
       order: data.order,
+      source: data.source,
+      linkedBillId: data.linkedBillId,
+      amount: data.amount,
+      category: data.category,
       createdAt: now,
       updatedAt: now,
     };
@@ -284,6 +320,10 @@ export const addCommitment = async (
         participants: data.participants,
         notes: data.notes,
         order: data.order,
+        source: data.source,
+        linkedBillId: data.linkedBillId,
+        amount: data.amount,
+        category: data.category,
       },
       year,
       month,
@@ -324,6 +364,10 @@ export const addCommitment = async (
       participants: data.participants,
       notes: data.notes,
       order: data.order,
+      source: data.source,
+      linkedBillId: data.linkedBillId,
+      amount: data.amount,
+      category: data.category,
       createdAt: now,
       updatedAt: now,
     };
@@ -348,6 +392,10 @@ export const addCommitment = async (
         participants: data.participants,
         notes: data.notes,
         order: data.order,
+        source: data.source,
+        linkedBillId: data.linkedBillId,
+        amount: data.amount,
+        category: data.category,
       },
       year,
       month,
@@ -537,22 +585,33 @@ export const syncBillsToAgenda = async (
   year: number,
   month: number
 ): Promise<number> => {
-  const existing = await fetchMonthCommitments(userId, year, month);
-  const existingTitles = new Set(existing.map((c) => c.title.toLowerCase().trim()));
+  let existing: AgendaCommitment[] = [];
+  try {
+    existing = await fetchMonthCommitments(userId, year, month);
+  } catch (err) {
+    console.warn('[Agenda] Fallback para cache na sincronização de contas:', err);
+    existing = loadMonthCache(userId, year, month) || [];
+  }
+  const existingTitles = new Set(
+    existing.map((c) => (c.title || '').toLowerCase().trim()).filter(Boolean)
+  );
 
   let addedCount = 0;
   for (const bill of bills) {
-    if (!bill.isActive) continue;
+    if (!bill || bill.isActive === false) continue;
 
-    const title = `Pagar ${bill.name}`;
+    const billName = (bill.name || 'Conta').trim();
+    const title = `Pagar ${billName}`;
     if (existingTitles.has(title.toLowerCase().trim())) continue;
 
     const lastDay = new Date(year, month + 1, 0).getDate();
-    const day = Math.min(Math.max(1, bill.dueDay), lastDay);
+    const rawDueDay = Number(bill.dueDay);
+    const day = Math.min(Math.max(1, Number.isFinite(rawDueDay) ? rawDueDay : 1), lastDay);
     const date = new Date(year, month, day, 9, 0, 0, 0);
     const alarmAt = new Date(date);
 
-    const formattedAmount = (bill.amount || 0).toLocaleString('pt-BR', {
+    const billAmount = Number(bill.amount);
+    const formattedAmount = (Number.isFinite(billAmount) ? billAmount : 0).toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL',
     });
@@ -565,10 +624,128 @@ export const syncBillsToAgenda = async (
       alarmAt,
       reminderMode: 'notification',
       notes: `Conta do Controla no valor de ${formattedAmount}.`,
+      source: 'controla_bill',
+      linkedBillId: bill.id,
+      amount: Number.isFinite(billAmount) ? billAmount : 0,
+      category: bill.category,
     });
 
+    existingTitles.add(title.toLowerCase().trim());
     addedCount++;
   }
 
   return addedCount;
+};
+
+/**
+ * Identifica se um compromisso é proveniente da sincronização de contas do Controla.
+ * Suporta tanto registros novos com tag explícita quanto registros legados.
+ */
+export const isSyncedBill = (commitment: AgendaCommitment): boolean => {
+  if (!commitment) return false;
+  if (commitment.source === 'controla_bill') return true;
+  if (Boolean(commitment.linkedBillId)) return true;
+  const notes = (commitment.notes || '').toLowerCase();
+  if (notes.includes('conta do controla')) return true;
+  const title = (commitment.title || '').toLowerCase().trim();
+  if (title.startsWith('pagar ')) return true;
+  return false;
+};
+
+/**
+ * Extrai com segurança o valor monetário da conta sincronizada
+ */
+export const extractBillAmount = (commitment: AgendaCommitment): number => {
+  if (!commitment) return 0;
+  if (typeof commitment.amount === 'number' && Number.isFinite(commitment.amount)) {
+    return commitment.amount;
+  }
+  const notes = commitment.notes || '';
+  const match = notes.match(/R\$\s*([\d.]+,\d{2})/);
+  if (match && match[1]) {
+    const raw = match[1].replace(/\./g, '').replace(',', '.');
+    const val = Number(raw);
+    if (Number.isFinite(val)) return val;
+  }
+  return 0;
+};
+
+/**
+ * Pesquisa compromissos por palavras-chave combinando memória local, cache em disco e Firestore.
+ * Prioriza resposta instantânea e complementa com histórico na nuvem.
+ */
+export const searchCommitments = async (
+  userId: string,
+  searchTerm: string,
+  memoryMonths?: Record<string, AgendaCommitment[]>
+): Promise<AgendaCommitment[]> => {
+  if (!userId || !searchTerm.trim()) return [];
+
+  const normalizedQuery = searchTerm
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+
+  if (!normalizedQuery) return [];
+
+  const resultMap = new Map<string, AgendaCommitment>();
+
+  // 1. Pesquisa nos meses em memória passados pelo componente
+  if (memoryMonths) {
+    Object.values(memoryMonths).forEach((list) => {
+      if (Array.isArray(list)) {
+        list.forEach((c) => {
+          const t = (c.title || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          const n = (c.notes || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          const l = (c.location || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          if (t.includes(normalizedQuery) || n.includes(normalizedQuery) || l.includes(normalizedQuery)) {
+            const key = c.id || `${c.title}_${c.date?.seconds}`;
+            resultMap.set(key, c);
+          }
+        });
+      }
+    });
+  }
+
+  // 2. Pesquisa em todas as partições do cache local do usuário em disco (zero latência)
+  const cachedMatches = searchCachedCommitments(userId, searchTerm);
+  cachedMatches.forEach((c) => {
+    const key = c.id || `${c.title}_${c.date?.seconds}`;
+    if (!resultMap.has(key)) {
+      resultMap.set(key, c);
+    }
+  });
+
+  // 3. Se estiver online e searchTerm tiver >= 2 caracteres, busca janela ampla de compromissos no Firestore
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+  if (!isOffline && normalizedQuery.length >= 2) {
+    try {
+      const q = query(
+        getCollection(userId),
+        orderBy('date', 'desc'),
+        limit(250)
+      );
+      const snapshot = await getDocs(q);
+      snapshot.docs.forEach((docSnap) => {
+        const data = docSnap.data() as AgendaCommitment;
+        const c: AgendaCommitment = { id: docSnap.id, ...data };
+        const t = (c.title || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const n = (c.notes || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const l = (c.location || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        if (t.includes(normalizedQuery) || n.includes(normalizedQuery) || l.includes(normalizedQuery)) {
+          resultMap.set(docSnap.id, c);
+        }
+      });
+    } catch {
+      // Fallback gracioso: mantém o que já foi recuperado da memória e do cache local
+    }
+  }
+
+  // 4. Ordena cronologicamente por data
+  return Array.from(resultMap.values()).sort((a, b) => {
+    const da = a.date instanceof Date ? a.date.getTime() : a.date?.toDate?.()?.getTime() || 0;
+    const db = b.date instanceof Date ? b.date.getTime() : b.date?.toDate?.()?.getTime() || 0;
+    return da - db;
+  });
 };

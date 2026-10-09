@@ -1,3 +1,11 @@
+import type { UserDataResult } from "./nexus-core/data-integrator";
+interface NexusAnalysisBasis {
+    generatedAt: string;
+    dataStatus: UserDataResult['dataStatus'];
+    sources: string[];
+    period: string;
+    limitations: string[];
+}
 export declare function getUserPlan(userId: string): Promise<string | undefined>;
 export declare const NEXUS_QUOTA_INTERIM: Record<string, number>;
 export declare function nexusQuotaDay(now?: Date): string;
@@ -35,6 +43,9 @@ export declare const askAiAdvisor: import("firebase-functions/v2/https").Callabl
         hasTransactions?: undefined;
         hasGoals?: undefined;
         actions?: undefined;
+        analysisBasis?: undefined;
+        decisionObject?: undefined;
+        deterministicFacts?: undefined;
     };
     error?: undefined;
 } | {
@@ -46,6 +57,9 @@ export declare const askAiAdvisor: import("firebase-functions/v2/https").Callabl
         hasTransactions: boolean;
         hasGoals: boolean;
         actions: import("./nexus-core/action-registry").ContextualAction[] | undefined;
+        analysisBasis: NexusAnalysisBasis;
+        decisionObject: import("./nexus-core/action-registry").NexusDecisionObject;
+        deterministicFacts: import("./nexus-core/financial-facts").DeterministicFinancialFacts;
     };
     error?: undefined;
 } | {
@@ -54,3 +68,4 @@ export declare const askAiAdvisor: import("firebase-functions/v2/https").Callabl
     error: any;
     context?: undefined;
 }>, unknown>;
+export {};

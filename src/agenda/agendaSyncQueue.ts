@@ -32,7 +32,7 @@ export type AgendaSyncOp =
         endTime?: string;
         completed: boolean;
         alarmAtStr?: string;
-        reminderMode?: 'notification' | 'notification_alarm';
+        reminderMode?: 'notification' | 'alarm' | 'notification_alarm';
         seriesId?: string;
         recurrence?: any;
         detached?: boolean;
@@ -41,6 +41,10 @@ export type AgendaSyncOp =
         participants?: string[];
         notes?: string;
         order?: number;
+        source?: 'controla_bill' | 'manual' | 'nexus';
+        linkedBillId?: string;
+        amount?: number;
+        category?: string;
       };
       year: number;
       month: number;
@@ -179,6 +183,10 @@ export async function processAgendaSyncQueue(
         if (op.input.location !== undefined) docData.location = op.input.location;
         if (op.input.participants !== undefined) docData.participants = op.input.participants;
         if (op.input.notes !== undefined) docData.notes = op.input.notes;
+        if (op.input.source !== undefined) docData.source = op.input.source;
+        if (op.input.linkedBillId !== undefined) docData.linkedBillId = op.input.linkedBillId;
+        if (op.input.amount !== undefined) docData.amount = op.input.amount;
+        if (op.input.category !== undefined) docData.category = op.input.category;
 
         const docRef = await addDoc(collection(firestore, `users/${userId}/agenda`), docData);
         const realId = docRef.id;

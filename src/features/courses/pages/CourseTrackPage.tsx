@@ -83,7 +83,7 @@ export const CourseTrackPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[60vh] bg-slate-50">
+      <div className="flex justify-center items-center min-h-[60vh] bg-slate-50 dark:bg-slate-950">
         <div className="animate-spin rounded-full h-9 w-9 border-b-2 border-blue-600"></div>
       </div>
     );
@@ -93,7 +93,7 @@ export const CourseTrackPage: React.FC = () => {
   const completedLessonsTotal = progress?.completedLessons.length || 0;
 
   return (
-    <div className="min-h-screen bg-slate-50/70 pb-28 text-slate-800">
+    <div className="min-h-screen bg-slate-50/70 dark:bg-slate-950 pb-28 text-slate-800 dark:text-slate-100">
       {/* HERO BANNER EDITORIAL PREMIUM */}
       <section className="bg-gradient-to-b from-slate-950 via-slate-900 to-slate-900 text-white border-b border-slate-800 px-4 md:px-8 pt-8 pb-12 shadow-sm">
         <div className="max-w-7xl mx-auto">
@@ -153,10 +153,10 @@ export const CourseTrackPage: React.FC = () => {
           <div className="lg:col-span-2 space-y-6">
             <div className="flex items-center justify-between mb-2">
               <div>
-                <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+                <h2 className="text-xl md:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
                   Estrutura Pedagógica
                 </h2>
-                <p className="text-xs md:text-sm text-slate-500 mt-0.5">
+                <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
                   Siga a ordem dos fatores para construir um patrimônio inabalável
                 </p>
               </div>
@@ -176,10 +176,10 @@ export const CourseTrackPage: React.FC = () => {
                     }}
                     className={`block rounded-2xl border p-5 md:p-6 transition-all relative overflow-hidden ${
                       isLocked
-                        ? 'bg-slate-100/70 border-slate-200/80 opacity-60 cursor-not-allowed'
+                        ? 'bg-slate-100/70 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-800 opacity-60 cursor-not-allowed'
                         : isCompleted
-                          ? 'bg-white border-emerald-200/80 shadow-sm hover:border-emerald-300 hover:shadow-md'
-                          : 'bg-white border-blue-200 shadow-sm hover:border-blue-400 hover:shadow-md ring-1 ring-blue-50'
+                          ? 'bg-white dark:bg-slate-900 border-emerald-200/80 dark:border-emerald-900/60 shadow-sm hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-md'
+                          : 'bg-white dark:bg-slate-900 border-blue-200 dark:border-blue-900/60 shadow-sm hover:border-blue-400 dark:hover:border-blue-700 hover:shadow-md ring-1 ring-blue-50 dark:ring-blue-950/40'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-4">
@@ -188,17 +188,17 @@ export const CourseTrackPage: React.FC = () => {
                           <span
                             className={`text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md ${
                               isLocked
-                                ? 'bg-slate-200 text-slate-500'
+                                ? 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                                 : isCompleted
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                  : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
+                                  : 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60'
                             }`}
                           >
                             MÓDULO {index + 1}
                           </span>
 
                           {mod.badgeLabel && (
-                            <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                            <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/60 px-2 py-0.5 rounded-full">
                               <Trophy className="w-3 h-3 text-amber-500" />
                               {mod.badgeLabel}
                             </span>
@@ -207,17 +207,17 @@ export const CourseTrackPage: React.FC = () => {
 
                         <h3
                           className={`text-base md:text-lg font-bold mb-2 leading-snug ${
-                            isLocked ? 'text-slate-600' : 'text-slate-900'
+                            isLocked ? 'text-slate-600 dark:text-slate-400' : 'text-slate-900 dark:text-slate-100'
                           }`}
                         >
                           {mod.title}
                         </h3>
 
-                        <p className="text-xs md:text-sm text-slate-500 leading-relaxed mb-4">
+                        <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-4">
                           {mod.objective || mod.description}
                         </p>
 
-                        <div className="flex items-center gap-3 text-xs font-medium text-slate-500">
+                        <div className="flex items-center gap-3 text-xs font-medium text-slate-500 dark:text-slate-400">
                           <span>
                             {mod.completedCount} de {mod.totalCount} aulas concluídas
                           </span>
@@ -228,15 +228,15 @@ export const CourseTrackPage: React.FC = () => {
 
                       <div className="mt-1 shrink-0">
                         {isLocked ? (
-                          <div className="w-10 h-10 rounded-xl bg-slate-200/60 flex items-center justify-center text-slate-400">
+                          <div className="w-10 h-10 rounded-xl bg-slate-200/60 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500">
                             <Lock className="w-5 h-5" />
                           </div>
                         ) : isCompleted ? (
-                          <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                             <CheckCircle2 className="w-6 h-6" />
                           </div>
                         ) : (
-                          <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shadow-sm">
+                          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/60 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm">
                             <PlayCircle className="w-6 h-6" />
                           </div>
                         )}
@@ -245,7 +245,7 @@ export const CourseTrackPage: React.FC = () => {
 
                     {/* Barra de progresso interna do módulo */}
                     {!isLocked && (
-                      <div className="w-full bg-slate-100 rounded-full h-1.5 mt-5 overflow-hidden">
+                      <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 mt-5 overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all duration-500 ${
                             isCompleted ? 'bg-emerald-500' : 'bg-blue-600'
@@ -266,21 +266,21 @@ export const CourseTrackPage: React.FC = () => {
           <div className="lg:col-span-1 space-y-6">
             
             {/* Card de Progresso Geral */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="text-sm font-bold tracking-wider uppercase text-slate-400 mb-4">
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
+              <h3 className="text-sm font-bold tracking-wider uppercase text-slate-400 dark:text-slate-500 mb-4">
                 Seu Progresso na Trilha
               </h3>
 
               <div className="flex items-baseline justify-between mb-2">
-                <span className="text-3xl md:text-4xl font-black text-slate-900">
+                <span className="text-3xl md:text-4xl font-black text-slate-900 dark:text-slate-100">
                   {completionPercent}%
                 </span>
-                <span className="text-xs font-semibold text-slate-500">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                   {completedLessonsTotal} de {totalLessonsCount} aulas
                 </span>
               </div>
 
-              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden mb-6">
+              <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden mb-6">
                 <div
                   className="bg-emerald-500 h-full rounded-full transition-all duration-700"
                   style={{ width: `${completionPercent}%` }}
@@ -299,26 +299,30 @@ export const CourseTrackPage: React.FC = () => {
                 >
                   <span className="flex items-center gap-2 text-sm font-bold">
                     <PlayCircle className="w-5 h-5" />
-                    Continuar Aula Atual
+                    {completedLessonsTotal === 0 ? 'Começar Curso' : 'Continuar Aula Atual'}
                   </span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               ) : (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
-                  <Trophy className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
-                  <p className="text-sm font-bold text-emerald-800">Curso Concluído com Sucesso!</p>
-                  <p className="text-xs text-emerald-600 mt-1">Você conquistou o selo de Investidor Soberano.</p>
+                <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl p-4 text-center">
+                  <Trophy className="w-8 h-8 text-emerald-600 dark:text-emerald-400 mx-auto mb-2" />
+                  <p className="text-sm font-bold text-emerald-800 dark:text-emerald-200">Curso Concluído com Sucesso!</p>
+                  <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-1 font-medium">
+                    {course?.meta.id === 'plano-realista-para-sair-das-dividas'
+                      ? 'Você conquistou a insígnia Livre de Dívidas • Estrategista da Quitação.'
+                      : 'Você conquistou a certificação de Investidor Soberano.'}
+                  </p>
                 </div>
               )}
             </div>
 
             {/* Card de Conquistas & Badges */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-bold tracking-wider uppercase text-slate-400">
+                <h3 className="text-sm font-bold tracking-wider uppercase text-slate-400 dark:text-slate-500">
                   Suas Conquistas
                 </h3>
-                <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                <span className="text-xs font-bold text-amber-600 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800/60">
                   {progress?.unlockedBadges?.length || 0} desbloqueadas
                 </span>
               </div>
@@ -328,9 +332,9 @@ export const CourseTrackPage: React.FC = () => {
                   {progress.unlockedBadges.map((badge, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-amber-50/70 border border-amber-200/80 text-amber-900"
+                      className="flex items-center gap-3 p-3 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 text-amber-900 dark:text-amber-200"
                     >
-                      <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/60 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
                         <Trophy className="w-4 h-4" />
                       </div>
                       <span className="text-xs font-bold leading-snug">{badge}</span>
@@ -338,9 +342,9 @@ export const CourseTrackPage: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-6 px-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                  <Trophy className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                  <p className="text-xs text-slate-500 leading-relaxed">
+                <div className="text-center py-6 px-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                  <Trophy className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                     Conclua as aulas e módulos para desbloquear suas insígnias de autoridade financeira.
                   </p>
                 </div>
@@ -348,7 +352,7 @@ export const CourseTrackPage: React.FC = () => {
             </div>
 
             {/* Suporte do Nexus Advisor */}
-            <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-900 to-slate-800 text-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-gradient-to-br from-slate-900 to-slate-800 text-white p-6 shadow-sm">
               <div className="flex items-center gap-2 text-xs font-bold text-sky-400 uppercase tracking-wider mb-2">
                 <Bot className="w-4 h-4 text-sky-400" />
                 <span>Orientação Estratégica</span>

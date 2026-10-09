@@ -30,7 +30,7 @@ describe('ActiveReservesCard', () => {
 
     render(<ActiveReservesCard goals={mockGoals} />);
     
-    expect(screen.getByText('Suas Reservas')).toBeDefined();
+    expect(screen.getByText('Reservas Estratégicas')).toBeDefined();
     expect(screen.getByText('Reserva: Fatura Jan')).toBeDefined();
     expect(screen.getByText(/1.500,00/)).toBeDefined();
   });

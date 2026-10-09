@@ -105,7 +105,7 @@ export const useWealthPresenceTriggers = ({
               body: `"${goal.title}" vence em ${Math.ceil(daysToTarget)} dias. Veja se está no ritmo certo.`,
               ctaLabel: 'Acompanhar meta',
             },
-            deepLink: `/metas/${goal.id}`,
+            deepLink: `/app/metas?highlight=${goal.id}`,
             cooldownHours: 72,
             expiresInHours: 30 * 24,
             resourceId: goal.id,

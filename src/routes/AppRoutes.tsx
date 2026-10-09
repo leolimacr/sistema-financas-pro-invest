@@ -1,5 +1,5 @@
 import React, { useCallback, Suspense } from 'react';
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import OnboardingWizard from '../components/OnboardingWizard';
 import AuthLogin from '../components/Auth/AuthLogin';
 import AuthRegister from '../components/Auth/AuthRegister';
@@ -20,6 +20,7 @@ import { useFinanceContext } from '../contexts/FinanceContext';
 import { useWealthData } from '../hooks/useWealthData';
 import { Capacitor } from '@capacitor/core';
 import { lazy } from 'react';
+import MobileAppGate from '../components/MobileAppGate';
 
 const MobilePublicHome = lazy(() => import('../components/MobilePublicHome'));
 const AppLayout = lazy(() => import('../layouts/AppLayout'));
@@ -45,6 +46,7 @@ const BuyCashOrInstallInvestTool = lazy(() => import('../components/tools/buy-ca
 const TermsPage = lazy(() => import('../components/TermsPage').then((mod) => ({ default: mod.TermsPage })));
 const PrivacyPage = lazy(() => import('../components/PrivacyPage').then((mod) => ({ default: mod.PrivacyPage })));
 const DownloadPage = lazy(() => import('../pages/DownloadPage'));
+const PortfolioPage = lazy(() => import('../pages/PortfolioPage'));
 
 interface AppRoutesProps {
   state: ReturnType<typeof useAppState>;
@@ -57,8 +59,10 @@ const ProtectedRoute = ({
   isAuthenticated: boolean; 
   children: React.ReactNode 
 }) => {
+  const location = useLocation();
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    const redirectParam = encodeURIComponent(`${location.pathname}${location.search}${location.hash}`);
+    return <Navigate to={`/login?redirect=${redirectParam}`} replace />;
   }
   return <>{children}</>;
 };
@@ -131,9 +135,11 @@ const AppRoutes: React.FC<AppRoutesProps> = ({ state }) => {
   }
 
   return (
-    <Routes>
-      {/* REDIRECT LEGADO — Etapa 8 (E8-01): /dashboard agora é o Dashboard Principal */}
-      <Route path="/dashboard" element={<Navigate to="/app/dashboard" replace />} />
+    <>
+      <MobileAppGate isMobileBrowser={state.isMobileBrowser} isAuthenticated={isAuthenticated} />
+      <Routes>
+        {/* REDIRECT LEGADO — Etapa 8 (E8-01): /dashboard agora é o Dashboard Principal */}
+        <Route path="/dashboard" element={<Navigate to="/app/dashboard" replace />} />
 
       {/* ROTAS PÚBLICAS (COM HEADER) */}
       <Route element={<PublicLayout />}>
@@ -184,6 +190,15 @@ const AppRoutes: React.FC<AppRoutesProps> = ({ state }) => {
         <Route path="/termos" element={<React.Suspense fallback={<AppLoadingScreen />}><TermsPage /></React.Suspense>} />
         <Route path="/privacidade" element={<React.Suspense fallback={<AppLoadingScreen />}><PrivacyPage /></React.Suspense>} />
         <Route path="/download" element={<React.Suspense fallback={<AppLoadingScreen />}><DownloadPage /></React.Suspense>} />
+
+        {/* FERRAMENTAS PÚBLICAS (ACESSO ABERTO SEM LOGIN) */}
+        <Route path="/ferramentas/fire" element={<React.Suspense fallback={<DashboardSkeleton />}><FireCalculatorTool onNavigate={handleNavigate} isAuthenticated={isAuthenticated} isPro={isPro} isPremium={isPremium} /></React.Suspense>} />
+        <Route path="/ferramentas/juros" element={<React.Suspense fallback={<DashboardSkeleton />}><CompoundInterestTool onNavigate={handleNavigate} isAuthenticated={isAuthenticated} /></React.Suspense>} />
+        <Route path="/ferramentas/inflacao" element={<React.Suspense fallback={<DashboardSkeleton />}><InflationTool onNavigate={handleNavigate} isAuthenticated={isAuthenticated} /></React.Suspense>} />
+        <Route path="/ferramentas/alugar" element={<React.Suspense fallback={<DashboardSkeleton />}><RentVsFinanceTool onNavigate={handleNavigate} isAuthenticated={isAuthenticated} /></React.Suspense>} />
+        <Route path="/ferramentas/dividas" element={<React.Suspense fallback={<DashboardSkeleton />}><DebtOptimizerTool onNavigate={handleNavigate} isAuthenticated={isAuthenticated} /></React.Suspense>} />
+        <Route path="/ferramentas/dividendos" element={<React.Suspense fallback={<DashboardSkeleton />}><DividendsTool onNavigate={handleNavigate} isAuthenticated={isAuthenticated} /></React.Suspense>} />
+        <Route path="/ferramentas/compra-avista-parcelado" element={<React.Suspense fallback={<DashboardSkeleton />}><BuyCashOrInstallInvestTool onNavigate={handleNavigate} /></React.Suspense>} />
 
         {/* ARTIGOS */}
         <Route path="/artigos/investir-2026" element={(() => {
@@ -316,6 +331,14 @@ const AppRoutes: React.FC<AppRoutesProps> = ({ state }) => {
             </FeatureGate>
           } 
         />
+        <Route 
+          path="carteira" 
+          element={
+            <React.Suspense fallback={<DashboardSkeleton />}>
+              <PortfolioPage />
+            </React.Suspense>
+          } 
+        />
         <Route
           path="passivos"
           element={
@@ -356,7 +379,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({ state }) => {
             </FeatureGate>
           } 
         />
-        <Route path="metas" element={<React.Suspense fallback={<DashboardSkeleton />}><GoalManager userId={user?.uid} userMeta={userMeta} /></React.Suspense>} />
+        <Route path="metas" element={<React.Suspense fallback={<DashboardSkeleton />}><GoalManager userId={user?.uid} userMeta={userMeta} isPrivacyMode={isPrivacyMode} /></React.Suspense>} />
 
         {/* FERRAMENTAS */}
         <Route path="ferramentas/fire" element={<React.Suspense fallback={<DashboardSkeleton />}><FireCalculatorTool onNavigate={handleNavigate} isAuthenticated={isAuthenticated} isPro={isPro} isPremium={isPremium} /></React.Suspense>} />
@@ -376,6 +399,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({ state }) => {
       {/* FALLBACK */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   );
 };
 

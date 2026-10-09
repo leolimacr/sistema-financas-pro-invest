@@ -10,7 +10,8 @@ export type BillingStatus =
   | 'past_due'
   | 'canceled'
   | 'expired'
-  | 'incomplete';
+  | 'incomplete'
+  | 'revoked';
 
 export type BillingCycle = 'monthly' | 'annual' | null;
 
@@ -24,6 +25,8 @@ export interface BillingDoc {
   currentPeriodEnd?: Timestamp;
   trialEnd?: Timestamp | null;
   canceledAt?: Timestamp | null;
+  revokedAt?: Timestamp | null;
+  revocationReason?: string | null;
   entitlements?: EntitlementKey[];
   provider?: string | null;
   providerCustomerId?: string | null;

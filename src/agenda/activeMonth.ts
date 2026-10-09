@@ -14,8 +14,13 @@ export interface MonthSectionRect {
 // sticky. Enquanto a linha estiver dentro da mesma seção o rótulo não muda;
 // só alterna quando a fronteira do próximo mês cruza a linha.
 export function pickActiveMonth(sections: MonthSectionRect[], referenceY: number): YearMonth | null {
-  for (const s of sections) {
-    if (s.top < referenceY && s.bottom >= referenceY) return { year: s.year, month: s.month };
+  for (let i = 0; i < sections.length; i++) {
+    const s = sections[i];
+    if (s.top <= referenceY && s.bottom >= referenceY) return { year: s.year, month: s.month };
+    const next = sections[i + 1];
+    if (next && s.bottom < referenceY && next.top > referenceY) {
+      return { year: next.year, month: next.month };
+    }
   }
   return null;
 }

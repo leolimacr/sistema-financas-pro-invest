@@ -31,7 +31,7 @@ const TIER_ORDER: Record<BillingTier, number> = { free: 0, pro: 1, premium: 2 };
 /* ───────── EFFECTIVE TIER ───────── */
 
 export function getEffectiveTier(tier: BillingTier, status: BillingStatus): EffectiveTier {
-  if (status === null || status === 'expired' || status === 'incomplete') {
+  if (status === null || status === 'expired' || status === 'incomplete' || status === 'revoked') {
     return 'free';
   }
   return tier;
@@ -50,6 +50,7 @@ export function getDisplayLabel(tier: BillingTier, status: BillingStatus): strin
     case 'past_due': return `${tierLabel} (Pagamento Pendente)`;
     case 'canceled': return `${tierLabel} (Cancelado)`;
     case 'expired':  return `${tierLabel} Expirado`;
+    case 'revoked':  return `${tierLabel} (Revogado)`;
     case 'incomplete':
     case null:       return 'Gratuito';
   }

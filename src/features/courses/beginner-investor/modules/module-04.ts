@@ -64,6 +64,14 @@ export const module04: CourseModule = {
           takeaway:
             'No Brasil, país com histórico de inflação persistente, títulos atrelados ao IPCA+ são a âncora soberana para construir patrimônio que nunca perde valor de compra.',
         },
+        {
+          type: 'tool-cta',
+          tool: 'inflation',
+          title: 'Simule a Blindagem do seu Patrimônio contra a Inflação',
+          content:
+            'Use a ferramenta Impacto da Inflação do Finanças Pro Invest para calcular exatamente quanto o seu dinheiro perderia de poder de compra ao longo dos anos se ficasse parado, e veja como títulos IPCA+ protegem seu capital real.',
+          buttonLabel: 'Abrir Simulador de Inflação',
+        },
       ],
     },
     {

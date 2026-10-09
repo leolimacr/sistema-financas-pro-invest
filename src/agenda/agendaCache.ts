@@ -189,3 +189,58 @@ export function clearUserAgendaCache(userId: string): void {
 
 export const clearAllAgendaCache = clearUserAgendaCache;
 
+/**
+ * Pesquisa compromissos em todos os meses em cache local para o usuário dado um termo de busca.
+ * Operação com zero requisições de rede (FinOps e Offline-first).
+ */
+export function searchCachedCommitments(userId: string, queryText: string): AgendaCommitment[] {
+  if (typeof window === 'undefined' || !userId || !queryText.trim()) return [];
+  const normalizedQuery = queryText
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+
+  if (!normalizedQuery) return [];
+
+  const prefix = `${CACHE_PREFIX}_${userId}_`;
+  const results: AgendaCommitment[] = [];
+  const seenIds = new Set<string>();
+
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(prefix)) {
+        const raw = localStorage.getItem(k);
+        if (raw) {
+          const parsed: SerializedCommitment[] = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            for (const item of parsed) {
+              const c = deserializeCommitment(item);
+              const key = c.id || `${item.date.seconds}_${c.title}`;
+              if (seenIds.has(key)) continue;
+
+              const titleNorm = (c.title || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+              const notesNorm = (c.notes || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+              const locNorm = (c.location || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+              if (titleNorm.includes(normalizedQuery) || notesNorm.includes(normalizedQuery) || locNorm.includes(normalizedQuery)) {
+                seenIds.add(key);
+                results.push(c);
+              }
+            }
+          }
+        }
+      }
+    }
+  } catch {
+    // Quota ou erro de parsing
+  }
+
+  return results.sort((a, b) => {
+    const da = a.date instanceof Date ? a.date.getTime() : a.date?.toDate?.()?.getTime() || 0;
+    const db = b.date instanceof Date ? b.date.getTime() : b.date?.toDate?.()?.getTime() || 0;
+    return da - db;
+  });
+}
+

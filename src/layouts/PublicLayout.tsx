@@ -11,7 +11,7 @@ const PublicLayout: React.FC = () => {
   const [isDownloadQrOpen, setIsDownloadQrOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-surface-secondary">
+    <div className="min-h-screen bg-surface-secondary dark:bg-slate-950 text-text-primary dark:text-slate-100">
       <AppHeader
         isAuthenticated={isAuthenticated}
         userMeta={null}

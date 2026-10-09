@@ -28,6 +28,16 @@ export function isBillPaid(bill: RecurringBill, transactions: Transaction[]): bo
   const today = new Date();
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
+
+  // Regra 0: Pagamento explícito registrado na conta recorrente no mês corrente
+  if (bill.lastPaidDate) {
+    const raw = bill.lastPaidDate;
+    const lastPaid = new Date(raw.includes('T') ? raw : raw.replace(/-/g, '/'));
+    if (!isNaN(lastPaid.getTime()) && lastPaid.getMonth() === currentMonth && lastPaid.getFullYear() === currentYear) {
+      return true;
+    }
+  }
+
   const billName = normalizeBillName(bill.name);
 
   return transactions.some(t => {

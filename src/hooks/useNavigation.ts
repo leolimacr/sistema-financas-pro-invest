@@ -22,6 +22,7 @@ export const TOOL_ROUTES: Record<string, string> = {
   passivos: '/app/passivos',
   patrimonio: '/app/passivos',
   investimentos: '/app/investimentos',
+  portfolio: '/app/carteira',
   metas: '/app/metas',
   login: '/login',
   register: '/register',
@@ -36,6 +37,16 @@ export const TOOL_ROUTES: Record<string, string> = {
   'tool-dividendos': '/app/ferramentas/dividendos',
   'tool-buy-cash-or-installments': '/app/ferramentas/compra-avista-parcelado',
   'article-2026': '/artigos/investir-2026',
+};
+
+export const PUBLIC_TOOL_PATHS: Record<string, string> = {
+  'tool-fire': '/ferramentas/fire',
+  'tool-juros': '/ferramentas/juros',
+  'tool-inflacao': '/ferramentas/inflacao',
+  'tool-alugar': '/ferramentas/alugar',
+  'tool-dividas': '/ferramentas/dividas',
+  'tool-dividendos': '/ferramentas/dividendos',
+  'tool-buy-cash-or-installments': '/ferramentas/compra-avista-parcelado',
 };
 
 export const useNavigation = () => {
@@ -64,6 +75,9 @@ export const useNavigation = () => {
     
     if (entry) return entry[0];
 
+    const publicEntry = Object.entries(PUBLIC_TOOL_PATHS).find(([_, route]) => path.startsWith(route));
+    if (publicEntry) return publicEntry[0];
+
     // Fallback para rotas de curso
     if (path.includes('/curso')) return 'central';
 
@@ -74,7 +88,10 @@ export const useNavigation = () => {
     const normalizedTool = tool === 'home' ? 'central' : tool;
     if (normalizedTool === 'central') setHomeKey(prev => prev + 1);
     
-    const path = TOOL_ROUTES[normalizedTool] || resolveAppRoute(normalizedTool);
+    let path = TOOL_ROUTES[normalizedTool] || resolveAppRoute(normalizedTool);
+    if (!user && PUBLIC_TOOL_PATHS[normalizedTool]) {
+      path = PUBLIC_TOOL_PATHS[normalizedTool];
+    }
     
     window.scrollTo(0, 0);
     navigate(path, { state });
@@ -84,7 +101,7 @@ export const useNavigation = () => {
         const key = `app_home_${user.uid}`;
         Preferences.set({ key, value: 'central' });
     }
-  }, [navigate, isNative, user?.uid]);
+  }, [navigate, isNative, user]);
 
   const resetNavigation = useCallback(() => {
     setPostAuthRedirect(null);
@@ -111,10 +128,19 @@ export const useNavigation = () => {
   }, [shouldRememberAuthReturn, currentTool, navigateTo]);
 
   const handleAuthSuccess = useCallback(() => {
+    // 1. Verifica parâmetro ?redirect= na URL atual (ex: /login?redirect=/app/dashboard?origin=email_weekly_summary)
+    const searchParams = new URLSearchParams(location.search);
+    const redirectUrl = searchParams.get('redirect');
+    if (redirectUrl) {
+      window.scrollTo(0, 0);
+      navigate(redirectUrl, { replace: true });
+      return;
+    }
+
     const destination = postAuthRedirect || 'home';
     setPostAuthRedirect(null);
     navigateTo(destination);
-  }, [postAuthRedirect, navigateTo]);
+  }, [location.search, navigate, postAuthRedirect, navigateTo]);
 
   useEffect(() => {
     if (!isNative) {

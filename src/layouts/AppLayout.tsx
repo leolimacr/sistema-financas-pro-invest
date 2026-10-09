@@ -10,6 +10,8 @@ import NotificationHub from '../components/NotificationHub';
 import ContentModal from '../components/ContentModal';
 import TransactionForm from '../components/tools/finance/TransactionForm';
 import { ToastProvider, useToast } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
+import { DEMO_USER_ID } from '../constants/demoDataset';
 import { maskCurrency } from '../utils/calculations';
 import type { useAppState } from '../hooks/useAppState';
 import { useNavigation } from '../hooks/useNavigation';
@@ -17,6 +19,10 @@ import { useIsMobile } from '../hooks/useIsMobile';
 import { useOnboarding } from '../hooks/useOnboarding';
 import PageShell from './PageShell';
 import OnboardingOverlay from '../components/Onboarding/OnboardingOverlay';
+import ActiveAlarmModal from '../components/Agenda/ActiveAlarmModal';
+import { PixAuditQueueModal } from '../components/Admin/PixAuditQueueModal';
+import { AdminUsersModal } from '../components/Admin/AdminUsersModal';
+import { useEntitlement } from '../hooks/useEntitlement';
 import { useSovereignSnapshot } from '../hooks/useSovereignSnapshot';
 import { useEventSubscriptions } from '../hooks/useEventSubscriptions';
 import { useNexusEventBridge } from '../hooks/useNexusEventBridge';
@@ -36,7 +42,6 @@ import { useUpcomingCommitments } from '../hooks/useUpcomingCommitments';
 
 import AppOnlyBlock from '../components/AppOnlyBlock';
 import AppDesktopNav from '../components/AppDesktopNav';
-import MobileAppGate from '../components/MobileAppGate';
 import DownloadQrModal from '../components/DownloadQrModal';
 import { ExclusionsProvider, useExclusionAmount } from '../contexts/ExclusionsContext';
 
@@ -49,6 +54,7 @@ const AppLayoutInner: React.FC<AppLayoutProps> = ({ state }) => {
   const isMobile = useIsMobile();
   const { handleNavigate, currentTool } = useNavigation();
   const { addToast } = useToast();
+  const { exitDemoMode } = useAuth();
 
   const {
     user,
@@ -77,6 +83,9 @@ const AppLayoutInner: React.FC<AppLayoutProps> = ({ state }) => {
   } = state;
 
   const [isDownloadQrOpen, setIsDownloadQrOpen] = React.useState(false);
+  const [isPixAuditOpen, setIsPixAuditOpen] = React.useState(false);
+  const [isUsersManagementOpen, setIsUsersManagementOpen] = React.useState(false);
+  const { billingStatus } = useEntitlement();
 
   useEventSubscriptions(user?.uid);
   useNexusEventBridge(user?.uid, userMeta?.persona?.archetype);
@@ -279,7 +288,7 @@ const AppLayoutInner: React.FC<AppLayoutProps> = ({ state }) => {
   }, [user, recurringBills, addToast, handleNavigate]);
 
   return (
-    <div className="h-screen h-[100dvh] overflow-hidden bg-surface-secondary text-text-primary flex flex-col font-sans animate-in fade-in duration-300">
+    <div className="fixed inset-0 overflow-hidden bg-surface-secondary dark:bg-slate-950 text-text-primary dark:text-slate-100 flex flex-col font-sans animate-in fade-in duration-300">
       <AppHeader
         isAuthenticated={isAuthenticated}
         userMeta={userMeta}
@@ -292,12 +301,62 @@ const AppLayoutInner: React.FC<AppLayoutProps> = ({ state }) => {
         onOpenNotifications={setIsNotificationsOpen}
         showDesktopNav={showDesktopNav}
         onOpenDownloadQr={() => setIsDownloadQrOpen(true)}
+        onOpenPixAudit={() => setIsPixAuditOpen(true)}
+        onOpenUsersManagement={() => setIsUsersManagementOpen(true)}
       />
 
       <div className="flex flex-1 min-h-0 pt-[calc(4rem+env(safe-area-inset-top))]">
         {showDesktopNav && <AppDesktopNav onAdd={openTransactionForm} />}
 
         <main className="flex-1 min-w-0 overflow-y-auto">
+          {user?.uid === DEMO_USER_ID && (
+            <div className="bg-slate-900 border-b border-emerald-500/30 px-4 py-2 text-xs text-white flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md sticky top-0 z-30">
+              <div className="flex items-center gap-2.5 text-center sm:text-left">
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-slate-950 font-black text-[10px] uppercase tracking-wider shrink-0">
+                  Modo Demonstração
+                </span>
+                <span className="font-medium text-slate-200 text-xs">
+                  Você está explorando o cockpit com dados simulados. Sinta-se à vontade para testar as ferramentas!
+                </span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    exitDemoMode();
+                    routerNavigate('/register');
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[11px] uppercase tracking-wider shadow-sm transition-all"
+                >
+                  Criar Minha Conta Gratuita →
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    exitDemoMode();
+                    routerNavigate('/');
+                  }}
+                  className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-bold text-[11px] uppercase transition-all"
+                >
+                  Sair da Demo
+                </button>
+              </div>
+            </div>
+          )}
+          {billingStatus === 'revoked' && (
+            <div className="bg-rose-50 dark:bg-rose-950/60 border-b border-rose-200 dark:border-rose-800/80 px-4 py-2.5 text-xs text-rose-800 dark:text-rose-200 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="font-bold">Aviso de Assinatura:</span>
+                <span>Sua assinatura via Pix anterior foi revogada por ausência de confirmação bancária. Caso tenha realizado a transferência, contate nosso suporte.</span>
+              </div>
+              <button
+                onClick={() => handleNavigate('precos')}
+                className="font-bold text-rose-900 dark:text-rose-300 underline ml-3 shrink-0"
+              >
+                Ver Planos
+              </button>
+            </div>
+          )}
           <PageShell
             currentTool={currentTool}
             withMobileNav={isAuthenticated && !isAppLocked && isMobile}
@@ -315,6 +374,8 @@ const AppLayoutInner: React.FC<AppLayoutProps> = ({ state }) => {
         userDisplayName={user?.displayName}
         onLogout={handleLogout}
         onOpenCourse={(slug = 'investidor-iniciante') => routerNavigate(`/curso/${slug}`)}
+        onOpenPixAudit={() => setIsPixAuditOpen(true)}
+        onOpenUsersManagement={() => setIsUsersManagementOpen(true)}
       />
 
       {isAuthenticated && !isAppLocked && isMobile && (
@@ -323,8 +384,6 @@ const AppLayoutInner: React.FC<AppLayoutProps> = ({ state }) => {
           onAdd={openTransactionForm}
         />
       )}
-
-      <MobileAppGate isMobileBrowser={isMobileBrowser} isAuthenticated={isAuthenticated} />
 
       <DownloadQrModal
         isOpen={isDownloadQrOpen}
@@ -358,6 +417,7 @@ const AppLayoutInner: React.FC<AppLayoutProps> = ({ state }) => {
         )}
         <TransactionForm
           initialData={editingTransaction}
+          recurringBills={recurringBills}
           onDelete={state.deleteLancamento}
           onSave={async (t: { id?: string; amount: number; linkedDebtId?: string; type?: string; [key: string]: any }) => {
             const { id, ...rest } = t;
@@ -414,12 +474,24 @@ const AppLayoutInner: React.FC<AppLayoutProps> = ({ state }) => {
         />
       </ContentModal>
 
+      <ActiveAlarmModal />
+
       <OnboardingOverlay
         step={step}
         onNext={handleOnboardingNext}
         onSkip={skip}
         onFinish={finish}
         onLaunch={handleOnboardingLaunch}
+      />
+
+      <PixAuditQueueModal
+        isOpen={isPixAuditOpen}
+        onClose={() => setIsPixAuditOpen(false)}
+      />
+
+      <AdminUsersModal
+        isOpen={isUsersManagementOpen}
+        onClose={() => setIsUsersManagementOpen(false)}
       />
     </div>
   );

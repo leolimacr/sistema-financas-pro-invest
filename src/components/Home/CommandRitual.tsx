@@ -134,41 +134,41 @@ const CommandRitual: React.FC<CommandRitualProps> = ({ stage, event, onNavigate,
   }, [metricsBaseline, freeBalance, shortfall, launchCount]);
 
   return (
-    <div className="bg-white border border-border-strong border-l-4 border-l-emerald-600 rounded-panel p-5 md:p-6 shadow-panel">
-      <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500 mb-3">
+    <div className="bg-white dark:bg-slate-900 border border-border-strong dark:border-slate-800 border-l-4 border-l-emerald-600 rounded-panel p-5 md:p-6 shadow-panel">
+      <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400 mb-3">
         SEU COMANDO
       </div>
 
       <div className="space-y-2">
         <div className="flex items-baseline gap-2">
-          <span className="text-xs text-slate-500 w-14 shrink-0">Posição</span>
-          <span className="text-sm font-bold text-slate-900">{stage.name}</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 w-14 shrink-0">Posição</span>
+          <span className="text-sm font-bold text-slate-900 dark:text-white">{stage.name}</span>
           {deltaText && (
-            <span className="text-xs text-slate-500 ml-1">{deltaText}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 ml-1">{deltaText}</span>
           )}
         </div>
 
         {continuityLine && (
           <div className="flex items-baseline gap-2">
-            <span className="text-xs text-slate-500 w-14 shrink-0">Histórico</span>
-            <span className="text-xs text-slate-500">{continuityLine}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 w-14 shrink-0">Histórico</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">{continuityLine}</span>
           </div>
         )}
 
         {attentionLine && (
           <div className="flex items-baseline gap-2">
-            <span className="text-xs text-slate-500 w-14 shrink-0">Atenção</span>
-            <span className="text-sm text-slate-700">{attentionLine}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 w-14 shrink-0">Atenção</span>
+            <span className="text-sm text-slate-700 dark:text-slate-300">{attentionLine}</span>
           </div>
         )}
 
         <div className="flex items-baseline gap-2">
-          <span className="text-xs text-slate-500 w-14 shrink-0">Comando</span>
-          <span className="text-sm font-semibold text-slate-800">{stage.nextStep}</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 w-14 shrink-0">Comando</span>
+          <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{stage.nextStep}</span>
         </div>
 
         {commandReason && (
-          <p className="text-xs text-slate-600 leading-snug pt-1">{commandReason}</p>
+          <p className="text-xs text-slate-600 dark:text-slate-400 leading-snug pt-1">{commandReason}</p>
         )}
       </div>
 
@@ -182,7 +182,7 @@ const CommandRitual: React.FC<CommandRitualProps> = ({ stage, event, onNavigate,
               onNavigate(action.route);
             }
           }}
-          className="mt-4 w-full text-sm font-bold py-3 md:py-2.5 px-4 rounded-xl bg-slate-800 text-white hover:bg-slate-700 transition-colors min-h-[44px]"
+          className="mt-4 w-full text-sm font-bold py-3 md:py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 text-white transition-colors min-h-[44px]"
         >
           {action.label}
         </button>

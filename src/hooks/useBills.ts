@@ -8,7 +8,14 @@ export const useBills = (userId?: string) => {
 
   const { data: bills = [], isLoading, error, isFetching } = useQuery<RecurringBill[], Error>({
     queryKey: key,
-    queryFn: () => userId ? getRecurringBills(userId) : Promise.resolve([]),
+    queryFn: async () => {
+      if (!userId) return [];
+      if (userId === 'demo-sandbox-soberano') {
+        const { DEMO_BILLS } = await import('../constants/demoDataset');
+        return DEMO_BILLS;
+      }
+      return getRecurringBills(userId);
+    },
     enabled: !!userId,
     staleTime: 1000 * 60 * 5,
   });

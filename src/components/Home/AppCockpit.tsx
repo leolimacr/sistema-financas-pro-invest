@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import type { Transaction, UserMeta } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
@@ -6,6 +6,8 @@ import { useCockpitData } from './Cockpit/useCockpitData';
 import { useEntitlement } from '../../hooks/useEntitlement';
 import { useDebts } from '../../services/debt/debt.hooks';
 import { useWealthData } from '../../hooks/useWealthData';
+import { useBudget } from '../../hooks/useBudget';
+import { calcBudgetProgress, toBudgetInsightData } from '../../services/budgetMath';
 import { buildUserContext, getCentralInsights } from '../../services/nexusInsightEngine';
 import { isCommandMode } from '../../services/personaCalibrationService';
 import { getCentralJourneyStage } from '../../theme/fpiVoiceGuide';
@@ -22,9 +24,12 @@ import FirstTransactionCTA from './FirstTransactionCTA';
 import UrgentBillsSheet from './UrgentBillsSheet';
 import ProtectionBar from '../tools/finance/dashboard/ProtectionBar';
 import JornadaMetrics from './JornadaMetrics';
+import DebtVictoryBanner from './Cockpit/DebtVictoryBanner';
 import { RefreshCw, ChevronDown, Brain, Sparkles, ChevronRight, Lock, Crown, X, Target } from 'lucide-react';
 import NexusActionButton from './NexusActionButton';
+import { setActiveBehaviorUserId, traceNavigation } from '../../services/insightResponseObserver';
 import { useExclusionAmount } from '../../contexts/ExclusionsContext';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface AppCockpitProps {
   transactions: Transaction[];
@@ -44,12 +49,41 @@ const AppCockpitInner: React.FC<AppCockpitProps> = ({
   isSyncing
 }) => {
   const { user } = useAuth();
+  const { resolvedTheme } = useTheme();
   const { effectiveTier } = useEntitlement();
+  const { budget } = useBudget(user?.uid);
   const cockpit = useCockpitData(user, transactions, userMeta);
   const [showUrgentBills, setShowUrgentBills] = useState(false);
   const [showEvolucao, setShowEvolucao] = useState(false);
   const [lockedModule, setLockedModule] = useState<string | null>(null);
+  const [expandedTraceInsightId, setExpandedTraceInsightId] = useState<string | null>(null);
   const location = useLocation();
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    if (searchParams.get('view') === 'urgent-bills') {
+      setShowUrgentBills(true);
+    }
+
+    const focusTarget =
+      (location.state as any)?.focusSection ||
+      searchParams.get('focus') ||
+      (location.hash ? location.hash.replace('#', '') : null);
+
+    if (focusTarget) {
+      const timer = setTimeout(() => {
+        const el = document.getElementById(focusTarget);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [location.search, location.hash, location.state]);
+
+  useEffect(() => {
+    setActiveBehaviorUserId(user?.uid || null);
+  }, [user?.uid]);
 
   const { data: debts = [] } = useDebts(user?.uid || undefined);
   const { assets = [], passives = [], patrimonioLiquido = 0 } = useWealthData();
@@ -59,15 +93,15 @@ const AppCockpitInner: React.FC<AppCockpitProps> = ({
   const hasPremiumAccess = effectiveTier === 'premium';
   const hasProAccess = effectiveTier === 'pro' || effectiveTier === 'premium';
 
-  const formatCurrency = (val: number) =>
-    val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const formatCurrency = (val?: number | null) =>
+    (val ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
   const activeDebtsCount = debts.filter((d: any) => (d.saldoDevedor ?? 0) > 0).length;
   const hasFinancialProfile = Boolean(userMeta?.financialProfile);
   const colchaoInicialTarget = userMeta?.financialProfile?.colchaoInicialTarget || 0;
   const reserveTarget = userMeta?.financialProfile?.emergencyReserveTarget;
 
-  const exclusionAmount = useExclusionAmount(colchaoInicialTarget, reserveTarget ?? 0);
+  const exclusionAmount = useExclusionAmount(reserveTarget ?? 0, colchaoInicialTarget);
   const adjustedBalance = cockpit.sovereign.accumulatedBalance - exclusionAmount;
 
   const userId = user?.uid || null;
@@ -96,6 +130,9 @@ const AppCockpitInner: React.FC<AppCockpitProps> = ({
     const hasRealEstate = passives.some((p) => p.category === 'Imóveis');
     const hasVehicles = passives.some((p) => p.category === 'Veículos');
     const debtJustPaidOff = debts.some((d) => d.saldoDevedor === 0);
+    const budgetProgress = budget
+      ? toBudgetInsightData(calcBudgetProgress(budget, transactions))
+      : undefined;
 
     const ctx = buildUserContext({
       hasFinancialProfile,
@@ -129,6 +166,7 @@ const AppCockpitInner: React.FC<AppCockpitProps> = ({
       assets,
       passives,
       debts,
+      budgetProgress,
     });
 
     return getCentralInsights(ctx);
@@ -137,6 +175,7 @@ const AppCockpitInner: React.FC<AppCockpitProps> = ({
     cockpit.sovereign, daysSinceLastTransaction, hasFinancialProfile,
     debts, passives, assets, streak, cockpit.marcoZero,
     cockpit.reserveCurrent, reserveTarget, cockpit.totalInvestments, cockpit.totalProperty,
+    budget,
   ]);
 
   const journeyStage = getCentralJourneyStage({
@@ -174,7 +213,7 @@ const AppCockpitInner: React.FC<AppCockpitProps> = ({
         eyebrow: 'Prontidão dos dados',
         title: 'Configure suas metas de proteção',
         description:
-          'Defina suas metas de Colchão Inicial e Reserva de Emergência para calibrar sua Disponibilidade Real com maior precisão.',
+          'Defina suas metas de Colchão Emergencial e Reserva de Emergência para calibrar sua Disponibilidade Real com maior precisão.',
         cta: 'Configurar metas',
         action: () => {
           const el = document.getElementById('base-protecao');
@@ -193,14 +232,14 @@ const AppCockpitInner: React.FC<AppCockpitProps> = ({
 
   const recommendationToneMap = {
     amber: {
-      wrapper: 'border-amber-200/80 bg-amber-50/50',
-      button: 'bg-white hover:bg-amber-100/60 border border-amber-300 text-amber-900',
-      eyebrow: 'text-amber-800',
+      wrapper: 'border-amber-200/80 dark:border-amber-900/40 bg-amber-50/50 dark:bg-amber-950/20',
+      button: 'bg-white dark:bg-slate-900 hover:bg-amber-100/60 dark:hover:bg-amber-950/40 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-300',
+      eyebrow: 'text-amber-800 dark:text-amber-400',
     },
     sky: {
-      wrapper: 'border-sky-200/80 bg-sky-50/50',
-      button: 'bg-white hover:bg-sky-100/60 border border-sky-300 text-sky-900',
-      eyebrow: 'text-sky-800',
+      wrapper: 'border-sky-200/80 dark:border-sky-900/40 bg-sky-50/50 dark:bg-sky-950/20',
+      button: 'bg-white dark:bg-slate-900 hover:bg-sky-100/60 dark:hover:bg-sky-950/40 border border-sky-300 dark:border-sky-700 text-sky-900 dark:text-sky-300',
+      eyebrow: 'text-sky-800 dark:text-sky-400',
     },
   } as const;
 
@@ -224,7 +263,7 @@ const AppCockpitInner: React.FC<AppCockpitProps> = ({
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 pt-14 md:pt-6 pb-28 space-y-8 animate-in fade-in duration-500">
+    <div className="max-w-6xl mx-auto px-4 pt-14 md:pt-6 pb-28 space-y-8 animate-in fade-in duration-500">
 
       {/* SYNC BANNER */}
       {showSyncBanner && (
@@ -236,13 +275,20 @@ const AppCockpitInner: React.FC<AppCockpitProps> = ({
         </div>
       )}
 
-      {/* N1 — Situação financeira atual */}
+      {/* CELEBRAÇÃO DE QUITAÇÃO DE DÍVIDA (F4.3.2) */}
+      <DebtVictoryBanner
+        debts={debts}
+        formatCurrency={formatCurrency}
+        isPrivacyMode={isPrivacyMode}
+      />
+
+      {/* N1 — Situação financeira atual (Largura Total Panorâmica) */}
       <CockpitHero
         urgentBills={cockpit.urgentBills}
         userMeta={userMeta}
         isPrivacyMode={isPrivacyMode}
         sovereign={cockpit.sovereign}
-        marcoZero={cockpit.marcoZero}
+        marcoZero={cockpit.colchaoCurrent ?? cockpit.marcoZero}
         reserveCurrent={cockpit.reserveCurrent}
         transactions={transactions}
         formatCurrency={formatCurrency}
@@ -252,43 +298,37 @@ const AppCockpitInner: React.FC<AppCockpitProps> = ({
         exclusionAmount={exclusionAmount}
       />
 
-      {/* N1 — Comando: ponto de atenção e próximo passo */}
+      {/* N1 — Comando & Mapa da Jornada (Grade de 2 Colunas Balanceadas) */}
       {cockpit.stage && (
-        <CommandRitual
-          stage={cockpit.stage}
-          event={cockpit.contextualEvent}
-          onNavigate={onNavigate}
-          freeBalance={cockpit.sovereign.sovereignFreeBalance}
-          shortfall={cockpit.sovereign.protectionShortfall}
-          launchCount={transactions.length}
-          urgentCount={cockpit.urgentBills.length}
-          projectedBalance={cockpit.sovereign.projectedBalance}
-        />
-      )}
-
-      {/* N2 — O que explica este número */}
-      <section className="space-y-4 md:space-y-5" aria-label="O que explica este número">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 px-1">
-          O que explica este número
-        </p>
-        {cockpit.stage && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+          <CommandRitual
+            stage={cockpit.stage}
+            event={cockpit.contextualEvent}
+            onNavigate={onNavigate}
+            freeBalance={cockpit.sovereign.sovereignFreeBalance}
+            shortfall={cockpit.sovereign.protectionShortfall}
+            launchCount={transactions.length}
+            urgentCount={cockpit.urgentBills.length}
+            projectedBalance={cockpit.sovereign.projectedBalance}
+          />
           <SovereignMapCard
             stage={cockpit.stage}
             onNavigate={onNavigate}
           />
-        )}
-        <div id="base-protecao">
-          <ProtectionBar
-            saldoRealTotal={cockpit.sovereign.accumulatedBalance - exclusionAmount}
-            colchaoTarget={colchaoInicialTarget}
-            reserveTarget={reserveTarget ?? 0}
-            isPrivacyMode={isPrivacyMode}
-            userId={user?.uid}
-            userMeta={userMeta}
-            onOpenForm={onOpenForm}
-            effectiveBalanceOverride={adjustedBalance}
-          />
         </div>
+      )}
+
+      {/* N2 — Base de Proteção e Métricas de Evolução */}
+      <section id="base-protecao" className="space-y-6" aria-label="Base de Proteção e Métricas">
+        <ProtectionBar
+          saldoRealTotal={cockpit.sovereign.accumulatedBalance}
+          colchaoTarget={colchaoInicialTarget}
+          reserveTarget={reserveTarget ?? 0}
+          isPrivacyMode={isPrivacyMode}
+          userId={user?.uid}
+          userMeta={userMeta}
+          onOpenForm={onOpenForm}
+        />
 
         <JornadaMetrics
           stageName={journeyStage.stage}
@@ -300,6 +340,7 @@ const AppCockpitInner: React.FC<AppCockpitProps> = ({
           reserveTarget={reserveTarget}
           formatCurrency={formatCurrency}
           onNavigate={onNavigate}
+          isPrivacyMode={isPrivacyMode}
         />
       </section>
 
@@ -308,24 +349,24 @@ const AppCockpitInner: React.FC<AppCockpitProps> = ({
         <section
           id="prontidao-dados"
           aria-label="Prontidão dos dados"
-          className={`rounded-section border p-4 md:p-5 ${recTone.wrapper}`}
+          className={`rounded-section border p-5 md:p-6 ${recTone.wrapper}`}
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1 max-w-2xl">
               <span className={`text-[10px] font-bold uppercase tracking-[0.15em] ${recTone.eyebrow}`}>
                 {centralRecommendation.eyebrow}
               </span>
-              <h3 className="text-sm md:text-base font-bold text-slate-900 tracking-tight">
+              <h3 className="text-sm md:text-base font-bold text-slate-900 dark:text-white tracking-tight">
                 {centralRecommendation.title}
               </h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
                 {centralRecommendation.description}
               </p>
             </div>
             <button
               type="button"
               onClick={centralRecommendation.action}
-              className={`shrink-0 px-4 py-2 rounded-xl text-[11px] font-bold transition-all shadow-sm ${recTone.button}`}
+              className={`shrink-0 px-5 py-2.5 rounded-xl text-[11px] font-bold transition-all shadow-sm ${recTone.button}`}
             >
               {centralRecommendation.cta}
             </button>
@@ -333,138 +374,196 @@ const AppCockpitInner: React.FC<AppCockpitProps> = ({
         </section>
       )}
 
-      {/* N3 — Aprofunde quando quiser */}
-      <section className="space-y-4 md:space-y-5" aria-label="Aprofunde quando quiser">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 px-1">
-          Aprofunde quando quiser
-        </p>
-
-        {/* O que seus dados indicam — Nexus insights */}
-        {nexusInsights.length > 0 && (
-          <section className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-violet-100 rounded-xl text-violet-600">
-                <Brain size={20} />
-              </div>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Leitura conectada</p>
-                <h3 className="text-xl font-black text-slate-900 tracking-tight mt-1">O que seus dados indicam</h3>
-              </div>
+      {/* N3 — O que seus dados indicam — Nexus insights */}
+      {nexusInsights.length > 0 && (
+        <section className="space-y-4" aria-label="Nexus insights">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-violet-100 dark:bg-violet-900/40 rounded-xl text-violet-600 dark:text-violet-300">
+              <Brain size={20} />
             </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Leitura conectada</p>
+              <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight mt-1">O que seus dados indicam</h3>
+            </div>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {nexusInsights.slice(0, 3).map((insight) => (
-                <div
-                  key={insight.id}
-                  className="bg-white border border-slate-200 rounded-section p-6 flex flex-col justify-between hover:border-slate-300 transition-all"
-                >
-                  <div>
-                    <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center mb-4 ${
-                        insight.priority === 'alta'
-                          ? 'bg-rose-50 text-rose-600 border border-rose-100'
-                          : insight.priority === 'media'
-                            ? 'bg-amber-50 text-amber-600 border border-amber-100'
-                            : 'bg-sky-50 text-sky-600 border border-sky-100'
-                      }`}
-                    >
-                      <Sparkles size={16} />
-                    </div>
-                    <h4 className="text-base font-black text-slate-900 mb-2 leading-tight">{insight.message.title}</h4>
-                    <p className="text-xs text-slate-600 leading-relaxed mb-6">{insight.message.body}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {nexusInsights.slice(0, 3).map((insight) => (
+              <div
+                key={insight.id}
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-section p-6 flex flex-col justify-between hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-sm"
+              >
+                <div>
+                  <div
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center mb-3 ${
+                      insight.priority === 'alta'
+                        ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50'
+                        : insight.priority === 'media'
+                          ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50'
+                          : 'bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 border border-sky-100 dark:border-sky-900/50'
+                    }`}
+                  >
+                    <Sparkles size={16} />
                   </div>
+                  <h4 className="text-sm font-black text-slate-900 dark:text-white mb-1.5 leading-tight">{insight.message.title}</h4>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-3">{insight.message.body}</p>
+
+                  {insight.traceability && (
+                    <div className="mb-4">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedTraceInsightId((prev) => (prev === insight.id ? null : insight.id))
+                        }
+                        className="text-[10px] font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors inline-flex items-center gap-1 py-1"
+                        aria-expanded={expandedTraceInsightId === insight.id}
+                      >
+                        <span>Por que o Nexus disse isso?</span>
+                        <ChevronDown
+                          size={12}
+                          className={`transition-transform duration-200 ${
+                            expandedTraceInsightId === insight.id ? 'rotate-180' : ''
+                          }`}
+                        />
+                      </button>
+                      {expandedTraceInsightId === insight.id && (
+                        <div className="mt-2 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 text-[10px] space-y-2 animate-in fade-in duration-200">
+                          <p className="text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
+                            {insight.traceability.reason}
+                          </p>
+                          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
+                            {insight.traceability.metrics.map((metric, mIdx) => (
+                              <div
+                                key={mIdx}
+                                className="bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-100 dark:border-slate-800"
+                              >
+                                <span className="block text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+                                  {metric.label}
+                                </span>
+                                <span className="block text-[11px] font-black text-slate-900 dark:text-white font-mono mt-0.5">
+                                  {metric.value}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex items-center justify-between text-[9px] text-slate-500 dark:text-slate-400 pt-1">
+                            <span>Recorte: {insight.traceability.period}</span>
+                            <span>Fontes: {insight.traceability.sources.join(', ')}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div>
                   <button
                     type="button"
-                    onClick={() => onNavigate(insight.deepLink)}
-                    className="w-full py-2.5 rounded-xl bg-surface-subtle border border-slate-200 text-slate-700 text-[10px] font-bold uppercase tracking-wider hover:border-slate-300 hover:text-slate-900 transition-all flex items-center justify-center gap-1.5"
+                    onClick={() => {
+                      traceNavigation(insight.id, user?.uid);
+                      if (insight.id.startsWith('budget-')) {
+                        onNavigate(insight.deepLink, { openBudgetSetup: true });
+                      } else {
+                        onNavigate(insight.deepLink);
+                      }
+                    }}
+                    className="w-full py-2.5 rounded-xl bg-surface-subtle dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-[10px] font-bold uppercase tracking-wider hover:border-slate-300 dark:hover:border-slate-600 hover:text-slate-900 dark:hover:text-white transition-all flex items-center justify-center gap-1.5"
                   >
                     {insight.message.ctaLabel} <ChevronRight size={14} />
                   </button>
                   {insight.action && (
-                    <NexusActionButton
-                      insight={insight}
-                      userId={userId || 'unknown'}
-                      onActionExecuted={() => {}}
-                      variant="secondary"
-                    />
+                    <div className="mt-2">
+                      <NexusActionButton
+                        insight={insight}
+                        userId={userId || 'unknown'}
+                        onActionExecuted={() => {}}
+                        onNavigate={(route) => {
+                          if (insight.id.startsWith('budget-')) {
+                            onNavigate(route, { openBudgetSetup: true });
+                          } else {
+                            onNavigate(route);
+                          }
+                        }}
+                        variant="secondary"
+                      />
+                    </div>
                   )}
                 </div>
-              ))}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* N4 — Comando Patrimonial */}
+      <CockpitInventory
+        totals={cockpit.totals}
+        detailedCards={cockpit.detailedCards}
+        isPrivacyMode={isPrivacyMode}
+        onNavigate={onNavigate}
+        formatCurrency={formatCurrency}
+      />
+
+      {/* N5 — Composição do saldo e trajetória */}
+      {cockpit.sovereign.commandMode && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+          <SovereignBuckets
+            snapshot={cockpit.sovereign}
+            marcoZero={cockpit.colchaoCurrent ?? cockpit.marcoZero}
+            reserveCurrent={cockpit.reserveCurrent}
+            isPrivacyMode={isPrivacyMode}
+            variant={resolvedTheme === 'dark' ? 'dark' : 'light'}
+          />
+          <MarginTrajectoryPanel
+            transactions={transactions}
+            financialProfile={userMeta?.financialProfile}
+            currentMargin={cockpit.sovereign.sovereignFreeBalance}
+            isPrivacyMode={isPrivacyMode}
+            variant={resolvedTheme === 'dark' ? 'dark' : 'light'}
+            months={6}
+          />
+        </div>
+      )}
+
+      {/* N6 — Evolução Patrimonial (recolhida por padrão) */}
+      <div className="space-y-4">
+        <button
+          type="button"
+          onClick={() => setShowEvolucao(!showEvolucao)}
+          className="w-full flex items-center justify-between p-4 md:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-section hover:border-slate-300 dark:hover:border-slate-700 transition-all text-left shadow-sm"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300">
+              <Target size={18} />
             </div>
-          </section>
-        )}
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Aprofundamento</p>
+              <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight mt-0.5">Evolução Patrimonial</h3>
+            </div>
+          </div>
+          <ChevronDown
+            size={18}
+            className={`text-slate-500 dark:text-slate-400 transition-transform duration-200 ${showEvolucao ? 'rotate-180' : ''}`}
+          />
+        </button>
 
-        {/* Onde aprofundar — módulos estratégicos */}
-        <CockpitInventory
-          totals={cockpit.totals}
-          detailedCards={cockpit.detailedCards}
-          isPrivacyMode={isPrivacyMode}
-          onNavigate={onNavigate}
-          formatCurrency={formatCurrency}
-        />
-
-        {/* Composição do saldo e trajetória — antes dentro do Hero */}
-        {cockpit.sovereign.commandMode && (
-          <div className="space-y-4 md:space-y-5">
-            <SovereignBuckets
-              snapshot={cockpit.sovereign}
-              marcoZero={cockpit.marcoZero}
-              reserveCurrent={cockpit.reserveCurrent}
+        {showEvolucao && (
+          <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+            <CockpitAnalytics
+              evolutionData={cockpit.evolutionData}
+              investmentComposition={cockpit.investmentComposition}
+              propertyComposition={cockpit.propertyComposition}
+              debtComposition={cockpit.debtComposition}
               isPrivacyMode={isPrivacyMode}
-              variant="light"
-            />
-            <MarginTrajectoryPanel
-              transactions={transactions}
-              financialProfile={userMeta?.financialProfile}
-              currentMargin={cockpit.sovereign.sovereignFreeBalance}
-              isPrivacyMode={isPrivacyMode}
-              variant="light"
-              months={6}
+              validatedModules={cockpit.totals.validatedModules}
+              totalInvestments={cockpit.totalInvestments}
+              totalProperty={cockpit.totalProperty}
+              totalDebts={cockpit.totalDebts}
+              onNavigate={onNavigate}
+              formatCurrency={formatCurrency}
             />
           </div>
         )}
-
-        {/* Evolução Patrimonial (recolhida por padrão) */}
-        <div className="space-y-4">
-          <button
-            type="button"
-            onClick={() => setShowEvolucao(!showEvolucao)}
-            className="w-full flex items-center justify-between p-4 md:p-5 bg-white border border-slate-200 rounded-section hover:border-slate-300 transition-all text-left"
-          >
-            <div className="flex items-center gap-4">
-              <div className="p-2.5 bg-slate-100 rounded-xl text-slate-600">
-                <Target size={20} />
-              </div>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Aprofundamento</p>
-                <h3 className="text-lg font-black text-slate-900 tracking-tight mt-0.5">Evolução Patrimonial</h3>
-              </div>
-            </div>
-            <ChevronDown
-              size={20}
-              className={`text-slate-500 transition-transform duration-200 ${showEvolucao ? 'rotate-180' : ''}`}
-            />
-          </button>
-
-          {showEvolucao && (
-            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-              <CockpitAnalytics
-                evolutionData={cockpit.evolutionData}
-                investmentComposition={cockpit.investmentComposition}
-                propertyComposition={cockpit.propertyComposition}
-                debtComposition={cockpit.debtComposition}
-                isPrivacyMode={isPrivacyMode}
-                validatedModules={cockpit.totals.validatedModules}
-                totalInvestments={cockpit.totalInvestments}
-                totalProperty={cockpit.totalProperty}
-                totalDebts={cockpit.totalDebts}
-                onNavigate={onNavigate}
-                formatCurrency={formatCurrency}
-              />
-            </div>
-          )}
-        </div>
-      </section>
+      </div>
 
       {/* Urgent Bills Sheet */}
       <UrgentBillsSheet
@@ -477,24 +576,24 @@ const AppCockpitInner: React.FC<AppCockpitProps> = ({
       {/* Locked Module Modal */}
       {lockedModule && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2.5rem] border border-slate-200 w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="p-8">
               <div className="flex justify-between items-start mb-6">
-                <div className="p-4 bg-sky-50 rounded-2xl text-sky-600">
+                <div className="p-4 bg-sky-50 dark:bg-sky-950/40 rounded-2xl text-sky-600 dark:text-sky-400">
                   <Lock size={32} />
                 </div>
                 <button
                   type="button"
                   onClick={() => setLockedModule(null)}
-                  className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors"
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500 dark:text-slate-400 transition-colors"
                 >
                   <X size={24} />
                 </button>
               </div>
-              <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-3">{lockedModule}</h3>
-              <p className="text-slate-600 leading-relaxed mb-6 text-sm">Recurso estratégico disponível no Premium.</p>
-              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 mb-8">
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">No Premium você ganha:</p>
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight mb-3">{lockedModule}</h3>
+              <p className="text-slate-600 dark:text-slate-300 leading-relaxed mb-6 text-sm">Recurso estratégico disponível no Premium.</p>
+              <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 mb-8">
+                <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">No Premium você ganha:</p>
                 <ul className="space-y-2.5">
                   {(lockedModule === 'Gestão de Dívidas'
                     ? ['Projeção de quitação e economia de juros', 'Acompanhamento de vencimentos', 'Priorização entre dívidas']
@@ -502,7 +601,7 @@ const AppCockpitInner: React.FC<AppCockpitProps> = ({
                       ? ['Carteira consolidada', 'Visão de alocação', 'Evolução dos ativos']
                       : ['Patrimônio líquido unificado', 'Bens e passivos organizados', 'Reserva e colchão de proteção']
                   ).map((benefit, idx) => (
-                    <li key={idx} className="flex items-start gap-2.5 text-xs text-slate-700 font-medium leading-tight">
+                    <li key={idx} className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-200 font-medium leading-tight">
                       <Crown size={12} className="text-emerald-500 fill-emerald-500 shrink-0 mt-0.5" />
                       <span>{benefit}</span>
                     </li>
@@ -520,7 +619,7 @@ const AppCockpitInner: React.FC<AppCockpitProps> = ({
                 <button
                   type="button"
                   onClick={() => setLockedModule(null)}
-                  className="w-full py-4 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-500 text-xs font-black uppercase tracking-widest transition-all"
+                  className="w-full py-4 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 text-xs font-black uppercase tracking-widest transition-all"
                 >
                   Voltar
                 </button>

@@ -80,7 +80,7 @@ export function useAppState(): AppState {
   const { user, isAuthenticated, loading: authLoading, logout, userMeta, userMetaLoading } = useAuth();
 
   useEffect(() => {
-    if (isAuthenticated && user?.uid) {
+    if (isAuthenticated && user?.uid && user.uid !== 'demo-sandbox-soberano') {
       const updateHeartbeat = async () => {
         try {
           const STORAGE_KEY = `financas-pro-invest_last_heartbeat_${user.uid}`;
@@ -147,6 +147,9 @@ export function useAppState(): AppState {
     !isNative &&
     /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
+  const lastDailyReminderSignatureRef = useRef<string>('');
+  const launchUrlHandledRef = useRef<boolean>(false);
+
   const getAiContextTransactions = useCallback((): Transaction[] => {
     const days = isPremium ? 1460 : isPro ? 120 : 10;
     const cutoff = new Date();
@@ -177,22 +180,36 @@ export function useAppState(): AppState {
           });
           const balance = monthTx.reduce((acc: number, t: any) => acc + (t.type === 'income' ? t.amount : -t.amount), 0);
 
-          const ctx: UserContext = {
-            hasFinancialProfile: !!userMeta?.financialProfile,
-            hasPaidAccess: isPro || isPremium,
-            isPremium: isPremium,
-            transactionsToday: txToday,
-            daysSinceLastTransaction: daysSince,
-            launchCount: lancamentos.length,
-            launchLimit: userMeta?.launchLimit || 30,
-            monthBalance: balance,
-            hasFirstInvestment: lancamentos.some((t: any) => t.category?.toLowerCase().includes('investimento')),
-            streak: getConsecutiveDays(lancamentos)
-          };
+          const reminderSignature = `${todayStr}_tx:${txToday > 0 ? 'done' : 'zero'}_days:${daysSince}`;
 
-          // 2. Obtém insight para a notificação
-          const dailyInsight = getPrioritizedInsight(ctx);
-          await NotificationService.scheduleDailyReminder(dailyInsight);
+          // Se o usuário já lançou algo hoje, cancela o lembrete diário para não incomodar
+          if (txToday > 0) {
+            if (lastDailyReminderSignatureRef.current !== reminderSignature) {
+              lastDailyReminderSignatureRef.current = reminderSignature;
+              await NotificationService.cancelCategory('daily_reminder');
+            }
+          } else {
+            // Se ainda não lançou hoje e ainda não agendou para a assinatura do dia
+            if (lastDailyReminderSignatureRef.current !== reminderSignature) {
+              lastDailyReminderSignatureRef.current = reminderSignature;
+              const ctx: UserContext = {
+                hasFinancialProfile: !!userMeta?.financialProfile,
+                hasPaidAccess: isPro || isPremium,
+                isPremium: isPremium,
+                transactionsToday: txToday,
+                daysSinceLastTransaction: daysSince,
+                launchCount: lancamentos.length,
+                launchLimit: userMeta?.launchLimit || 30,
+                monthBalance: balance,
+                hasFirstInvestment: lancamentos.some((t: any) => t.category?.toLowerCase().includes('investimento')),
+                streak: getConsecutiveDays(lancamentos)
+              };
+
+              // 2. Obtém insight para a notificação
+              const dailyInsight = getPrioritizedInsight(ctx);
+              await NotificationService.scheduleDailyReminder(dailyInsight);
+            }
+          }
 
           // 3. Lógica de reengajamento (3 dias)
           if (daysSince >= 3) {
@@ -340,12 +357,13 @@ export function useAppState(): AppState {
     setActiveModal('transaction');
   }, []);
 
-  // Intercepta deep links nativos (ex: financaspro://agenda) via @capacitor/app
+  // Intercepta deep links nativos (ex: financaspro://agenda) e botão Voltar via @capacitor/app
   useEffect(() => {
     if (!isNative) return;
 
     let cancelled = false;
     let urlListener: { remove: () => Promise<void> | void } | null = null;
+    let backListener: { remove: () => Promise<void> | void } | null = null;
 
     const handleOpenUrl = (urlStr: string) => {
       if (!urlStr || cancelled) return;
@@ -364,9 +382,13 @@ export function useAppState(): AppState {
 
     const setupAppUrlOpen = async () => {
       try {
-        const launchUrl = await App.getLaunchUrl();
-        if (launchUrl?.url) {
-          handleOpenUrl(launchUrl.url);
+        // Consome a URL de inicialização apenas uma vez por ciclo de vida da aplicação
+        if (!launchUrlHandledRef.current) {
+          launchUrlHandledRef.current = true;
+          const launchUrl = await App.getLaunchUrl();
+          if (launchUrl?.url && !cancelled) {
+            handleOpenUrl(launchUrl.url);
+          }
         }
 
         urlListener = await App.addListener('appUrlOpen', (data: { url: string }) => {
@@ -377,7 +399,30 @@ export function useAppState(): AppState {
       }
     };
 
+    const setupBackButton = async () => {
+      try {
+        backListener = await App.addListener('backButton', ({ canGoBack }) => {
+          // Se o usuário estiver na Agenda (ex: aberto pelo atalho) sem histórico, volta para a Central
+          if (location.pathname === '/app/agenda' || location.pathname.startsWith('/app/agenda')) {
+            if (!canGoBack || (window.history.state && window.history.state.idx <= 0)) {
+              routerNavigate('/app/central');
+              return;
+            }
+          }
+
+          if (canGoBack) {
+            window.history.back();
+          } else {
+            App.exitApp();
+          }
+        });
+      } catch (err) {
+        console.warn('[useAppState] Falha ao registrar backButton:', err);
+      }
+    };
+
     setupAppUrlOpen();
+    setupBackButton();
 
     return () => {
       cancelled = true;
@@ -386,8 +431,13 @@ export function useAppState(): AppState {
           urlListener.remove();
         } catch {}
       }
+      if (backListener) {
+        try {
+          backListener.remove();
+        } catch {}
+      }
     };
-  }, [isNative, routerNavigate, openTransactionForm]);
+  }, [isNative, routerNavigate, openTransactionForm, location.pathname]);
 
   const isLoading = authLoading;
 

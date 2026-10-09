@@ -27,8 +27,20 @@ vi.mock('firebase/auth', () => ({
 // Mock Firestore
 vi.mock('firebase/firestore', () => ({
   getFirestore: vi.fn(),
-  collection: vi.fn(),
-  doc: vi.fn(),
+  collection: vi.fn((_db, path, ...segments) => ({ path, segments })),
+  doc: vi.fn((_db, path, ...segments) => ({ path, id: segments[segments.length - 1] || 'mock-id' })),
   onSnapshot: vi.fn(() => () => {}),
-  getDocs: vi.fn(),
+  getDocs: vi.fn(async () => ({ forEach: vi.fn(), docs: [] })),
+  setDoc: vi.fn(async () => {}),
+  updateDoc: vi.fn(async () => {}),
+  deleteDoc: vi.fn(async () => {}),
+  writeBatch: vi.fn(() => ({
+    set: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+    commit: vi.fn(async () => {}),
+  })),
+  query: vi.fn((q) => q),
+  orderBy: vi.fn(),
+  where: vi.fn(),
 }));

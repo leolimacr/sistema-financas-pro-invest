@@ -127,10 +127,10 @@ export const module04: CourseModule = {
         {
           type: 'tool-cta',
           tool: 'debt-calculator',
-          title: 'Simule sua estratégia na Calculadora',
+          title: 'Simule sua estratégia na Calculadora Soberana',
           content:
-            'Leve suas duas principais dívidas para a Calculadora de Dívidas e compare qual pesa mais no médio prazo.',
-          buttonLabel: 'Abrir Calculadora de Dívidas',
+            'Importe suas dívidas reais com 1 clique na Calculadora de Dívidas do app para comparar amortizações extras, ver meses de vida economizados e calcular exatamente quantos juros você vai poupar.',
+          buttonLabel: 'Simular na Calculadora de Dívidas',
         },
       ],
     },

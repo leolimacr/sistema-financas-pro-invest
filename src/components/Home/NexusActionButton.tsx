@@ -3,6 +3,8 @@ import { Loader2, Check } from 'lucide-react';
 import type { NexusInsight, NexusPlanTier } from '../../services/nexusInsightEngine';
 import { useNexusActions } from '../../hooks/useNexusActions';
 import { useEntitlement } from '../../hooks/useEntitlement';
+import { trackActionStarted } from '../../services/nexusAnalyticsService';
+import { traceNavigation } from '../../services/insightResponseObserver';
 import PaywallModal from '../PaywallModal';
 
 interface NexusActionButtonProps {
@@ -40,14 +42,19 @@ const NexusActionButton: React.FC<NexusActionButtonProps> = ({
       }
     }
 
-    // Se for tipo adjust e houver onNavigate, navega direto
-    if (action.type === 'adjust' && onNavigate && insight.deepLink) {
+    // Ações de orientação abrem a superfície correta; somente ações de
+    // mutação comprovada podem concluir diretamente neste botão.
+    const isDirectMutation = ['reserve', 'convert_rotativo', 'pay_invoice'].includes(action.type);
+    if (!isDirectMutation && onNavigate && insight.deepLink) {
+      trackActionStarted(insight.id, insight.priority, action.type, 'nexus-action-button');
+      traceNavigation(insight.id, userId);
       onNavigate(insight.deepLink);
       return;
     }
 
     const result = await executeAction(userId, insight.id, action);
     if (result.success) {
+      traceNavigation(insight.id, userId);
       setIsSuccess(true);
       if (result.amount) {
         setReservedAmount(result.amount);
@@ -63,7 +70,7 @@ const NexusActionButton: React.FC<NexusActionButtonProps> = ({
 
   const successMessage = reservedAmount 
     ? `Reserva criada! R$ ${reservedAmount.toFixed(2).replace('.', ',')} guardados.`
-    : 'Intenção registrada';
+    : 'Operação concluída';
 
   return (
     <>
@@ -72,9 +79,9 @@ const NexusActionButton: React.FC<NexusActionButtonProps> = ({
         disabled={isExecuting || isSuccess}
         className={`mt-2 w-full sm:w-auto px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 border ${
           isSuccess
-            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60'
             : variant === 'secondary'
-              ? 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-none'
+              ? 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 shadow-none'
               : 'bg-sky-600 hover:bg-sky-700 text-white border-transparent shadow-sm active:scale-95'
         } disabled:opacity-80`}
       >

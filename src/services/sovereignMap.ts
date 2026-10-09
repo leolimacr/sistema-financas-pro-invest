@@ -23,14 +23,17 @@ export interface ClassifyInput {
   protectionShortfall: number;
   leewayDays: number;
   freedomDeficit: number;
+  colchaoShortfall?: number;
+  reserveShortfall?: number;
+  cashSurplus?: number;
 }
 
 const STAGE_THRESHOLDS: Record<StageId, { minStage: number; check: (i: ClassifyInput) => boolean }> = {
   'expansao': { minStage: 5, check: (i) => i.protectionShortfall <= 0 && i.leewayDays > 180 },
   'solido':  { minStage: 4, check: (i) => i.protectionShortfall <= 0 && i.leewayDays > 90 },
-  'estavel':   { minStage: 3, check: (i) => i.protectionShortfall <= 0 && i.sovereignFreeBalance > 0 },
-  'colchao-incompleto': { minStage: 2, check: (i) => i.sovereignFreeBalance >= 0 && i.protectionShortfall > 0 },
-  'pressao': { minStage: 1, check: (i) => i.sovereignFreeBalance < 0 },
+  'estavel':   { minStage: 3, check: (i) => i.protectionShortfall <= 0 && i.sovereignFreeBalance >= 0 },
+  'colchao-incompleto': { minStage: 2, check: (i) => (i.cashSurplus !== undefined ? i.cashSurplus >= 0 : i.sovereignFreeBalance >= 0) && i.protectionShortfall > 0 },
+  'pressao': { minStage: 1, check: (i) => (i.cashSurplus !== undefined ? i.cashSurplus < 0 : i.sovereignFreeBalance < 0) },
   'indefinido': { minStage: 0, check: () => true },
 };
 
@@ -56,13 +59,18 @@ const STAGE_META: Record<StageId, { name: string; explanation: (i: ClassifyInput
       if (i.protectionShortfall > 0) b.push(`Proteção incompleta (faltam R$ ${i.protectionShortfall.toFixed(2)})`);
       return b;
     },
-    nextStep: 'Regularizar fluxo mensal e reconstruir o Colchão Inicial',
+    nextStep: 'Regularizar fluxo mensal e reconstruir o Colchão Emergencial',
   },
   'colchao-incompleto': {
-    name: 'Colchão Incompleto',
-    explanation: (i) => `Sua disponibilidade real é positiva, mas a proteção ainda está incompleta. Faltam R$ ${i.protectionShortfall.toFixed(2)} para completar o Colchão Inicial + Reserva de Emergência.`,
+    name: 'Proteção em Formação',
+    explanation: (i) => {
+      if (i.colchaoShortfall !== undefined && i.colchaoShortfall <= 0 && (i.reserveShortfall ?? 0) > 0) {
+        return `Seu caixa cobre suas obrigações imediatas e seu Colchão Emergencial está 100% formado. Faltam R$ ${i.protectionShortfall.toFixed(2)} para completar sua Reserva de Emergência.`;
+      }
+      return `Seu caixa cobre suas obrigações imediatas e você está formando seu Colchão Emergencial. Faltam R$ ${i.protectionShortfall.toFixed(2)} para cobrir toda a sua meta de proteção.`;
+    },
     blockers: (i) => [`Faltam R$ ${i.protectionShortfall.toFixed(2)} para completar a proteção`],
-    nextStep: 'Completar o Colchão Inicial e a Reserva de Emergência',
+    nextStep: 'Completar o Colchão Emergencial e a Reserva de Emergência',
   },
   'estavel': {
     name: 'Estável',
@@ -141,5 +149,8 @@ export function classifyFromSnapshot(
     protectionShortfall: snapshot.protectionShortfall,
     leewayDays: snapshot.leewayDays,
     freedomDeficit: snapshot.freedomDeficit,
+    colchaoShortfall: snapshot.colchaoShortfall,
+    reserveShortfall: snapshot.reserveShortfall,
+    cashSurplus: snapshot.cashSurplus,
   });
 }

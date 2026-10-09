@@ -90,7 +90,7 @@ export function useNexusEventBridge(userId?: string, archetype: Archetype = 'gua
                 title: 'Parcelamento Registrado',
                 body: `Novo parcelamento em ${installments}x de ${formattedParcela} registrado (total ${formattedTotal}). Esse valor fará parte do seu planejamento mensal pelos próximos ${installments} meses.`,
                 ctaLabel: 'Ver no Controla',
-                deepLink: 'manager',
+                deepLink: 'controla?view=contas',
                 urgency: 'medium',
                 cooldownHours: 24,
               });

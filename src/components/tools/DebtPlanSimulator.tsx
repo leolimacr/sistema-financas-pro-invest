@@ -1,4 +1,4 @@
-﻿import ReactMarkdown from 'react-markdown';
+import ReactMarkdown from 'react-markdown';
 import { Sparkles } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 // src/components/tools/finance/DebtPlanSimulator.tsx
@@ -128,7 +128,7 @@ export const DebtPlanSimulator: React.FC<DebtPlanSimulatorProps> = ({
             body: 'O Nexus montou seu plano com base nos dados mais recentes. Revise quando puder.',
             ctaLabel: 'Ver plano',
           },
-          deepLink: 'minhas-dividas',
+          deepLink: 'minhas-dividas?view=estrategia',
           cooldownHours: 72,
           expiresInHours: 7 * 24,
           resourceId: `nexus_plan_${userId}`,
@@ -153,7 +153,22 @@ export const DebtPlanSimulator: React.FC<DebtPlanSimulatorProps> = ({
 
     const wrapper = document.createElement('div');
     wrapper.innerHTML = `
-      <div style="font-family: Inter, system-ui, sans-serif; font-size: 13px; color: #1e293b; padding: 40px 48px; line-height: 1.75; background: #ffffff;">
+      <style>
+        .pdf-export, .pdf-export * {
+          color: #1e293b !important;
+          background-color: transparent !important;
+        }
+        .pdf-export strong, .pdf-export h1, .pdf-export h2, .pdf-export h3, .pdf-export h4 {
+          color: #0f172a !important;
+        }
+        .pdf-export a {
+          color: #0d9488 !important;
+        }
+        .pdf-export svg {
+          color: #0d9488 !important;
+        }
+      </style>
+      <div class="pdf-export" style="font-family: Inter, system-ui, sans-serif; font-size: 13px; color: #1e293b; padding: 40px 48px; line-height: 1.75; background: #ffffff;">
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 28px; padding-bottom: 16px; border-bottom: 2px solid #0d9488;">
           <div style="width: 10px; height: 10px; border-radius: 9999px; background: #0d9488;"></div>
           <span style="font-size: 16px; font-weight: 700; color: #0d9488; letter-spacing: -0.3px;">Finanças Pro Invest</span>
@@ -206,7 +221,7 @@ export const DebtPlanSimulator: React.FC<DebtPlanSimulatorProps> = ({
             body: 'Seu plano foi regenerado com os dados mais recentes. Confira o que mudou.',
             ctaLabel: 'Ver plano atualizado',
           },
-          deepLink: 'minhas-dividas',
+          deepLink: 'minhas-dividas?view=estrategia',
           cooldownHours: 72,
           expiresInHours: 7 * 24,
           resourceId: `nexus_plan_${userId}`,
@@ -246,23 +261,23 @@ export const DebtPlanSimulator: React.FC<DebtPlanSimulatorProps> = ({
         }
       
       `}</style>
-      <div className="mt-6 border border-teal-200 rounded-xl bg-gradient-to-br from-teal-50 to-slate-50 p-5 shadow-sm">      
+      <div className="mt-6 border border-teal-200 dark:border-teal-800 rounded-xl bg-gradient-to-br from-teal-50 to-slate-50 dark:from-teal-950/30 dark:to-slate-900 p-5 shadow-sm">      
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
-          <p className="text-sm font-semibold text-teal-800 flex items-center gap-2">
-            <Sparkles size={16} className="text-teal-600" />
+          <p className="text-sm font-semibold text-teal-800 dark:text-teal-300 flex items-center gap-2">
+            <Sparkles size={16} className="text-teal-600 dark:text-teal-400" />
             {hasExistingPlan ? "Você já tem um plano disponível." : "Suas dívidas estão prontas para análise."}
           </p>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-slate-600 dark:text-slate-300">
             {hasExistingPlan
               ? "Se sua situação mudou, gere uma nova versão com os dados mais atuais. Se não mudou, você já pode seguir com o plano salvo."
               : "Pronto para ver seu caminho de saída? Deixe o Nexus analisar seus juros e priorizar cada centavo para sua quitação acelerada."}
           </p>
-          <div className="mt-2 pt-2 border-t border-teal-100">
-            <h2 className="text-lg font-semibold text-slate-800">
+          <div className="mt-2 pt-2 border-t border-teal-100 dark:border-teal-900/50">
+            <h2 className="text-lg font-semibold text-slate-800 dark:text-white">
               {hasExistingPlan ? "Atualizar Estratégia de Alívio" : "Estratégia de Alívio com ajuda do Nexus"}
             </h2>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               {hasExistingPlan
                 ? "Use o plano atual como referência e regenere somente quando os números tiverem mudado."
                 : "Use o resultado da simulação para gerar um plano de ação claro para os próximos dias e semanas."}
@@ -275,7 +290,7 @@ export const DebtPlanSimulator: React.FC<DebtPlanSimulatorProps> = ({
           disabled={loading || !hasMinimumData}
           className={`flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition-colors shadow-sm ${
             loading || !hasMinimumData
-              ? "bg-slate-200 text-slate-500 cursor-not-allowed"
+              ? "bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed"
               : "bg-teal-600 text-white hover:bg-teal-700"
           }`}
         >
@@ -287,14 +302,14 @@ export const DebtPlanSimulator: React.FC<DebtPlanSimulatorProps> = ({
       </div>
 
       {!hasMinimumData && (
-        <p className="text-xs text-amber-600 mt-3 leading-relaxed">
+        <p className="text-xs text-amber-600 dark:text-amber-400 mt-3 leading-relaxed">
           Você precisa informar suas dívidas e calcular primeiro para o Nexus montar um plano coerente com sua situação.
         </p>
       )}
 
       {error && (
-        <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
-          <p className="text-sm text-rose-700 leading-relaxed">
+        <div className="mt-4 rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/30 px-4 py-3">
+          <p className="text-sm text-rose-700 dark:text-rose-300 leading-relaxed">
             {error}
           </p>
         </div>
@@ -303,16 +318,16 @@ export const DebtPlanSimulator: React.FC<DebtPlanSimulatorProps> = ({
       {staleCacheInfo && plan && (
         <div className={`mt-4 rounded-2xl border p-4 ${
           staleCacheInfo.status === "stale_expired"
-            ? "border-amber-300 bg-amber-50"
-            : "border-sky-200 bg-sky-50"
+            ? "border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30"
+            : "border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/30"
         }`}>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mb-2">
             Plano já existente
           </p>
-          <p className="text-sm font-black text-slate-800">
+          <p className="text-sm font-black text-slate-800 dark:text-white">
             Você já tem um plano salvo há {staleCacheInfo.ageDays ?? "alguns"} dias.
           </p>
-          <p className="mt-2 text-sm text-slate-600 leading-relaxed">
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
             {staleCacheInfo.status === "stale_expired"
               ? "Esse plano já pode estar distante da sua situação atual. Se seus números mudaram, vale gerar uma nova versão agora."
               : "Se sua situação continua parecida, você pode seguir com o plano salvo. Se mudou, peça uma nova versão ao Nexus."}
@@ -322,7 +337,7 @@ export const DebtPlanSimulator: React.FC<DebtPlanSimulatorProps> = ({
               type="button"
               onClick={handleUseSavedPlan}
               disabled={loading}
-              className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              className="flex-1 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-60"
             >
               Seguir com plano salvo
             </button>
@@ -343,22 +358,22 @@ export const DebtPlanSimulator: React.FC<DebtPlanSimulatorProps> = ({
             id="plano-content"
             className="mt-8 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 print:mt-0 print:space-y-3 print:animate-none print:text-black print:pb-0"
           >
-            <div className="flex items-center gap-3 pb-4 border-b border-slate-100 print:break-inside-avoid">
-              <div className="p-2 bg-teal-50 rounded-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-teal-600"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            <div className="flex items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-800 print:break-inside-avoid">
+              <div className="p-2 bg-teal-50 dark:bg-teal-950/50 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-teal-600 dark:text-teal-400"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
               </div>
               <div>
-                <p className="text-xs text-slate-500 uppercase font-black tracking-wider">
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-black tracking-wider">
                   {hasExistingPlan ? "Nexus — Plano disponível" : "Nexus — Plano gerado"}
                 </p>
-                <h3 className="text-base font-black text-slate-800">Seu Plano de Quitação de Dívidas</h3>
+                <h3 className="text-base font-black text-slate-800 dark:text-white">Seu Plano de Quitação de Dívidas</h3>
               </div>
             </div>
 
             {plan.planoMarkdown && (
-              <div className="prose prose-slate max-w-none text-sm leading-relaxed text-slate-800 print:break-inside-avoid">
+              <div className="prose prose-slate dark:prose-invert max-w-none text-sm leading-relaxed text-slate-800 dark:text-slate-200 print:break-inside-avoid">
                 {plan.generatedAt && (
-                  <p className="text-[10px] text-slate-500 uppercase font-black tracking-wider mb-2">
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-black tracking-wider mb-2">
                     Plano gerado em {new Date(plan.generatedAt).toLocaleString("pt-BR")}
                   </p>
                 )}
@@ -367,14 +382,14 @@ export const DebtPlanSimulator: React.FC<DebtPlanSimulatorProps> = ({
             )}
           </div>
 
-          <div className="pt-4 border-t border-slate-100">
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
                 onClick={handleGeneratePlan}
                 disabled={loading || !hasMinimumData}
                 className={`w-full px-4 py-3 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 ${
                   loading || !hasMinimumData
-                    ? "bg-slate-200 text-slate-500 cursor-not-allowed"
+                    ? "bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed"
                     : "bg-teal-600 text-white hover:bg-teal-700"
                 }`}
               >

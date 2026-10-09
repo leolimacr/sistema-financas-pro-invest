@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { coursesRegistry, type CourseSlug } from '../registry';
+import { useAuth } from '../../../contexts/AuthContext';
+import { firestore } from '../../../firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export interface CourseProgress {
   courseSlug: string;
@@ -25,6 +28,8 @@ const getStorageKey = (slug: string) => `fpi_course_progress_${slug}`;
 export const useCourseProgress = (courseSlug: string): CourseProgressState => {
   const safeSlug = (courseSlug || 'dividas') as CourseSlug;
   const course = coursesRegistry[safeSlug];
+  const { user } = useAuth();
+  const userId = user?.uid;
 
   const [progress, setProgress] = useState<CourseProgress | null>(() => {
     try {
@@ -44,24 +49,73 @@ export const useCourseProgress = (courseSlug: string): CourseProgressState => {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  // Sincroniza caso o courseSlug mude
+  // Sincroniza caso o courseSlug ou userId mude, e busca dados na nuvem (Firestore)
   useEffect(() => {
+    let localData: CourseProgress = {
+      courseSlug: safeSlug,
+      completedLessons: [],
+      unlockedBadges: [],
+    };
+
     try {
       const stored = localStorage.getItem(getStorageKey(safeSlug));
       if (stored) {
-        setProgress(JSON.parse(stored));
+        localData = JSON.parse(stored);
+        setProgress(localData);
       } else {
-        setProgress({
-          courseSlug: safeSlug,
-          completedLessons: [],
-          unlockedBadges: [],
-        });
+        setProgress(localData);
       }
     } catch (e) {
-      console.warn('Erro ao carregar progresso do curso:', e);
+      console.warn('Erro ao carregar progresso local do curso:', e);
     }
+
+    // Sincronização em nuvem com Firestore (F5.2.1)
+    if (userId && userId !== 'demo-sandbox-soberano') {
+      let isMounted = true;
+      const progressDocRef = doc(firestore, 'users', userId, 'courseProgress', safeSlug);
+
+      getDoc(progressDocRef)
+        .then((snapshot) => {
+          if (!isMounted || !snapshot.exists()) return;
+          const remoteData = snapshot.data() as Partial<CourseProgress>;
+          const remoteCompleted = remoteData.completedLessons || [];
+          const remoteBadges = remoteData.unlockedBadges || [];
+
+          // Merge inteligente (união de conjuntos) para nunca perder aulas concluídas
+          const mergedCompleted = Array.from(new Set([...localData.completedLessons, ...remoteCompleted]));
+          const mergedBadges = Array.from(new Set([...localData.unlockedBadges, ...remoteBadges]));
+
+          const mergedProgress: CourseProgress = {
+            courseSlug: safeSlug,
+            completedLessons: mergedCompleted,
+            unlockedBadges: mergedBadges,
+            lastAccessedLesson: remoteData.lastAccessedLesson || localData.lastAccessedLesson,
+            lastAccessedModule: remoteData.lastAccessedModule || localData.lastAccessedModule,
+            updatedAt: Math.max(remoteData.updatedAt || 0, localData.updatedAt || 0, Date.now()),
+          };
+
+          setProgress(mergedProgress);
+          try {
+            localStorage.setItem(getStorageKey(safeSlug), JSON.stringify(mergedProgress));
+          } catch {}
+
+          // Se o dispositivo local tinha aulas que não estavam no Firestore, sobe o consolidado
+          const hasNewLocalLessons = localData.completedLessons.some((s) => !remoteCompleted.includes(s));
+          if (hasNewLocalLessons) {
+            setDoc(progressDocRef, mergedProgress, { merge: true }).catch(() => {});
+          }
+        })
+        .catch((err) => {
+          console.warn('[useCourseProgress] Falha ao carregar progresso remoto:', err);
+        });
+
+      return () => {
+        isMounted = false;
+      };
+    }
+
     setIsLoading(false);
-  }, [safeSlug]);
+  }, [safeSlug, userId]);
 
   // Lista de todos os slugs de aulas deste curso
   const allLessonSlugs = useMemo(() => {
@@ -127,10 +181,18 @@ export const useCourseProgress = (courseSlug: string): CourseProgressState => {
           console.warn('Erro ao salvar progresso do curso:', e);
         }
 
+        // Persistência assíncrona no Firestore (F5.2.1)
+        if (userId && userId !== 'demo-sandbox-soberano') {
+          const progressDocRef = doc(firestore, 'users', userId, 'courseProgress', safeSlug);
+          setDoc(progressDocRef, newProgress, { merge: true }).catch((err) => {
+            console.warn('[useCourseProgress] Falha ao persistir progresso no Firestore:', err);
+          });
+        }
+
         return newProgress;
       });
     },
-    [course, safeSlug, allLessonSlugs]
+    [course, safeSlug, allLessonSlugs, userId]
   );
 
   const getCourseCompletionPercentage = useCallback(() => {
@@ -178,8 +240,16 @@ export const useCourseProgress = (courseSlug: string): CourseProgressState => {
     } catch (e) {
       console.warn('Erro ao resetar progresso:', e);
     }
+
+    if (userId && userId !== 'demo-sandbox-soberano') {
+      const progressDocRef = doc(firestore, 'users', userId, 'courseProgress', safeSlug);
+      setDoc(progressDocRef, emptyProgress, { merge: true }).catch((err) => {
+        console.warn('[useCourseProgress] Falha ao resetar progresso no Firestore:', err);
+      });
+    }
+
     setProgress(emptyProgress);
-  }, [safeSlug]);
+  }, [safeSlug, userId]);
 
   return {
     progress,

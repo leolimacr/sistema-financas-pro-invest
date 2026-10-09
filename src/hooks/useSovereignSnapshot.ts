@@ -7,7 +7,7 @@ import { useInvoicesByUser } from './useCardInvoices';
 import type { Transaction, UserMeta } from '../types';
 import { getCurrentInvoice, isBillPaid } from '../utils/invoiceUtils';
 import type { SovereignSnapshot } from '../utils/calculations';
-import { aggregateMonthFlow, aggregateAllTimeFlow, buildSovereignSnapshot, resolveObligationPressure } from '../utils/calculations';
+import { aggregateMonthFlow, aggregateAllTimeFlow, buildSovereignSnapshot, resolveObligationPressure, calculateRealCashBalance } from '../utils/calculations';
 import { isCommandMode } from '../services/personaCalibrationService';
 
 export interface SovereignSnapshotResult extends SovereignSnapshot {
@@ -96,18 +96,52 @@ export function useSovereignSnapshot(
     const allTimeFlow = aggregateAllTimeFlow(safeTx);
     const commandMode = isCommandMode(userMeta) || localCommandMode;
 
+    // Saldo real e fluxo de caixa soberano: utiliza a mesma regra canônica de Controla
+    const realCash = calculateRealCashBalance(
+      safeTx,
+      storedInvoices,
+      userCards,
+      recurringBills,
+      refDate
+    );
+
+    let accumulatedBalance = realCash.saldoReal;
+    let accumulatedIncome = realCash.totalReceitas || allTimeFlow.income;
+    let accumulatedExpenses = realCash.totalDespesasAVista || allTimeFlow.expenses;
+    let monthIncome = realCash.receitasMes || flow.income;
+    let monthExpenses = realCash.despesasMes || flow.expenses;
+
+    // Resiliência de hidratação: se o cálculo em memória der 0 (ex: primeira renderização antes da
+    // sincronização do bridge RTDB), busca o saldo real soberano em cache (gravado pelo Controla)
+    // para evitar que o usuário veja valores zerados ou falsos alertas de déficits.
+    if (accumulatedBalance === 0 && typeof window !== 'undefined' && user?.uid) {
+      try {
+        const raw = localStorage.getItem(`fpi_real_cash_balance_${user.uid}`);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (typeof parsed === 'object' && parsed !== null && typeof parsed.saldoReal === 'number' && parsed.saldoReal !== 0) {
+            accumulatedBalance = parsed.saldoReal;
+            if (parsed.totalReceitas) accumulatedIncome = parsed.totalReceitas;
+            if (parsed.totalDespesasAVista) accumulatedExpenses = parsed.totalDespesasAVista;
+            if (parsed.receitasMes) monthIncome = parsed.receitasMes;
+            if (parsed.despesasMes) monthExpenses = parsed.despesasMes;
+          }
+        }
+      } catch {}
+    }
+
     const snapshot = buildSovereignSnapshot({
       monthBalance: flow.realBalance,
-      accumulatedBalance: allTimeFlow.realBalance,
-      accumulatedIncome: allTimeFlow.income,
-      accumulatedExpenses: allTimeFlow.expenses,
+      accumulatedBalance,
+      accumulatedIncome,
+      accumulatedExpenses,
       obligationPressure,
       pendingBills: totalPendingBills,
       financialProfile: userMeta?.financialProfile,
       commandMode,
-      income: flow.income,
-      expenses: flow.expenses,
-      monthlyAport: Math.max(0, flow.income - flow.expenses),
+      income: monthIncome,
+      expenses: monthExpenses,
+      monthlyAport: Math.max(0, monthIncome - monthExpenses),
       exclusions,
     });
 

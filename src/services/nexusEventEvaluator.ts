@@ -25,7 +25,7 @@ export function evaluateTransactionCreated(
 ): NexusInsight | null {
   const amount = payload.transaction.amount || 0;
 
-  if (payload.transaction.isBillPayment) {
+  if (payload.transaction.isBillPayment && !payload.transaction.linkedRecurringBillId) {
     return {
       id: 'nexus-event-bill-payment',
       message: {
@@ -56,7 +56,7 @@ export function evaluateTransactionCreated(
       id: 'nexus-event-large-income',
       message: {
         title: 'Entrada de valor relevante',
-        body: `{prefix} Recebi um movimento de {value}. Duas rotas: reforçar o Colchão Inicial ou redirecionar para a estratégia de dívidas.`,
+        body: `{prefix} Recebi um movimento de {value}. Duas rotas: reforçar o Colchão Emergencial ou redirecionar para a estratégia de dívidas.`,
         ctaLabel: 'Ver Estrutura',
       },
       deepLink: 'home',

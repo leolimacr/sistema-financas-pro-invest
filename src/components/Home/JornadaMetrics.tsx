@@ -11,6 +11,7 @@ interface JornadaMetricsProps {
   reserveTarget: number | null | undefined;
   formatCurrency: (val: number) => string;
   onNavigate: (tool: string) => void;
+  isPrivacyMode?: boolean;
 }
 
 const JornadaMetrics: React.FC<JornadaMetricsProps> = ({
@@ -22,65 +23,70 @@ const JornadaMetrics: React.FC<JornadaMetricsProps> = ({
   activeDebtsCount,
   reserveTarget,
   formatCurrency,
+  isPrivacyMode = false,
 }) => {
   const hasPremiumAccess = effectiveTier === 'premium';
   const hasProAccess = effectiveTier === 'pro' || effectiveTier === 'premium';
 
-  const reserveDisplay = Math.min(saldoRealTotal, reserveTarget ?? 0);
-  const colchaoDisplay = Math.max(0, Math.min(colchaoTarget, saldoRealTotal - (reserveTarget ?? 0)));
+  const formatVal = (val: number) => (isPrivacyMode ? '••••••' : formatCurrency(val));
+
+  // Filosofia dos Dois Escudos: 1º Escudo (Colchão) preenchido primeiro, 2º Escudo (Reserva) preenchido em seguida
+  const colchaoDisplay = Math.min(saldoRealTotal, colchaoTarget ?? 0);
+  const remainingForReserve = Math.max(0, saldoRealTotal - (colchaoTarget ?? 0));
+  const reserveDisplay = Math.min(remainingForReserve, reserveTarget ?? 0);
 
   return (
-    <section className="relative overflow-hidden rounded-section bg-gradient-to-br from-white to-slate-50 border border-slate-200 border-l-4 border-l-indigo-500 p-5 md:p-6">
+    <section className="relative overflow-hidden rounded-section bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 border border-slate-200 dark:border-slate-800 border-l-4 border-l-indigo-500 p-5 md:p-6">
       <div className="relative space-y-5">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-[10px] font-black uppercase tracking-[0.2em] text-indigo-700">
+          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-800/60 text-[10px] font-black uppercase tracking-[0.2em] text-indigo-700 dark:text-indigo-400">
             Evolução
           </span>
           <span
             className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] ${
               hasPremiumAccess
-                ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                ? 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60'
                 : hasProAccess
-                  ? 'bg-sky-100 text-sky-700 border border-sky-200'
-                  : 'bg-slate-100 text-slate-600 border border-slate-200'
+                  ? 'bg-sky-100 dark:bg-sky-950/40 text-sky-700 dark:text-sky-400 border border-sky-200 dark:border-sky-800/60'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
             }`}
           >
             {hasPremiumAccess ? <Crown size={12} /> : null}
             Plano {effectiveTier === 'premium' ? 'Premium' : effectiveTier === 'pro' ? 'Pro' : 'Free'}
           </span>
-          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-black uppercase tracking-[0.2em]">
+          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[10px] font-black uppercase tracking-[0.2em]">
             Estágio: {stageName}
           </span>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="rounded-2xl bg-surface-subtle border border-slate-200 px-4 py-3">
-            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Reserva de Emergência</p>
-            <p className="text-sm font-black text-slate-900">
-              {reserveDisplay > 0 ? `Saldo atual ${formatCurrency(reserveDisplay)}` : '—'}
+          <div className="rounded-2xl bg-surface-subtle dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 px-4 py-3">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Reserva de Emergência</p>
+            <p className="text-sm font-black text-slate-900 dark:text-white">
+              {reserveDisplay > 0 ? `Saldo atual ${formatVal(reserveDisplay)}` : '—'}
             </p>
             {reserveTarget != null && reserveTarget > 0 && (
-              <p className="text-[10px] text-slate-500 mt-1">Meta {formatCurrency(reserveTarget)}</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">Meta {formatVal(reserveTarget)}</p>
             )}
           </div>
-          <div className="rounded-2xl bg-surface-subtle border border-slate-200 px-4 py-3">
-            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Colchão Emergencial</p>
-            <p className="text-sm font-black text-slate-900">
-              {colchaoDisplay > 0 ? `Saldo atual ${formatCurrency(colchaoDisplay)}` : '—'}
+          <div className="rounded-2xl bg-surface-subtle dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 px-4 py-3">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Colchão Emergencial</p>
+            <p className="text-sm font-black text-slate-900 dark:text-white">
+              {colchaoDisplay > 0 ? `Saldo atual ${formatVal(colchaoDisplay)}` : '—'}
             </p>
             {colchaoTarget > 0 && (
-              <p className="text-[10px] text-slate-500 mt-1">Meta {formatCurrency(colchaoTarget)}</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">Meta {formatVal(colchaoTarget)}</p>
             )}
           </div>
-          <div className="rounded-2xl bg-surface-subtle border border-slate-200 px-4 py-3">
-            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Patrimônio líquido</p>
-            <p className="text-sm font-black text-slate-900">
-              {patrimonioLiquido !== 0 ? formatCurrency(patrimonioLiquido) : '—'}
+          <div className="rounded-2xl bg-surface-subtle dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 px-4 py-3">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Patrimônio líquido</p>
+            <p className="text-sm font-black text-slate-900 dark:text-white">
+              {patrimonioLiquido !== 0 ? formatVal(patrimonioLiquido) : '—'}
             </p>
           </div>
-          <div className="rounded-2xl bg-surface-subtle border border-slate-200 px-4 py-3">
-            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Dívidas ativas</p>
-            <p className="text-sm font-black text-slate-900">{activeDebtsCount > 0 ? activeDebtsCount : '—'}</p>
+          <div className="rounded-2xl bg-surface-subtle dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 px-4 py-3">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Dívidas ativas</p>
+            <p className="text-sm font-black text-slate-900 dark:text-white">{activeDebtsCount > 0 ? activeDebtsCount : '—'}</p>
           </div>
         </div>
 

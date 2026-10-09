@@ -92,17 +92,17 @@ const AuthLogin: React.FC<AuthLoginProps> = ({ onSuccess, onSwitchToRegister }) 
   };
 
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen w-full px-4 bg-surface-secondary pt-20">
+      <div className="flex flex-col items-center justify-center min-h-screen w-full px-4 bg-surface-secondary dark:bg-slate-950 pt-20">
         <div className="w-full max-w-md">
           {/* Botão Voltar */}
           <button 
             onClick={() => window.location.href = '/'}
-            className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors mb-4 ml-2 text-sm font-bold uppercase tracking-widest"
+            className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors mb-4 ml-2 text-sm font-bold uppercase tracking-widest"
           >
             <ArrowRight size={16} className="rotate-180" /> Voltar ao site
           </button>
 
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
             
             {/* Detalhe decorativo no topo */}
             <div className="h-1 w-full bg-gradient-to-r from-indigo-500 via-emerald-400 to-sky-500"></div>
@@ -110,29 +110,29 @@ const AuthLogin: React.FC<AuthLoginProps> = ({ onSuccess, onSwitchToRegister }) 
             <div className="p-8">
               {/* HEADER com logo e título */}
               <div className="text-center mb-8">
-                <div className="w-20 h-20 bg-gradient-to-br from-indigo-50 to-slate-50 border border-slate-200 rounded-2xl flex items-center justify-center mx-auto shadow-sm mb-4">
+                <div className="w-20 h-20 bg-gradient-to-br from-indigo-50 to-slate-50 dark:from-indigo-950/40 dark:to-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-center mx-auto shadow-sm mb-4">
                   <img src="/assets/images/brand/icon.png" alt="Logo" className="w-12 h-12" />
                 </div>
                 
-                <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+                <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
                   Finanças <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-emerald-600">Pro Invest</span>
                 </h1>
                 
-                <p className="text-slate-500 text-sm mt-2 font-medium">
+                <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 font-medium">
                   Acesse sua conta para continuar sua jornada
                 </p>
               </div>
 
               {/* Mensagens de feedback com ícones */}
               {error && (
-                <div className="flex items-start gap-3 bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-xl text-sm mb-6">
+                <div className="flex items-start gap-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-400 p-4 rounded-xl text-sm mb-6">
                   <AlertCircle size={18} className="shrink-0 mt-0.5" />
                   <div className="flex-1">
                     <p className="font-bold">{error}</p>
                     {unverifiedUser && (
                       <button 
                         onClick={handleResendVerification}
-                        className="underline hover:text-rose-900 transition-colors text-xs mt-1 font-medium"
+                        className="underline hover:text-rose-900 dark:hover:text-rose-300 transition-colors text-xs mt-1 font-medium"
                       >
                         Reenviar e-mail de verificação
                       </button>
@@ -142,7 +142,7 @@ const AuthLogin: React.FC<AuthLoginProps> = ({ onSuccess, onSwitchToRegister }) 
               )}
               
               {successMsg && (
-                <div className="flex items-start gap-3 bg-emerald-50 border border-emerald-200 text-emerald-700 p-4 rounded-xl text-sm mb-6">
+                <div className="flex items-start gap-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 text-emerald-700 dark:text-emerald-400 p-4 rounded-xl text-sm mb-6">
                   <CheckCircle size={18} className="shrink-0 mt-0.5" />
                   <span className="font-medium">{successMsg}</span>
                 </div>
@@ -151,32 +151,32 @@ const AuthLogin: React.FC<AuthLoginProps> = ({ onSuccess, onSwitchToRegister }) 
               <form onSubmit={handleLogin} className="space-y-5">
                 {/* Campo E-mail */}
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" size={20} />
                   <input 
                     type="email" 
                     placeholder="Seu melhor e-mail" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-white border border-slate-300 text-slate-800 pl-12 pr-4 py-4 rounded-xl outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all placeholder:text-slate-500"
+                    className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white pl-12 pr-4 py-4 rounded-xl outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-900/40 transition-all placeholder:text-slate-500 dark:placeholder:text-slate-400"
                     required
                   />
                 </div>
 
                 {/* Campo Senha */}
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" size={20} />
                   <input 
                     type={showPassword ? "text" : "password"} 
                     placeholder="Sua senha" 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-white border border-slate-300 text-slate-800 pl-12 pr-12 py-4 rounded-xl outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all placeholder:text-slate-500"
+                    className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white pl-12 pr-12 py-4 rounded-xl outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-900/40 transition-all placeholder:text-slate-500 dark:placeholder:text-slate-400"
                     required
                   />
                   <button 
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-indigo-600 transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                   >
                     {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
                   </button>
@@ -186,7 +186,7 @@ const AuthLogin: React.FC<AuthLoginProps> = ({ onSuccess, onSwitchToRegister }) 
                   <button 
                     type="button" 
                     onClick={handleForgotPassword}
-                    className="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors hover:underline"
+                    className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors hover:underline"
                   >
                     Esqueceu a senha?
                   </button>
@@ -204,10 +204,10 @@ const AuthLogin: React.FC<AuthLoginProps> = ({ onSuccess, onSwitchToRegister }) 
 
               {/* Rodapé - Criar conta */}
               <div className="mt-8 text-center">
-                <p className="text-slate-500 text-sm mb-2">Ainda não faz parte?</p>
+                <p className="text-slate-500 dark:text-slate-400 text-sm mb-2">Ainda não faz parte?</p>
                 <button 
                   onClick={onSwitchToRegister} 
-                  className="text-emerald-600 font-bold hover:text-emerald-800 transition-colors text-sm uppercase tracking-wider hover:underline"
+                  className="text-emerald-600 dark:text-emerald-400 font-bold hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors text-sm uppercase tracking-wider hover:underline"
                 >
                   Criar Conta Gratuita
                 </button>
@@ -216,7 +216,7 @@ const AuthLogin: React.FC<AuthLoginProps> = ({ onSuccess, onSwitchToRegister }) 
           </div>
           
           {/* Texto de segurança */}
-          <p className="text-center text-xs text-slate-500 mt-6">
+          <p className="text-center text-xs text-slate-500 dark:text-slate-400 mt-6">
             🔒 Seus dados estão protegidos com criptografia de ponta a ponta.
           </p>
         </div>

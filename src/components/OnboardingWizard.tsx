@@ -16,7 +16,7 @@ const PERSONA_OPTIONS: { value: OnboardingPersona; label: string; sublabel: stri
   { value: 'geral', label: 'Quero controlar o dia a dia', sublabel: 'Registrar contas, gastos e ver o que sobra' },
 ];
 
-/** Onboarding conceitual: introdução ao Saldo Livre Real, Colchão Inicial e perfil inicial. */
+/** Onboarding conceitual: introdução ao Saldo Livre Real, Colchão Emergencial e perfil inicial. */
 const STEPS = [
   {
     id: 'welcome',
@@ -28,7 +28,7 @@ const STEPS = [
   {
     id: 'marco_zero',
     icon: Target,
-    title: 'Colchão Inicial: sua primeira proteção',
+    title: 'Colchão Emergencial: sua primeira proteção',
     description: 'É o dinheiro que funciona como amortecedor entre o dia a dia e a reserva de emergência. Uma camada de segurança para meses de aperto.',
     color: 'sky',
   },
@@ -50,14 +50,14 @@ const STEPS = [
 
 const colorMap: Record<string, { bg: string; icon: string; button: string; ring: string }> = {
   emerald: {
-    bg: 'bg-emerald-50 border-emerald-200',
-    icon: 'bg-emerald-100 text-emerald-600 border-emerald-200',
+    bg: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800',
+    icon: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
     button: 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/30',
     ring: 'bg-emerald-500',
   },
   sky: {
-    bg: 'bg-sky-50 border-sky-200',
-    icon: 'bg-sky-100 text-sky-600 border-sky-200',
+    bg: 'bg-sky-50 dark:bg-sky-950/30 border-sky-200 dark:border-sky-800',
+    icon: 'bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 border-sky-200 dark:border-sky-800',
     button: 'bg-sky-500 hover:bg-sky-400 shadow-sky-500/30',
     ring: 'bg-sky-500',
   },
@@ -109,13 +109,13 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ userId, onComplete 
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300 border border-slate-100 dark:border-slate-800">
         <div className="flex gap-1 p-4 pb-0">
           {STEPS.map((_, i) => (
             <div
               key={i}
               className={`h-1 flex-1 rounded-full transition-all duration-500 ${
-                i <= currentStep ? colors.ring : 'bg-slate-200'
+                i <= currentStep ? colors.ring : 'bg-slate-200 dark:bg-slate-700'
               }`}
             />
           ))}
@@ -126,8 +126,8 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ userId, onComplete 
             <Icon size={28} />
           </div>
 
-          <h2 className="text-xl font-black text-slate-900 mb-2 leading-tight">{step.title}</h2>
-          <p className="text-slate-600 text-sm leading-relaxed">{step.description}</p>
+          <h2 className="text-xl font-black text-slate-900 dark:text-white mb-2 leading-tight">{step.title}</h2>
+          <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">{step.description}</p>
 
           {isDiagnose && (
             <div className="mt-4 flex flex-col gap-2">
@@ -138,14 +138,14 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ userId, onComplete 
                   onClick={() => setPersona(opt.value)}
                   className={`text-left rounded-xl border px-4 py-3 transition-all duration-200 ${
                     persona === opt.value
-                      ? 'border-sky-500 bg-sky-50 shadow-sm'
-                      : 'border-slate-200 bg-white hover:border-sky-300 hover:bg-sky-50/40'
+                      ? 'border-sky-500 bg-sky-50 dark:bg-sky-950/40 shadow-sm'
+                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-sky-300 dark:hover:border-sky-600 hover:bg-sky-50/40 dark:hover:bg-slate-700'
                   }`}
                 >
-                  <p className={`text-sm font-black leading-snug ${persona === opt.value ? 'text-sky-800' : 'text-slate-800'}`}>
+                  <p className={`text-sm font-black leading-snug ${persona === opt.value ? 'text-sky-800 dark:text-sky-300' : 'text-slate-800 dark:text-slate-200'}`}>
                     {opt.label}
                   </p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">{opt.sublabel}</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{opt.sublabel}</p>
                 </button>
               ))}
             </div>
@@ -157,7 +157,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ userId, onComplete 
             <button
               type="button"
               onClick={() => setCurrentStep((prev) => prev - 1)}
-              className="p-3 rounded-xl border border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300 transition-all"
+              className="p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-600 transition-all"
               aria-label="Voltar"
             >
               <ArrowLeft size={18} />
@@ -178,7 +178,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ userId, onComplete 
             <button
               type="button"
               onClick={handleSkip}
-              className="p-3 rounded-xl border border-slate-200 text-slate-500 hover:text-slate-600 hover:border-slate-300 transition-all"
+              className="p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 transition-all"
               aria-label="Pular"
             >
               <X size={18} />
@@ -187,7 +187,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ userId, onComplete 
         </div>
 
         {!isLast && (
-          <p className="text-center text-[11px] text-slate-500 pb-4">
+          <p className="text-center text-[11px] text-slate-500 dark:text-slate-400 pb-4">
             Passo {currentStep + 1} de {STEPS.length}
           </p>
         )}

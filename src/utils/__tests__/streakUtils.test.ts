@@ -80,7 +80,7 @@ describe('streakUtils', () => {
     });
 
     it('should return encouragement for 1 day', () => {
-      expect(getStreakMilestoneMessage(1)).toContain('comece sua jornada');
+      expect(getStreakMilestoneMessage(1)).toContain('Registre movimentações');
     });
 
     it('should return current streak for 5 days', () => {

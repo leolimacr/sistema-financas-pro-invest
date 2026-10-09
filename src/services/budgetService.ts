@@ -3,6 +3,7 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   doc,
 } from 'firebase/firestore';
 import { firestore } from '../firebase';
@@ -51,4 +52,9 @@ export async function updateBudgetCategories(
     categories,
     updatedAt: new Date().toISOString(),
   });
+}
+
+export async function deleteBudget(userId: string, budgetId: string): Promise<void> {
+  const ref = getBudgetRef(userId, budgetId);
+  await deleteDoc(ref);
 }

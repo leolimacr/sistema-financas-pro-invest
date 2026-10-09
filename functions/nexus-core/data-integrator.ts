@@ -287,6 +287,45 @@ export class DataIntegrator {
           }).join('\n');
     }
 
+    static formatBillsSummary(bills: any[]): string {
+        if (!bills || bills.length === 0) return '\n📋 Contas fixas / Assinaturas: Nenhuma conta fixa cadastrada.';
+        const activeBills = bills.filter((b: any) => b.isActive !== false);
+        const totalMensal = activeBills.reduce((acc: number, b: any) => acc + Number(b.amount || 0), 0);
+
+        return `\n📋 CONTAS FIXAS & ASSINATURAS (${activeBills.length} ativas, Total R$ ${totalMensal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mês):\n` +
+          activeBills.map((b: any) => {
+            const nome = b.name || 'Conta sem nome';
+            const valor = Number(b.amount || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const diaVenc = b.dueDay ? `dia ${b.dueDay}` : 'sem dia fixo';
+            const cat = b.category ? ` [${b.category}]` : '';
+            return `  • ${nome}${cat}: R$ ${valor} (Vencimento ${diaVenc})`;
+          }).join('\n');
+    }
+
+    static formatCardsSummary(cards: any[], invoices: any[] = []): string {
+        if (!cards || cards.length === 0) return '\n💳 Cartões de Crédito: Nenhum cartão cadastrado.';
+        
+        return `\n💳 CARTÕES DE CRÉDITO (${cards.length} cadastrados):\n` +
+          cards.map((c: any) => {
+            const nome = c.name || 'Cartão sem nome';
+            const limite = Number(c.limit || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const utilizado = Number(c.saldoUtilizadoTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const fechamento = c.closingDay ? `Fechamento dia ${c.closingDay}` : '';
+            const vencimento = c.dueDay ? `Vencimento dia ${c.dueDay}` : '';
+            const prazos = [fechamento, vencimento].filter(Boolean).join(' | ');
+            
+            const faturasDoCartao = invoices.filter((inv: any) => inv.cardId === c.id && inv.status !== 'paid');
+            let faturaInfo = '';
+            if (faturasDoCartao.length > 0) {
+              const faturaAberta = faturasDoCartao[0];
+              const valorFatura = Number(faturaAberta.remainingAmount ?? faturaAberta.total ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              faturaInfo = ` -> Fatura Atual pendente: R$ ${valorFatura} (${faturaAberta.status || 'aberta'})`;
+            }
+
+            return `  • ${nome}: Limite R$ ${limite} | Saldo Utilizado R$ ${utilizado}${prazos ? ` (${prazos})` : ''}${faturaInfo}`;
+          }).join('\n');
+    }
+
     static formatPatrimonioVisaoGerencial(assets: any[], passives: any[]): string {
         const totalAssets = assets.reduce((sum: number, a: any) => sum + (a.currentValue || 0), 0);
         const totalPassives = passives.reduce((sum: number, p: any) => sum + (p.currentValue || 0), 0);

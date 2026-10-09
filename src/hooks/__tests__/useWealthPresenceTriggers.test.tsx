@@ -16,7 +16,7 @@ const goal = (over: Partial<Goal> = {}): Goal => {
     id: 'g1',
     title: 'Reserva',
     targetAmount: 10000,
-    currentAmount: 1000,
+    currentAmount: 0,
     targetDate: target.toISOString(),
     ...over,
   } as unknown as Goal;

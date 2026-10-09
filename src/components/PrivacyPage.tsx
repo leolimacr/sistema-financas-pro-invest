@@ -4,23 +4,24 @@ import { ArrowLeft } from 'lucide-react';
 
 export const PrivacyPage = () => {
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <Helmet>
-        <title>Política de Privacidade - Finanças Pro Invest</title>
-        <meta name="description" content="Política de privacidade do aplicativo Finanças Pro Invest." />
-      </Helmet>
+    <div className="min-h-screen bg-surface-primary dark:bg-slate-950 text-slate-800 dark:text-slate-200 transition-colors">
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <Helmet>
+          <title>Política de Privacidade - Finanças Pro Invest</title>
+          <meta name="description" content="Política de privacidade do aplicativo Finanças Pro Invest." />
+        </Helmet>
 
-      {/* Botão Voltar */}
-      <button 
-        onClick={() => window.location.href = '/'}
-        className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors mb-8 text-sm font-bold uppercase tracking-widest"
-      >
-        <ArrowLeft size={16} /> Voltar ao site
-      </button>
+        {/* Botão Voltar */}
+        <button 
+          onClick={() => window.location.href = '/'}
+          className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors mb-8 text-sm font-bold uppercase tracking-widest"
+        >
+          <ArrowLeft size={16} /> Voltar ao site
+        </button>
 
-      <h1 className="text-3xl font-bold mb-6">Política de Privacidade</h1>
-      <p className="text-sm text-gray-600 mb-8">Última atualização: 17 de fevereiro de 2026</p>
-      <div className="prose prose-sm max-w-none">
+        <h1 className="text-3xl font-bold mb-6 text-slate-900 dark:text-white">Política de Privacidade</h1>
+        <p className="text-sm text-gray-600 dark:text-slate-400 mb-8">Última atualização: 17 de fevereiro de 2026</p>
+        <div className="prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-slate-300">
         <h2>1. Quem é o controlador dos seus dados?</h2>
         <p>
           O Finanças Pro Invest, doravante denominado "Plataforma", é o controlador responsável pelo tratamento dos dados pessoais dos Usuários, nos termos da Lei Geral de Proteção de Dados (LGPD – Lei 13.709/2018). Qualquer comunicação relacionada a dados pessoais deve ser dirigida ao e-mail: <strong>contato@financasproinvest.com.br</strong>.
@@ -98,6 +99,7 @@ export const PrivacyPage = () => {
 
         <h2>13. Contato do Encarregado (DPO)</h2>
         <p>Para assuntos relacionados à proteção de dados, o Usuário pode contatar nosso Encarregado pelo e-mail: <strong>contato@financasproinvest.com.br</strong>.</p>
+      </div>
       </div>
     </div>
   );

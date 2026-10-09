@@ -39,10 +39,17 @@ describe('AppMobileDrawer (Etapa 6 — E6-01)', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renderiza aberto com os atalhos principais', () => {
+  it('renderiza aberto com os 5 blocos executivos e atalhos principais', () => {
     render(<AppMobileDrawer {...baseProps} />);
-    expect(screen.getByText('Menu Principal')).toBeInTheDocument();
+    expect(screen.getByText('Menu Soberano')).toBeInTheDocument();
+    expect(screen.getByText('Rotina & Caixa')).toBeInTheDocument();
+    expect(screen.getByText('Operação Diária')).toBeInTheDocument();
+    expect(screen.getByText('Patrimônio & Decisões')).toBeInTheDocument();
+    expect(screen.getByText('Inteligência & Descoberta')).toBeInTheDocument();
+    expect(screen.getByText('Sistema')).toBeInTheDocument();
+    expect(screen.getByText('Central')).toBeInTheDocument();
     expect(screen.getByText('Controla')).toBeInTheDocument();
+    expect(screen.getByText('Agenda')).toBeInTheDocument();
     expect(screen.getByText('Minhas Dívidas')).toBeInTheDocument();
     expect(screen.getByText('Configurações')).toBeInTheDocument();
     expect(screen.getByText('Explorar')).toBeInTheDocument();
@@ -76,6 +83,23 @@ describe('AppMobileDrawer (Etapa 6 — E6-01)', () => {
     expect(navMocks.handleNavigate).toHaveBeenCalledWith('login');
   });
 
+  it('navega para a Carteira Soberana (portfolio) e fecha o drawer', () => {
+    const onClose = vi.fn();
+    render(<AppMobileDrawer {...baseProps} onClose={onClose} />);
+    fireEvent.click(screen.getByText('Carteira Soberana'));
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(navMocks.handleNavigate).toHaveBeenCalledWith('portfolio');
+  });
+
+  it('com premium, Investimentos navega para o módulo legado de investimentos', () => {
+    entitlementMocks.tier = 'premium';
+    const onClose = vi.fn();
+    render(<AppMobileDrawer {...baseProps} onClose={onClose} />);
+    fireEvent.click(screen.getByText('Investimentos'));
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(navMocks.handleNavigate).toHaveBeenCalledWith('investimentos');
+  });
+
   it('logout fecha o drawer e desloga', () => {
     const onClose = vi.fn();
     const onLogout = vi.fn();
@@ -83,5 +107,28 @@ describe('AppMobileDrawer (Etapa 6 — E6-01)', () => {
     fireEvent.click(screen.getByText('Sair da Conta'));
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onLogout).toHaveBeenCalledTimes(1);
+  });
+
+  it('fecha o drawer ao clicar no backdrop (fora da prateleira na lateral esquerda)', () => {
+    const onClose = vi.fn();
+    render(<AppMobileDrawer {...baseProps} onClose={onClose} />);
+    const backdrop = screen.getByTestId('app-mobile-drawer-backdrop');
+    fireEvent.click(backdrop);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('não fecha o drawer ao clicar dentro da prateleira de opções', () => {
+    const onClose = vi.fn();
+    render(<AppMobileDrawer {...baseProps} onClose={onClose} />);
+    const content = screen.getByTestId('app-mobile-drawer-content');
+    fireEvent.click(content);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('fecha o drawer ao pressionar a tecla Escape', () => {
+    const onClose = vi.fn();
+    render(<AppMobileDrawer {...baseProps} onClose={onClose} />);
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

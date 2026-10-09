@@ -20,7 +20,7 @@ vi.mock('../../../../hooks/useBills', () => {
 });
 
 vi.mock('../../../../hooks/useBudget', () => {
-  return { useBudget: () => ({ budget: null, isLoading: false }) };
+  return { useBudget: () => ({ budget: null, isLoading: false, deleteBudget: vi.fn() }) };
 });
 
 vi.mock('../../../../hooks/useCardInvoices', () => {

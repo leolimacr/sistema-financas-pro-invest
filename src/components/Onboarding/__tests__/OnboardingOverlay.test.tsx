@@ -17,22 +17,28 @@ describe('OnboardingOverlay', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('renderiza passo 1 com título e botão Lançar agora', () => {
+  it('renderiza passo 1 com título e botão Continuar', () => {
     render(<OnboardingOverlay {...defaultProps} step={1} />);
-    expect(screen.getByText('Seu ponto de partida')).toBeDefined();
-    expect(screen.getByText('Lançar agora')).toBeDefined();
+    expect(screen.getByText('Seu painel financeiro')).toBeDefined();
+    expect(screen.getByText('Continuar')).toBeDefined();
   });
 
   it('renderiza passo 2 com título e botão Entendi', () => {
     render(<OnboardingOverlay {...defaultProps} step={2} />);
-    expect(screen.getByText('Primeiro movimento registrado')).toBeDefined();
+    expect(screen.getByText('Seu dinheiro livre de verdade')).toBeDefined();
     expect(screen.getByText('Entendi')).toBeDefined();
   });
 
-  it('renderiza passo 3 com título e botão Concluir', () => {
+  it('renderiza passo 3 com título e botão Continuar', () => {
     render(<OnboardingOverlay {...defaultProps} step={3} />);
-    expect(screen.getByText('Sua evolução na Central')).toBeDefined();
-    expect(screen.getByText('Concluir')).toBeDefined();
+    expect(screen.getByText('Sua primeira proteção')).toBeDefined();
+    expect(screen.getByText('Continuar')).toBeDefined();
+  });
+
+  it('renderiza passo 4 com título e botão Fazer primeiro lançamento', () => {
+    render(<OnboardingOverlay {...defaultProps} step={4} />);
+    expect(screen.getByText('Sua vez de agir')).toBeDefined();
+    expect(screen.getByText('Fazer primeiro lançamento')).toBeDefined();
   });
 
   it('botão Pular chama onSkip', () => {
@@ -43,10 +49,10 @@ describe('OnboardingOverlay', () => {
   });
 
   it('botão de ação chama a função correta no passo 1', () => {
-    const onLaunch = vi.fn();
-    render(<OnboardingOverlay {...defaultProps} step={1} onLaunch={onLaunch} />);
-    fireEvent.click(screen.getByText('Lançar agora'));
-    expect(onLaunch).toHaveBeenCalled();
+    const onNext = vi.fn();
+    render(<OnboardingOverlay {...defaultProps} step={1} onNext={onNext} />);
+    fireEvent.click(screen.getByText('Continuar'));
+    expect(onNext).toHaveBeenCalled();
   });
 
   it('botão de ação chama a função correta no passo 2', () => {
@@ -56,10 +62,10 @@ describe('OnboardingOverlay', () => {
     expect(onNext).toHaveBeenCalled();
   });
 
-  it('botão de ação chama a função correta no passo 3', () => {
-    const onFinish = vi.fn();
-    render(<OnboardingOverlay {...defaultProps} step={3} onFinish={onFinish} />);
-    fireEvent.click(screen.getByText('Concluir'));
-    expect(onFinish).toHaveBeenCalled();
+  it('botão de ação chama a função correta no passo 4', () => {
+    const onLaunch = vi.fn();
+    render(<OnboardingOverlay {...defaultProps} step={4} onLaunch={onLaunch} />);
+    fireEvent.click(screen.getByText('Fazer primeiro lançamento'));
+    expect(onLaunch).toHaveBeenCalled();
   });
 });

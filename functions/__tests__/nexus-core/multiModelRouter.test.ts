@@ -75,4 +75,17 @@ describe('MultiModelRouter - fail-fast controlado', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it('cache: não compartilha diagnóstico entre usuários ou contextos distintos', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse('diagnóstico isolado'));
+    vi.stubGlobal('fetch', fetchMock);
+    const router = MultiModelRouter.getInstance();
+    router.updateApiKeys({ groq: 'g-key', openrouter: 'o-key' });
+    const messages = [{ role: 'user', content: 'como está minha situação? ' + Date.now() }];
+
+    await router.routeRequest(messages, 'contexto financeiro da pessoa A', { cacheScope: 'user-a' });
+    await router.routeRequest(messages, 'contexto financeiro da pessoa B', { cacheScope: 'user-b' });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
 });

@@ -47,6 +47,10 @@ export const useDebts = (userId: string | undefined) => {
     queryKey: key,
     queryFn: async () => {
       if (!userId) return [];
+      if (userId === 'demo-sandbox-soberano') {
+        const { DEMO_DEBTS } = await import('../constants/demoDataset');
+        return DEMO_DEBTS;
+      }
       const snapshot = await getDocs(collection(firestore, 'users', userId, 'dividas'));
       const debts = snapshot.docs.map(doc => mapDebtFromFirestore(doc.id, doc.data()));
       // Atualizar cache localStorage (TTL 24h)

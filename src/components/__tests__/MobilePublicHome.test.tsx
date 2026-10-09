@@ -1,10 +1,24 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import MobilePublicHome from '../MobilePublicHome';
 
-describe('MobilePublicHome (Etapa B2 — Onboarding Mobile Deslogado)', () => {
+const mockEnterDemoMode = vi.fn();
+
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    enterDemoMode: mockEnterDemoMode,
+  }),
+}));
+
+describe('MobilePublicHome (Etapa B2 — Onboarding Mobile Deslogado & Fase 2)', () => {
   it('renderiza título principal e os 4 pilares da liberdade soberana', () => {
-    render(<MobilePublicHome onLogin={vi.fn()} onRegister={vi.fn()} />);
+    render(
+      <MemoryRouter>
+        <MobilePublicHome onLogin={vi.fn()} onRegister={vi.fn()} />
+      </MemoryRouter>
+    );
 
     expect(screen.getByText(/Saiba exatamente quanto/i)).toBeInTheDocument();
     expect(screen.getByText(/sobra de verdade/i)).toBeInTheDocument();
@@ -18,7 +32,11 @@ describe('MobilePublicHome (Etapa B2 — Onboarding Mobile Deslogado)', () => {
   });
 
   it('permite alternar entre os pilares para explorar os conceitos', () => {
-    render(<MobilePublicHome onLogin={vi.fn()} onRegister={vi.fn()} />);
+    render(
+      <MemoryRouter>
+        <MobilePublicHome onLogin={vi.fn()} onRegister={vi.fn()} />
+      </MemoryRouter>
+    );
 
     // Inicialmente no pilar 1 (Caixa & Rotina)
     expect(screen.getByText('Pilar 01 de 04')).toBeInTheDocument();
@@ -44,12 +62,43 @@ describe('MobilePublicHome (Etapa B2 — Onboarding Mobile Deslogado)', () => {
     const onLogin = vi.fn();
     const onRegister = vi.fn();
 
-    render(<MobilePublicHome onLogin={onLogin} onRegister={onRegister} />);
+    render(
+      <MemoryRouter>
+        <MobilePublicHome onLogin={onLogin} onRegister={onRegister} />
+      </MemoryRouter>
+    );
 
     fireEvent.click(screen.getByText('Criar Conta Gratuita'));
     expect(onRegister).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByText(/Já tenho conta • Entrar/i));
     expect(onLogin).toHaveBeenCalledTimes(1);
+  });
+
+  it('exibe o botão de demonstração sem cadastro e aciona o enterDemoMode', () => {
+    render(
+      <MemoryRouter>
+        <MobilePublicHome onLogin={vi.fn()} onRegister={vi.fn()} />
+      </MemoryRouter>
+    );
+
+    const demoBtn = screen.getByText(/Experimentar demonstração sem cadastro/i);
+    expect(demoBtn).toBeInTheDocument();
+
+    fireEvent.click(demoBtn);
+    expect(mockEnterDemoMode).toHaveBeenCalledTimes(1);
+  });
+
+  it('renderiza o carrossel de simuladores e ferramentas abertas', () => {
+    render(
+      <MemoryRouter>
+        <MobilePublicHome onLogin={vi.fn()} onRegister={vi.fn()} />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Simuladores & Ferramentas Abertas')).toBeInTheDocument();
+    expect(screen.getByText('Juros Compostos')).toBeInTheDocument();
+    expect(screen.getByText('Calculadora de Dívidas')).toBeInTheDocument();
+    expect(screen.getByText('Calculadora de Independência Financeira')).toBeInTheDocument();
   });
 });

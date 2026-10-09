@@ -10,6 +10,7 @@ import {
   Search,
   X,
   Lock,
+  Download,
 } from 'lucide-react';
 import type { HistoryViewMode } from '../../../utils/historyTimeGate';
 
@@ -24,6 +25,7 @@ interface FilterBarProps {
   changeDate: (offset: number) => void;
   periodLabel: string;
   onExportPDF: () => void;
+  onExportCSV?: () => void;
   startDate: string;
   endDate: string;
   setStartDate: (date: string) => void;
@@ -50,6 +52,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
   changeDate,
   periodLabel,
   onExportPDF,
+  onExportCSV,
   startDate,
   endDate,
   setStartDate,
@@ -85,22 +88,22 @@ const FilterBar: React.FC<FilterBarProps> = ({
   const isAllCategories = selectedCategories.length === 0;
 
   return (
-    <div className="flex flex-col gap-4 bg-surface-primary p-4 md:p-5 rounded-panel border border-slate-200 mb-4 shadow-panel">
+    <div className="flex flex-col gap-4 bg-surface-primary dark:bg-slate-900 p-4 md:p-5 rounded-panel border border-slate-200 dark:border-slate-800 mb-4 shadow-panel">
       
       {/* BUSCA GLOBAL */}
       <div className="relative">
-        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted dark:text-slate-400 pointer-events-none" />
         <input
           type="text"
           placeholder="Pesquisar por descrição ou categoria..."
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          className="w-full bg-surface-secondary border border-surface-elevated rounded-3xl pl-10 pr-10 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-brand-primary focus:bg-surface-primary transition-all"
+          className="w-full bg-surface-secondary dark:bg-slate-800/80 border border-surface-elevated dark:border-slate-700 rounded-3xl pl-10 pr-10 py-3 text-sm text-text-primary dark:text-white placeholder-text-muted dark:placeholder-slate-400 outline-none focus:border-brand-primary dark:focus:border-emerald-500 focus:bg-surface-primary dark:focus:bg-slate-900 transition-all"
         />
         {searchQuery && (
           <button
             onClick={() => setSearchQuery('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-text-muted hover:text-text-primary transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-text-muted dark:text-slate-400 hover:text-text-primary dark:hover:text-white transition-colors"
           >
             <X size={16} />
           </button>
@@ -120,7 +123,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
              
              {/* 1.1 Modos de Visualização */}
-             <div className="flex bg-surface-secondary rounded-full p-1.5 w-full sm:w-auto justify-between border border-surface-elevated shadow-soft">
+             <div className="flex bg-surface-secondary dark:bg-slate-800 rounded-full p-1.5 w-full sm:w-auto justify-between border border-surface-elevated dark:border-slate-700 shadow-soft">
                 {(['day', 'month', 'year', 'period', 'all'] as HistoryViewMode[]).map((mode) => {
                   const isRestricted = historyLocked && (mode === 'year' || mode === 'period' || mode === 'all');
                   return (
@@ -131,8 +134,8 @@ const FilterBar: React.FC<FilterBarProps> = ({
                             viewMode === mode 
                             ? 'bg-emerald-700 text-text-onBrand shadow-panel scale-105' 
                             : isRestricted
-                              ? 'text-text-muted hover:text-brand-secondary'
-                              : 'text-text-secondary hover:text-text-primary'
+                              ? 'text-text-muted dark:text-slate-400 hover:text-brand-secondary dark:hover:text-cyan-400'
+                              : 'text-text-secondary dark:text-slate-300 hover:text-text-primary dark:hover:text-white'
                         }`}
                     >
                         {mode === 'day' ? 'Dia' : mode === 'month' ? 'Mês' : mode === 'year' ? 'Ano' : mode === 'period' ? 'Período' : 'Tudo'}
@@ -144,16 +147,16 @@ const FilterBar: React.FC<FilterBarProps> = ({
 
              {/* 1.2 Navegação Rápida com Calendário ao Clicar */}
              {viewMode !== 'all' && viewMode !== 'period' && (
-                                <div className="flex items-center justify-between w-full sm:w-auto bg-surface-subtle p-1.5 rounded-section border border-slate-200 px-3 relative">
-                                        <button onClick={() => changeDate(-1)} className="p-2 hover:bg-surface-secondary rounded-2xl text-text-muted hover:text-text-primary transition-colors z-10">
+                                <div className="flex items-center justify-between w-full sm:w-auto bg-surface-subtle dark:bg-slate-800/60 p-1.5 rounded-section border border-slate-200 dark:border-slate-700 px-3 relative">
+                                        <button onClick={() => changeDate(-1)} className="p-2 hover:bg-surface-secondary dark:hover:bg-slate-700 rounded-2xl text-text-muted dark:text-slate-400 hover:text-text-primary dark:hover:text-white transition-colors z-10">
                         <ChevronLeft size={20}/>
                     </button>
                     
                     <div 
                       onClick={handleLabelClick}
-                      className="flex-1 min-w-[110px] text-center cursor-pointer hover:bg-surface-secondary rounded-xl py-1 transition-colors mx-1"
+                      className="flex-1 min-w-[110px] text-center cursor-pointer hover:bg-surface-secondary dark:hover:bg-slate-700 rounded-xl py-1 transition-colors mx-1"
                     >
-                        <span className="text-sm font-black text-text-primary capitalize tracking-tight">
+                        <span className="text-sm font-black text-text-primary dark:text-white capitalize tracking-tight">
                             {periodLabel}
                         </span>
                         <input 
@@ -165,7 +168,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
                         />
                     </div>
 
-                    <button onClick={() => changeDate(1)} className="p-2 hover:bg-surface-secondary rounded-2xl text-text-muted hover:text-text-primary transition-colors z-10">
+                    <button onClick={() => changeDate(1)} className="p-2 hover:bg-surface-secondary dark:hover:bg-slate-700 rounded-2xl text-text-muted dark:text-slate-400 hover:text-text-primary dark:hover:text-white transition-colors z-10">
                         <ChevronRight size={20}/>
                     </button>
                 </div>
@@ -174,40 +177,57 @@ const FilterBar: React.FC<FilterBarProps> = ({
 
           {/* 1.3 Inputs Período */}
           {viewMode === 'period' && (
-            <div className="flex flex-col sm:flex-row items-center gap-2 w-full lg:w-auto bg-surface-secondary p-2 rounded-3xl border border-surface-elevated animate-in fade-in zoom-in duration-300">
+            <div className="flex flex-col sm:flex-row items-center gap-2 w-full lg:w-auto bg-surface-secondary dark:bg-slate-800 p-2 rounded-3xl border border-surface-elevated dark:border-slate-700 animate-in fade-in zoom-in duration-300">
                 <div className="flex items-center justify-between w-full sm:w-auto gap-3 px-3">
-                    <span className="text-xxs font-black text-text-muted uppercase">De</span>
-                    <input type="date" value={startDate} min={historyLocked ? currentMonthStartIso : undefined} onChange={(e) => setStartDate(e.target.value)} className="bg-surface-primary border border-surface-elevated rounded-2xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-brand-primary h-10 shadow-soft" />
+                    <span className="text-xxs font-black text-text-muted dark:text-slate-400 uppercase">De</span>
+                    <input type="date" value={startDate} min={historyLocked ? currentMonthStartIso : undefined} onChange={(e) => setStartDate(e.target.value)} className="bg-surface-primary dark:bg-slate-900 border border-surface-elevated dark:border-slate-700 rounded-2xl px-3 py-2 text-xs text-text-primary dark:text-white focus:outline-none focus:border-brand-primary h-10 shadow-soft" />
                 </div>
-                <div className="flex items-center justify-between w-full sm:w-auto gap-3 px-3 border-t sm:border-t-0 sm:border-l border-surface-elevated pt-2 sm:pt-0 sm:pl-3">
-                    <span className="text-xxs font-black text-text-muted uppercase">Até</span>
-                    <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-surface-primary border border-surface-elevated rounded-2xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-brand-primary h-10 shadow-soft" />
+                <div className="flex items-center justify-between w-full sm:w-auto gap-3 px-3 border-t sm:border-t-0 sm:border-l border-surface-elevated dark:border-slate-700 pt-2 sm:pt-0 sm:pl-3">
+                    <span className="text-xxs font-black text-text-muted dark:text-slate-400 uppercase">Até</span>
+                    <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-surface-primary dark:bg-slate-900 border border-surface-elevated dark:border-slate-700 rounded-2xl px-3 py-2 text-xs text-text-primary dark:text-white focus:outline-none focus:border-brand-primary h-10 shadow-soft" />
                 </div>
             </div>
           )}
 
-          {/* 1.4 Botão PDF */}
-          <button 
-            onClick={onExportPDF}
-            className="flex items-center justify-center gap-2 px-5 py-3 rounded-3xl font-black bg-surface-primary text-text-secondary hover:text-text-primary hover:bg-surface-secondary border border-surface-elevated transition-all active:scale-95 shadow-soft w-full lg:w-auto"
-            title="Gerar Relatório PDF"
-          >
-            <FileText size={16} className="text-action-primaryDark shrink-0" />
-            <span className="text-xxs uppercase tracking-ultra-wide">Relatório PDF</span>
-          </button>
+          {/* 1.4 Botões de Exportação Soberana (PDF e CSV/Planilha) */}
+          <div className="flex items-center gap-2 w-full lg:w-auto">
+            <button 
+              type="button"
+              onClick={onExportPDF}
+              className="flex-1 lg:flex-none flex items-center justify-center gap-1.5 px-4 py-3 rounded-3xl font-black bg-surface-primary dark:bg-slate-800 text-text-secondary dark:text-slate-200 hover:text-text-primary dark:hover:text-white hover:bg-surface-secondary dark:hover:bg-slate-700 border border-surface-elevated dark:border-slate-700 transition-all active:scale-95 shadow-soft"
+              title="Gerar Relatório PDF"
+            >
+              <FileText size={15} className="text-action-primaryDark dark:text-emerald-400 shrink-0" />
+              <span className="text-xxs uppercase tracking-ultra-wide">PDF</span>
+              {historyLocked && <Lock size={10} className="text-amber-500 opacity-80" />}
+            </button>
+
+            {onExportCSV && (
+              <button 
+                type="button"
+                onClick={onExportCSV}
+                className="flex-1 lg:flex-none flex items-center justify-center gap-1.5 px-4 py-3 rounded-3xl font-black bg-surface-primary dark:bg-slate-800 text-text-secondary dark:text-slate-200 hover:text-text-primary dark:hover:text-white hover:bg-surface-secondary dark:hover:bg-slate-700 border border-surface-elevated dark:border-slate-700 transition-all active:scale-95 shadow-soft"
+                title="Exportar Planilha CSV (Excel)"
+              >
+                <Download size={15} className="text-sky-600 dark:text-sky-400 shrink-0" />
+                <span className="text-xxs uppercase tracking-ultra-wide">CSV</span>
+                {historyLocked && <Lock size={10} className="text-amber-500 opacity-80" />}
+              </button>
+            )}
+          </div>
       </div>
 
       {/* SEÇÃO 2: FILTRO POR TIPO (TUDO / RECEITAS / DESPESAS) */}
-      <div className="w-full border-t border-surface-elevated pt-4 mt-1">
-        <p className="text-[8px] font-bold text-text-muted uppercase tracking-widest mb-2 px-1">Tipo de lançamento</p>
+      <div className="w-full border-t border-surface-elevated dark:border-slate-800 pt-4 mt-1">
+        <p className="text-[8px] font-bold text-text-muted dark:text-slate-400 uppercase tracking-widest mb-2 px-1">Tipo de lançamento</p>
         <div className="flex flex-col gap-3 px-1 mb-3">
             <div className="flex flex-wrap gap-2 justify-start">
                 <button 
                     onClick={() => setTypeFilter('all')} 
                     className={`px-5 py-3 rounded-2xl text-xs font-black uppercase whitespace-nowrap border-2 transition-all duration-200 ${
                         typeFilter === 'all' 
-                        ? 'bg-brand-secondary/10 border-brand-secondary/30 text-sky-700 shadow-panel' 
-                        : 'bg-surface-primary border-surface-elevated text-text-secondary hover:border-text-muted'
+                        ? 'bg-brand-secondary/10 dark:bg-brand-secondary/20 border-brand-secondary/30 text-sky-700 dark:text-sky-300 shadow-panel' 
+                        : 'bg-surface-primary dark:bg-slate-800 border-surface-elevated dark:border-slate-700 text-text-secondary dark:text-slate-300 hover:border-text-muted'
                     }`}
                 >
                     Tudo
@@ -216,8 +236,8 @@ const FilterBar: React.FC<FilterBarProps> = ({
                     onClick={() => setTypeFilter('income')} 
                     className={`px-5 py-3 rounded-2xl text-xs font-black uppercase whitespace-nowrap border-2 transition-all duration-200 ${
                         typeFilter === 'income' 
-                        ? 'bg-status-success/10 border-brand-primary/30 text-action-primaryDark shadow-panel' 
-                        : 'bg-surface-elevated/50 border-surface-elevated text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
+                        ? 'bg-status-success/10 dark:bg-emerald-950/30 border-brand-primary/30 text-action-primaryDark dark:text-emerald-400 shadow-panel' 
+                        : 'bg-surface-elevated/50 dark:bg-slate-800/50 border-surface-elevated dark:border-slate-700 text-text-secondary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-700 hover:text-text-primary dark:hover:text-white'
                     }`}
                 >
                     {voice.incomeFilter}
@@ -226,15 +246,15 @@ const FilterBar: React.FC<FilterBarProps> = ({
                     onClick={() => setTypeFilter('expense')} 
                     className={`px-5 py-3 rounded-2xl text-xs font-black uppercase whitespace-nowrap border-2 transition-all duration-200 ${
                         typeFilter === 'expense' 
-                        ? 'bg-status-danger/10 border-status-danger/30 text-action-dangerDark shadow-panel' 
-                        : 'bg-surface-elevated/50 border-surface-elevated text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
+                        ? 'bg-status-danger/10 dark:bg-red-950/30 border-status-danger/30 text-action-dangerDark dark:text-red-400 shadow-panel' 
+                        : 'bg-surface-elevated/50 dark:bg-slate-800/50 border-surface-elevated dark:border-slate-700 text-text-secondary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-700 hover:text-text-primary dark:hover:text-white'
                     }`}
                 >
                     {voice.expenseFilter}
                 </button>
             </div>
 
-            <p className="text-[8px] font-bold text-text-muted uppercase tracking-widest mb-2 px-1">Ordenar por</p>
+            <p className="text-[8px] font-bold text-text-muted dark:text-slate-400 uppercase tracking-widest mb-2 px-1">Ordenar por</p>
             <div className="flex flex-wrap gap-2 justify-start">
                 {[
                   { key: 'date-desc', label: 'Mais Recentes' },
@@ -247,8 +267,8 @@ const FilterBar: React.FC<FilterBarProps> = ({
                       onClick={() => setSortMode(opt.key as any)}
                       className={`px-4 py-2.5 rounded-2xl text-xxs font-black uppercase whitespace-nowrap border transition-all duration-200 ${
                           sortMode === opt.key
-                          ? 'bg-brand-accent/10 border-brand-accent/30 text-action-amber shadow-soft'
-                          : 'bg-surface-elevated/50 border-surface-elevated text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
+                          ? 'bg-brand-accent/10 dark:bg-amber-950/30 border-brand-accent/30 text-action-amber dark:text-amber-400 shadow-soft'
+                          : 'bg-surface-elevated/50 dark:bg-slate-800/50 border-surface-elevated dark:border-slate-700 text-text-secondary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-700 hover:text-text-primary dark:hover:text-white'
                       }`}
                   >
                       {opt.label}
@@ -262,7 +282,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
             <div className="flex flex-wrap items-center gap-2">
                 <button 
                     onClick={onOpenCategoryManager}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xxs font-black uppercase bg-surface-primary border border-surface-elevated text-action-primaryDark hover:bg-brand-primary/10 transition-all"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xxs font-black uppercase bg-surface-primary dark:bg-slate-800 border border-surface-elevated dark:border-slate-700 text-action-primaryDark dark:text-emerald-400 hover:bg-brand-primary/10 dark:hover:bg-emerald-950/30 transition-all"
                 >
                     <FolderOpen size={16} />
                     <span>Categorias</span>
@@ -270,13 +290,13 @@ const FilterBar: React.FC<FilterBarProps> = ({
 
                 <button
                     onClick={() => setShowCategories(!showCategories)}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xxs font-black uppercase bg-surface-primary border border-text-muted/30 text-text-secondary hover:border-text-muted hover:text-text-primary transition-all"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xxs font-black uppercase bg-surface-primary dark:bg-slate-800 border border-text-muted/30 dark:border-slate-700 text-text-secondary dark:text-slate-300 hover:border-text-muted hover:text-text-primary dark:hover:text-white transition-all"
                 >
                     {showCategories ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     <span>{showCategories ? 'Ocultar filtro' : 'Filtrar por categoria'}</span>
                 </button>
                 {!isAllCategories && (
-                    <span className="px-3 py-2 rounded-2xl text-xxs font-black uppercase border border-brand-primary/20 bg-brand-primary/10 text-action-primaryDark">
+                    <span className="px-3 py-2 rounded-2xl text-xxs font-black uppercase border border-brand-primary/20 dark:border-emerald-800/40 bg-brand-primary/10 dark:bg-emerald-950/30 text-action-primaryDark dark:text-emerald-400">
                         {selectedCategories.length} selecionada{selectedCategories.length !== 1 ? 's' : ''}
                     </span>
                 )}
@@ -287,7 +307,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
                     <button 
                         onClick={() => setSelectedCategories([])} 
                         className={`px-4 py-2.5 rounded-2xl text-xxs font-black uppercase whitespace-nowrap border transition-all duration-200 ${
-                            isAllCategories ? 'bg-brand-primary/10 border-brand-primary/30 text-action-primaryDark shadow-soft' : 'bg-surface-elevated/50 border-surface-elevated text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
+                            isAllCategories ? 'bg-brand-primary/10 dark:bg-emerald-950/30 border-brand-primary/30 text-action-primaryDark dark:text-emerald-400 shadow-soft' : 'bg-surface-elevated/50 dark:bg-slate-800/50 border-surface-elevated dark:border-slate-700 text-text-secondary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-700 hover:text-text-primary dark:hover:text-white'
                         }`}
                     >
                         Todas
@@ -298,7 +318,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
                             key={cat} 
                             onClick={() => toggleCategory(cat)} 
                             className={`px-4 py-2.5 rounded-2xl text-xxs font-black uppercase whitespace-nowrap border transition-all duration-200 ${
-                                selectedCategories.includes(cat) ? 'bg-brand-primary/10 border-brand-primary/30 text-action-primaryDark shadow-soft' : 'bg-surface-elevated/50 border-surface-elevated text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
+                                selectedCategories.includes(cat) ? 'bg-brand-primary/10 dark:bg-emerald-950/30 border-brand-primary/30 text-action-primaryDark dark:text-emerald-400 shadow-soft' : 'bg-surface-elevated/50 dark:bg-slate-800/50 border-surface-elevated dark:border-slate-700 text-text-secondary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-700 hover:text-text-primary dark:hover:text-white'
                             }`}
                         >
                             {cat}

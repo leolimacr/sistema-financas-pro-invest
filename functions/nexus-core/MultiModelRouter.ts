@@ -49,15 +49,29 @@ export class MultiModelRouter {
   }
 
   private initializeProviders(): void {
+      this.providers.set('gemini', {
+        name: 'gemini',
+        apiKey: '',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai',
+        models: {
+          primary: 'gemini-3.8-flash',
+          fallbacks: ['gemini-3.5-flash', 'gemini-flash-latest']
+        },
+        priority: 1,
+        isAvailable: true,
+        errorCount: 0,
+        maxTokens: 8000
+      });
+
       this.providers.set('groq', {
         name: 'groq',
         apiKey: '',
         baseURL: 'https://api.groq.com/openai/v1',
         models: {
-          primary: 'llama-3.1-8b-instant',
-          fallbacks: ['llama-3.3-70b-versatile']
+          primary: 'llama-3.3-70b-versatile',
+          fallbacks: ['llama-3.1-8b-instant']
         },
-        priority: 1,
+        priority: 2,
         isAvailable: true,
         errorCount: 0,
         maxTokens: 8000
@@ -71,7 +85,7 @@ export class MultiModelRouter {
           primary: 'openrouter/free',
           fallbacks: []
         },
-        priority: 2,
+        priority: 3,
         isAvailable: true,
         errorCount: 0,
         maxTokens: 8000,
@@ -83,9 +97,14 @@ export class MultiModelRouter {
     }
 
   public updateApiKeys(keys: {
+      gemini?: string;
       groq?: string;
       openrouter?: string;
     }): void {
+      if (keys.gemini) {
+        const p = this.providers.get('gemini');
+        if (p) p.apiKey = keys.gemini;
+      }
       if (keys.groq) {
         const p = this.providers.get('groq');
         if (p) p.apiKey = keys.groq;
@@ -103,6 +122,12 @@ export class MultiModelRouter {
       temperature?: number;
       maxTokens?: number;
       tools?: any[];
+      /**
+       * Escopo estável da conversa. Em fluxos com dados pessoais deve ser o
+       * UID autenticado. Impede que o cache de processo reutilize uma resposta
+       * contextualizada em outra conta.
+       */
+      cacheScope?: string;
       fallbackContext?: {
         primaryIntent?: string;
         userName?: string;
@@ -111,7 +136,7 @@ export class MultiModelRouter {
       responseFormat?: 'json';
     }
   ): Promise<RouterResponse> {
-    const cacheKey = this.generateCacheKey(messages);
+    const cacheKey = this.generateCacheKey(messages, systemPrompt, options?.cacheScope, options?.responseFormat);
     const cached = this.getCachedResponse(cacheKey);
     if (cached) return { ...cached.response, cached: true };
 
@@ -195,9 +220,8 @@ export class MultiModelRouter {
       stream: false
     };
 
-    // response_format json_object: sempre para groq (API oficial suporta) e quando
-    // o chamador exigir JSON estruturado (options.responseFormat === 'json').
-    if (options?.responseFormat === 'json' || provider.name === 'groq') {
+    // response_format json_object: apenas quando o chamador exigir JSON estruturado (options.responseFormat === 'json')
+    if (options?.responseFormat === 'json') {
       requestBody.response_format = { type: 'json_object' };
     }
 
@@ -295,8 +319,22 @@ export class MultiModelRouter {
     };
   }
 
-  private generateCacheKey(messages: any[]): string {
-    return JSON.stringify(messages.slice(-2));
+  private generateCacheKey(
+    messages: any[],
+    systemPrompt?: string,
+    cacheScope?: string,
+    responseFormat?: 'json',
+  ): string {
+    // O prompt de sistema carrega a posição financeira do usuário. Portanto,
+    // mensagens iguais não são suficientes para caracterizar uma resposta
+    // reutilizável. Limitamos somente o histórico textual, nunca o escopo nem
+    // o contexto financeiro que alteram o diagnóstico.
+    return JSON.stringify({
+      cacheScope: cacheScope || 'anonymous',
+      systemPrompt: systemPrompt || '',
+      responseFormat: responseFormat || 'text',
+      messages: messages.slice(-8),
+    });
   }
 
   private getCachedResponse(key: string): { response: RouterResponse; timestamp: number } | null {

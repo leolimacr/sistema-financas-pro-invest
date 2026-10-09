@@ -65,3 +65,39 @@ describe('ExplorarHub (Etapa 6 — E6-06 sem barra fixa)', () => {
     addSpy.mockRestore();
   });
 });
+
+describe('ExplorarHub (Fase 5 — F5.2.2 Filtros Rápidos)', () => {
+  it('filtra seções ao clicar nos chips de categoria', () => {
+    render(<ExplorarHub onNavigate={vi.fn()} routerNavigate={vi.fn()} />);
+
+    // Inicialmente no modo "Todos": ferramentas, educação e inteligência de mercado estão presentes
+    expect(screen.getByText('Ferramentas de Apoio')).toBeInTheDocument();
+    expect(screen.getByText('Educação e Estratégia')).toBeInTheDocument();
+    expect(screen.getByText('Inteligência de Mercado')).toBeInTheDocument();
+
+    // Clica no filtro "Ferramentas de Decisão"
+    const ferramentasTab = screen.getByRole('tab', { name: /Ferramentas de Decisão/i });
+    fireEvent.click(ferramentasTab);
+
+    expect(screen.getByText('Ferramentas de Apoio')).toBeInTheDocument();
+    expect(screen.queryByText('Educação e Estratégia')).toBeNull();
+    expect(screen.queryByText('Inteligência de Mercado')).toBeNull();
+
+    // Clica no filtro "Formação & Cursos"
+    const cursosTab = screen.getByRole('tab', { name: /Formação & Cursos/i });
+    fireEvent.click(cursosTab);
+
+    expect(screen.queryByText('Ferramentas de Apoio')).toBeNull();
+    expect(screen.getByText('Educação e Estratégia')).toBeInTheDocument();
+    expect(screen.queryByText('Inteligência de Mercado')).toBeNull();
+
+    // Retorna para "Todos"
+    const todosTab = screen.getByRole('tab', { name: /^Todos/i });
+    fireEvent.click(todosTab);
+
+    expect(screen.getByText('Ferramentas de Apoio')).toBeInTheDocument();
+    expect(screen.getByText('Educação e Estratégia')).toBeInTheDocument();
+    expect(screen.getByText('Inteligência de Mercado')).toBeInTheDocument();
+  });
+});
+

@@ -144,6 +144,10 @@ export const PresenceEventService = {
       deepLink, cooldownHours, expiresInHours, resourceId, payload,
     } = params;
 
+    if (!uid || uid === 'demo-sandbox-soberano') {
+      return false;
+    }
+
     const now = Timestamp.now();
     const cooldownMs = cooldownHours * 60 * 60 * 1000;
 

@@ -14,7 +14,16 @@ export const useAssets = (userId: string | undefined) => {
 
   const { data: assets = [], isLoading: loading, error, isFetching } = useQuery<ActiveAsset[], Error>({
     queryKey: key,
-    queryFn: () => userId ? fetchAssets(userId) : Promise.resolve([]),
+    queryFn: async () => {
+      if (!userId) return [];
+      if (userId === 'demo-sandbox-soberano') {
+        return [
+          { id: 'demo-asset-1', name: 'Reserva em Tesouro Selic', category: 'Renda Fixa', currentValue: 25000, proposito: 'Segurança & Liquidez Diária' },
+          { id: 'demo-asset-2', name: 'Tesouro IPCA+ 2035', category: 'Renda Fixa', currentValue: 15000, proposito: 'Aposentadoria & Blindagem' },
+        ];
+      }
+      return fetchAssets(userId);
+    },
     enabled: !!userId,
     staleTime: 1000 * 60 * 5,
   });

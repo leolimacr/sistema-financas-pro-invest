@@ -23,26 +23,26 @@ export const NexusFeed: React.FC<NexusFeedProps> = ({ onNavigate, compact }) => 
   // Compact / mobile: collapsible card with count badge
   if (compact) {
     return (
-      <div className="rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-sm">
+      <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="w-full flex items-center justify-between p-4 text-left hover:bg-slate-50 transition-colors"
+          className="w-full flex items-center justify-between p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
         >
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-black text-slate-900 tracking-tight">
+            <span className="text-[11px] font-black text-slate-900 dark:text-white tracking-tight">
               Atividade Nexus
             </span>
             {unacknowledgedCount > 0 && (
-              <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[9px] font-black text-amber-700 bg-amber-50 rounded-full">
+              <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[9px] font-black text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 rounded-full">
                 {unacknowledgedCount}
               </span>
             )}
           </div>
           {expanded ? (
-            <ChevronUp size={14} className="text-slate-500 shrink-0" />
+            <ChevronUp size={14} className="text-slate-500 dark:text-slate-400 shrink-0" />
           ) : (
-            <ChevronDown size={14} className="text-slate-500 shrink-0" />
+            <ChevronDown size={14} className="text-slate-500 dark:text-slate-400 shrink-0" />
           )}
         </button>
         {expanded && (
@@ -68,11 +68,11 @@ export const NexusFeed: React.FC<NexusFeedProps> = ({ onNavigate, compact }) => 
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <div className="h-px flex-1 bg-slate-100" />
-        <span className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-500">
+        <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
+        <span className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
           Atividade Nexus
         </span>
-        <div className="h-px flex-1 bg-slate-100" />
+        <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
       </div>
       {feed.map((entry) => (
         <NexusFeedItem

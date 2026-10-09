@@ -60,6 +60,9 @@ export const useWealthData = () => {
   const reserveTarget = financialProfile?.emergencyReserveTarget || 0;
   const reserveCurrent = financialProfile?.emergencyReserveCurrent || 0;
   const colchaoInicialTarget = financialProfile?.colchaoInicialTarget || 0;
+  const colchaoCurrent = financialProfile?.colchaoCurrent !== undefined && financialProfile?.colchaoCurrent !== null
+    ? financialProfile.colchaoCurrent
+    : (colchaoInicialTarget > 0 && marcoZero > colchaoInicialTarget ? colchaoInicialTarget : (marcoZero || colchaoInicialTarget));
 
   return {
     assets,
@@ -72,6 +75,7 @@ export const useWealthData = () => {
     totalDebts,            
     patrimonioLiquido,
     // Novos campos de Baldes
+    colchaoCurrent,
     marcoZero,
     reserveTarget,
     reserveCurrent,

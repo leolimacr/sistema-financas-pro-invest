@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 /* ⚠️ MANTENHA SINCRONIZADO com src/theme/tokens.ts — altere apenas lá e valide com npm run check:tokens */
 export default {
+  darkMode: 'class',
   content: [
     './index.html',
     './src/**/*.{js,ts,jsx,tsx}',

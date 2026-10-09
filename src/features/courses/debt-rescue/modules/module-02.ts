@@ -144,6 +144,14 @@ export const module02: CourseModule = {
           content:
             'Informação incompleta com ação supera informação perfeita sem movimento.',
         },
+        {
+          type: 'tool-cta',
+          tool: 'debt-manager',
+          title: 'Cadastre suas Dívidas no Finanças Pro Invest',
+          content:
+            'Use o Gestor de Dívidas do seu painel para salvar os credores e valores que você já sabe. O sistema consolida seus dados com total segurança e privacidade.',
+          buttonLabel: 'Abrir Gestor de Dívidas',
+        },
       ],
     },
     {

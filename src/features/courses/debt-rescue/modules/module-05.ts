@@ -40,6 +40,16 @@ export const module05: CourseModule = {
             'Script base de negociação: "Tenho interesse em regularizar, mas preciso de uma condição que eu realmente consiga pagar. Qual a melhor opção à vista e qual a melhor opção parcelada?"',
         },
         {
+          type: 'bullets',
+          title: 'Canais Oficiais e Direitos no Brasil',
+          items: [
+            '**Registrato do Banco Central**: Consulte gratuitamente todas as dívidas e contas no seu CPF no sistema oficial do Bacen.',
+            '**Serasa Limpa Nome & Acordo Certo**: Feirões onde credores oferecem descontos de até 80% a 95% para liquidação à vista.',
+            '**Portabilidade de Crédito**: Você tem direito garantido por lei de transferir sua dívida para outro banco com taxa de juros menor.',
+            '**Desenrola Brasil**: Plataforma federal com faixas de renegociação e subsídio de juros para dívidas bancárias e de varejo.',
+          ],
+        },
+        {
           type: 'action',
           title: 'Ação prática de hoje',
           content:

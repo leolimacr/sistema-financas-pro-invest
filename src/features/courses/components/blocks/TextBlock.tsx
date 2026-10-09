@@ -8,9 +8,9 @@ interface Props {
 const TextBlock: React.FC<Props> = ({ title, content }) => (
   <div className="mb-5">
     {title && (
-      <h3 className="text-base font-semibold text-slate-800 mb-1">{title}</h3>
+      <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100 mb-1">{title}</h3>
     )}
-    <p className="text-sm text-slate-600 leading-relaxed">{content}</p>
+    <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{content}</p>
   </div>
 );
 

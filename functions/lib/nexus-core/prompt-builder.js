@@ -5,7 +5,7 @@ const identity_1 = require("./identity");
 const action_registry_1 = require("./action-registry");
 class PromptBuilder {
     static buildSystemPrompt(options) {
-        const { userName, context, marketData, userData, assetsSummary, passivesSummary, patrimonioVisaoGerencialStr, debtsSummary, isFirst, historyDescription, avoidRepetition, isUserCorrection, transactionsForPrompt, goalsForPrompt } = options;
+        const { userName, context, marketData, userData, assetsSummary, passivesSummary, patrimonioVisaoGerencialStr, debtsSummary, billsSummary, cardsSummary, isFirst, historyDescription, avoidRepetition, isUserCorrection, transactionsForPrompt, goalsForPrompt, financialFactsSection } = options;
         const safeUserName = (userName || "Investidor").split(' ')[0];
         const isCashflowRequest = context.intent === 'cashflow_query';
         const isPatrimonyRequest = context.intent === 'patrimony_query';
@@ -15,7 +15,7 @@ class PromptBuilder {
             : isPatrimonyRequest && !isCashflowRequest
                 ? `\n# FOCO OBRIGATÓRIO DESTA RESPOSTA\nO usuário está pedindo análise patrimonial.\nPriorize ATIVOS e PASSIVOS patrimoniais do app.\nNÃO trate passivos patrimoniais como dívidas, salvo se o usuário mencionar explicitamente dívida, saldo devedor, financiamento, parcelas, juros ou obrigação em aberto.`
                 : '';
-        let systemPrompt = `${identity_1.NexusIdentity.getSystemPrompt(safeUserName, context, marketData, transactionsForPrompt, goalsForPrompt, "", assetsSummary, passivesSummary, patrimonioVisaoGerencialStr, isFirst, userData, historyDescription)}${debtsSummary}${focusInstructions}`;
+        let systemPrompt = `${identity_1.NexusIdentity.getSystemPrompt(safeUserName, context, marketData, transactionsForPrompt, goalsForPrompt, "", assetsSummary, passivesSummary, patrimonioVisaoGerencialStr, isFirst, userData, historyDescription)}${debtsSummary}${billsSummary || ''}${cardsSummary || ''}${financialFactsSection || ''}${focusInstructions}`;
         if (isDebtPlanRequest) {
             systemPrompt += `
       

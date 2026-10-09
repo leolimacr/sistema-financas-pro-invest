@@ -176,7 +176,7 @@ const CommandCalibration: React.FC<CommandCalibrationProps> = ({
               Comando calibrado
             </p>
             <h2 className="text-2xl font-black text-white mb-1">{voice.title}</h2>
-            <p className="text-sm font-bold text-slate-500 mb-6">{voice.motto}</p>
+            <p className="text-sm font-bold text-slate-400 mb-6">{voice.motto}</p>
             <p className="text-sm text-slate-300 leading-relaxed mb-8">{voice.firstInsight}</p>
 
             <div className="text-left bg-slate-900/60 border border-slate-800 rounded-2xl p-5 mb-8">

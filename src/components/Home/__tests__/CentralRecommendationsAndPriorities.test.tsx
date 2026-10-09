@@ -73,6 +73,10 @@ vi.mock('../../../hooks/useWealthData', () => ({
   useWealthData: () => ({ assets: [], passives: [], patrimonioLiquido: 50000 }),
 }));
 
+vi.mock('../../../hooks/useBudget', () => ({
+  useBudget: () => ({ budget: null, isLoading: false }),
+}));
+
 vi.mock('../../../contexts/ExclusionsContext', () => ({
   useExclusions: () => ({
     excluirReserva: false,

@@ -62,11 +62,13 @@ export const generateDebtPlan = onCall(
       const userId = request.auth.uid;
 
       // 2) Preparar router e chaves
+      const geminiApiKey = process.env.GEMINI_API_KEY as string;
       const groqApiKey = process.env.GROQ_API_KEY as string;
       const openrouterApiKey = process.env.OPENROUTER_API_KEY as string;
 
       const router = MultiModelRouter.getInstance();
       router.updateApiKeys({
+        gemini: geminiApiKey,
         groq: groqApiKey,
         openrouter: openrouterApiKey,
       });

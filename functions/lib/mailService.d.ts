@@ -37,3 +37,16 @@ export declare function sendGoalAportAlert(params: {
     goalName: string;
     amount: number;
 }): Promise<void>;
+export declare function sendPixUnderpaidNotification(params: {
+    to: string;
+    name?: string;
+    amountPaid: number;
+    planName: string;
+    planPrice: number;
+}): Promise<void>;
+export declare function sendPixRefundCompletedNotification(params: {
+    to: string;
+    name?: string;
+    amountRefunded: number;
+    pixKey: string;
+}): Promise<void>;

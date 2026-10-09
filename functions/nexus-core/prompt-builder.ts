@@ -11,12 +11,15 @@ export interface PromptBuilderOptions {
   passivesSummary: string;
   patrimonioVisaoGerencialStr: string;
   debtsSummary: string;
+  billsSummary?: string;
+  cardsSummary?: string;
   isFirst: boolean;
   historyDescription: string;
   avoidRepetition: string;
   isUserCorrection: boolean;
   transactionsForPrompt: string;
   goalsForPrompt: string;
+  financialFactsSection?: string;
 }
 
 export class PromptBuilder {
@@ -34,12 +37,15 @@ export class PromptBuilder {
       passivesSummary,
       patrimonioVisaoGerencialStr,
       debtsSummary,
+      billsSummary,
+      cardsSummary,
       isFirst,
       historyDescription,
       avoidRepetition,
       isUserCorrection,
       transactionsForPrompt,
-      goalsForPrompt
+      goalsForPrompt,
+      financialFactsSection
     } = options;
 
     const safeUserName = (userName || "Investidor").split(' ')[0];
@@ -71,7 +77,7 @@ export class PromptBuilder {
       isFirst,
       userData,
       historyDescription
-    )}${debtsSummary}${focusInstructions}`;
+    )}${debtsSummary}${billsSummary || ''}${cardsSummary || ''}${financialFactsSection || ''}${focusInstructions}`;
 
     // 3. Protocolo de Plano de Quitação (Dívidas)
     if (isDebtPlanRequest) {

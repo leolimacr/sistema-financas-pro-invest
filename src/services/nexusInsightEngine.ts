@@ -63,6 +63,25 @@ export interface NexusInsightAction {
   payload?: NexusActionPayload;
 }
 
+export interface NexusTraceabilityMetric {
+  label: string;
+  value: string;
+  detail?: string;
+}
+
+export interface NexusTraceability {
+  /** Resumo explicativo factual de por que o insight foi acionado */
+  reason: string;
+  /** Período ou recorte temporal apurado */
+  period: string;
+  /** Timestamp de geração/apuração */
+  evaluatedAt: string;
+  /** Relação de métricas quantitativas com valores reais */
+  metrics: NexusTraceabilityMetric[];
+  /** Fontes internas consultadas */
+  sources: string[];
+}
+
 export interface NexusInsight {
   id: string;
   message: {
@@ -77,6 +96,7 @@ export interface NexusInsight {
     brandColor?: string;
   };
   followUp?: string;
+  traceability?: NexusTraceability;
 }
 
 export interface UserContext {
@@ -182,7 +202,7 @@ const INSIGHT_CATALOG: CatalogItem[] = [
       id: 'home-bill-pressure',
       message: {
         title: 'Fatura vs estrutura',
-        body: '{tone_observacao}{prefix} fatura de {value} fecha em {days} dias. Isso pressiona seu Colchão Inicial — reserve o valor ou ajuste o mês.',
+        body: '{tone_observacao}{prefix} fatura de {value} fecha em {days} dias. Isso pressiona seu Colchão Emergencial — reserve o valor ou ajuste o mês.',
         ctaLabel: 'Abrir Controla',
       },
       deepLink: 'manager',
@@ -216,7 +236,7 @@ const INSIGHT_CATALOG: CatalogItem[] = [
       id: 'home-bonus-inflow',
       message: {
         title: 'Entrada relevante',
-        body: '{prefix} detectei entrada de {bonus}. Duas rotas: reforçar o Colchão Inicial ou comprar segurança (reforçar reserva). Qual faz mais sentido agora?',
+        body: '{prefix} detectei entrada de {bonus}. Duas rotas: reforçar o Colchão Emergencial ou comprar segurança (reforçar reserva). Qual faz mais sentido agora?',
         ctaLabel: 'Falar com Nexus',
       },
       deepLink: 'ia',
@@ -331,7 +351,7 @@ const INSIGHT_CATALOG: CatalogItem[] = [
       id: 'central-cushion-warning',
       message: {
         title: 'Folga sob pressão',
-        body: '{prefix} folga do mês em déficit de {deficit}. Revise Colchão Inicial, reserva e compromissos do mês.',
+        body: '{prefix} folga do mês em déficit de {deficit}. Revise Colchão Emergencial, reserva e compromissos do mês.',
         ctaLabel: 'Rever Estrutura',
       },
       deepLink: 'central',
@@ -401,7 +421,7 @@ const INSIGHT_CATALOG: CatalogItem[] = [
       id: 'strategic-idle-cash',
       message: {
         title: 'Capital Ocioso',
-        body: '{prefix} sua folga do mês ({sovereign}) está muito acima do seu Colchão Inicial. Esse dinheiro parado está perdendo poder de compra. Que tal colocá-lo para trabalhar?',
+        body: '{prefix} sua folga do mês ({sovereign}) está muito acima do seu Colchão Emergencial. Esse dinheiro parado está perdendo poder de compra. Que tal colocá-lo para trabalhar?',
         ctaLabel: 'Onde Investir?',
       },
       deepLink: 'investimentos',
@@ -681,8 +701,158 @@ function prepareInsight(insight: NexusInsight, ctx: UserContext): NexusInsight {
     }
   }
 
+  prepared.traceability = buildInsightTraceability(insight.id, ctx);
+
   return prepared;
 }
+
+export function buildInsightTraceability(id: string, ctx: UserContext): NexusTraceability {
+  const free = ctx.sovereignFreeBalance ?? 0;
+  const deficit = ctx.freedomDeficit ?? Math.abs(Math.min(0, free));
+  const bill = extractUpcomingBill(ctx);
+  const buffer = (ctx.marcoZero || 0) + (ctx.reserveCurrent || 0);
+  const bp = ctx.budgetProgress;
+  const debts = ctx.debts || [];
+  const totalDebts = debts.reduce((s, d) => s + (d.saldoDevedor || 0), 0);
+  const maxTaxa = debts.length > 0 ? Math.max(...debts.map((d) => d.taxaMensal || 0)) : 0;
+  const ratio = ctx.monthIncome ? Math.round(((ctx.monthExpenses || 0) / ctx.monthIncome) * 100) : 0;
+
+  const fmt = (n: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n);
+
+  const evaluatedAt = new Date().toISOString();
+
+  switch (id) {
+    case 'home-sovereign-deficit':
+    case 'op-sovereign-deficit':
+      return {
+        reason: `Déficit de liberdade apurado em ${fmt(deficit)} com saldo livre de ${fmt(free)}, consumindo a estrutura de proteção.`,
+        period: 'Mês corrente',
+        evaluatedAt,
+        metrics: [
+          { label: 'Déficit de Liberdade', value: fmt(deficit) },
+          { label: 'Saldo Livre Real', value: fmt(free) },
+          { label: 'Colchão Inicial', value: fmt(ctx.marcoZero || 0) },
+        ],
+        sources: ['Lançamentos do mês', 'Colchão Emergencial', 'Obrigações fixas'],
+      };
+
+    case 'fatima_reserva':
+    case 'home-bill-pressure': {
+      const estimatedVal = bill?.estimatedValue || 0;
+      const days = bill?.daysToClose ?? 0;
+      return {
+        reason: `Fatura prevista de ${fmt(estimatedVal)} com vencimento em ${days} dias contra Colchão Emergencial de ${fmt(ctx.marcoZero || 0)}.`,
+        period: 'Ciclo da fatura',
+        evaluatedAt,
+        metrics: [
+          { label: 'Fatura Prevista', value: fmt(estimatedVal) },
+          { label: 'Dias p/ Fechamento', value: `${days} dias` },
+          { label: 'Colchão Emergencial', value: fmt(ctx.marcoZero || 0) },
+        ],
+        sources: ['Cartões de crédito', 'Extrato de lançamentos', 'Base de Proteção'],
+      };
+    }
+
+    case 'home-margin-thin':
+      return {
+        reason: `Saldo livre de ${fmt(free)} abaixo de 15% da estrutura de proteção (${fmt(buffer * 0.15)}).`,
+        period: 'Mês corrente',
+        evaluatedAt,
+        metrics: [
+          { label: 'Saldo Livre Real', value: fmt(free) },
+          { label: 'Margem Mínima Segura', value: fmt(buffer * 0.15) },
+          { label: 'Estrutura Protegida', value: fmt(buffer) },
+        ],
+        sources: ['Fluxo de caixa', 'Reserva de Emergência', 'Colchão'],
+      };
+
+    case 'home-bonus-inflow':
+      return {
+        reason: `Receita avulsa relevante de ${fmt(ctx.recentLargeIncome || 0)} detectada nos últimos 7 dias.`,
+        period: 'Últimos 7 dias',
+        evaluatedAt,
+        metrics: [
+          { label: 'Receita Detectada', value: fmt(ctx.recentLargeIncome || 0) },
+          { label: 'Saldo Livre Atual', value: fmt(free) },
+        ],
+        sources: ['Lançamentos de receita recente'],
+      };
+
+    case 'home-living-cost-drift':
+      return {
+        reason: `Despesas de ${fmt(ctx.monthExpenses || 0)} comprometendo ${ratio}% das receitas cadastradas (${fmt(ctx.monthIncome || 0)}).`,
+        period: 'Mês corrente',
+        evaluatedAt,
+        metrics: [
+          { label: 'Despesas do Mês', value: fmt(ctx.monthExpenses || 0) },
+          { label: 'Receitas do Mês', value: fmt(ctx.monthIncome || 0) },
+          { label: 'Comprometimento', value: `${ratio}%` },
+        ],
+        sources: ['Extrato de receitas e despesas'],
+      };
+
+    case 'budget-margin-pressure':
+    case 'budget-burn-rate':
+    case 'budget-category-at-risk': {
+      const budgetPct = bp ? Math.round(bp.totalPercentage) : 0;
+      const daysElapsed = bp?.daysElapsed || 0;
+      const daysTotal = bp?.daysInMonth || 30;
+      return {
+        reason: `Consumo de ${budgetPct}% do teto orçamentário em ${daysElapsed} dias decorridos do mês.`,
+        period: 'Mês corrente',
+        evaluatedAt,
+        metrics: [
+          { label: 'Orçamento Planejado', value: fmt(bp?.totalBudget || 0) },
+          { label: 'Gasto Realizado', value: fmt(bp?.totalSpent || 0) },
+          { label: 'Percentual Consumido', value: `${budgetPct}%` },
+          { label: 'Dias Decorridos', value: `${daysElapsed}/${daysTotal} dias` },
+        ],
+        sources: ['Planejamento de orçamento', 'Lançamentos categorizados'],
+      };
+    }
+
+    case 'central-debt-interest':
+    case 'strategic-debt-priority':
+    case 'strategic-opportunity-cost':
+      return {
+        reason: `${debts.length} dívidas ativas somando ${fmt(totalDebts)} com juros contratuais de até ${maxTaxa.toFixed(2)}% a.m.`,
+        period: 'Posição atual',
+        evaluatedAt,
+        metrics: [
+          { label: 'Saldo Devedor Total', value: fmt(totalDebts) },
+          { label: 'Maior Taxa Cadastrada', value: `${maxTaxa.toFixed(2)}% a.m.` },
+          { label: 'Dívidas Ativas', value: `${debts.length}` },
+        ],
+        sources: ['Módulo de dívidas', 'Contratos cadastrados'],
+      };
+
+    case 'strategic-idle-cash':
+      return {
+        reason: `Saldo livre de ${fmt(free)} superior a 150% do Colchão Emergencial (${fmt((ctx.marcoZero || 0) * 1.5)}).`,
+        period: 'Posição atual',
+        evaluatedAt,
+        metrics: [
+          { label: 'Saldo Livre Disponível', value: fmt(free) },
+          { label: 'Colchão de Referência', value: fmt(ctx.marcoZero || 0) },
+        ],
+        sources: ['Soberania financeira', 'Colchão Emergencial'],
+      };
+
+    default:
+      return {
+        reason: 'Diagnóstico consolidado com base nos registros do mês e na estrutura patrimonial do usuário.',
+        period: 'Mês corrente',
+        evaluatedAt,
+        metrics: [
+          { label: 'Saldo do Mês', value: fmt(ctx.monthBalance || 0) },
+          { label: 'Saldo Livre Real', value: fmt(free) },
+        ],
+        sources: ['Extrato de lançamentos', 'Perfil financeiro'],
+      };
+  }
+}
+
 
 function pickBest(candidates: CatalogItem[]): CatalogItem | null {
   if (candidates.length === 0) return null;

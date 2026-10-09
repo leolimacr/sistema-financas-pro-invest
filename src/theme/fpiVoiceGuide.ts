@@ -14,7 +14,7 @@ export type VoiceMode = 'rotina' | 'comando';
 export const INSTITUTIONAL_TERM = 'Saldo Livre Real' as const;
 
 /** Rótulos operacionais (UI) */
-export const OPERATIONAL_HERO_COMANDO = 'Disponibilidade Real' as const;
+export const OPERATIONAL_HERO_COMANDO = 'Saldo Total Disponível' as const;
 export const OPERATIONAL_HERO_ROTINA = 'Dinheiro do Mês' as const;
 export const OPERATIONAL_HELPER = 'Dinheiro que sobra' as const;
 
@@ -22,16 +22,20 @@ export function getHeroLabel(commandMode?: boolean): string {
   return commandMode ? OPERATIONAL_HERO_COMANDO : OPERATIONAL_HERO_ROTINA;
 }
 
-export function getHeroHelperText(commandMode?: boolean, heroValue?: number): string {
+export function getHeroHelperText(commandMode?: boolean, heroValue?: number, protectionShortfall?: number): string {
   if (!commandMode) return 'O fluxo das suas movimentações registradas neste mês.';
   
   const isNegative = (heroValue || 0) < 0;
   
   if (isNegative) {
-    return 'Você está utilizando parte da sua base de proteção para cobrir o mês atual.';
+    return 'Atenção: seus compromissos imediatos superam seu saldo em conta. Priorize regularizar as contas essenciais.';
   }
   
-  return 'O que você tem livre para decidir após garantir suas contas e reservas.';
+  if ((protectionShortfall || 0) > 0) {
+    return 'Seu caixa cobre com segurança seus compromissos do mês e seus recursos estão alocados para fortalecer sua reserva de proteção.';
+  }
+  
+  return 'Estrutura segura: suas contas estão cobertas e sua reserva de proteção está 100% blindada.';
 }
 
 /** Rótulo em minúsculas para impacto de lançamento e mensagens inline */
@@ -183,17 +187,17 @@ export const BASE_PROTECAO = {
   saving: 'Salvando...',
   emptyStateTitle: 'Sua base de proteção ainda não foi configurada',
   emptyStateDescription:
-    'Sem ela, a Disponibilidade Real na sua Home não reflete o que está realmente protegido. Defina seu Colchão Inicial e Reserva de Emergência para enxergar sua verdadeira margem de segurança.',
+    'Sem ela, o Saldo Livre na sua Home não reflete o que está realmente protegido. Defina seu Colchão Emergencial e Reserva de Emergência para enxergar sua verdadeira margem de segurança.',
 
-  /** Bloco 1 — Colchão Inicial */
-  colchaoBlockTitle: 'Colchão Inicial',
-  colchaoBlockSubtitle: 'Primeira camada de proteção — amortece meses de aperto antes de usar a reserva.',
-  colchaoMetaLabel: 'Meta do Colchão Inicial',
+  /** Bloco 1 — Colchão Emergencial */
+  colchaoBlockTitle: 'Colchão Emergencial',
+  colchaoBlockSubtitle: 'Primeira camada de proteção imediata — amortece a rotina e imprevistos antes de usar a reserva.',
+  colchaoMetaLabel: 'Meta do Colchão Emergencial',
   colchaoMetaPlaceholder: 'R$ 0,00',
   colchaoMetaHelp: 'Quanto você quer manter na conta para meses de aperto.',
   colchaoMetaHelpExpanded:
-    'O Colchão Inicial é a primeira camada de proteção. Ele cobre meses em que as contas do mês superam as entradas — evitando que você precise mexer na Reserva de Emergência para pequenos desajustes. Pense nele como o amortecedor entre o dia a dia e a reserva.',
-  colchaoSaldoLabel: 'Saldo do Colchão Inicial',
+    'O Colchão Emergencial é a sua proteção de liquidez imediata. Ele cobre meses em que as contas do mês superam as entradas — evitando que você precise mexer na Reserva de Emergência para pequenos desajustes. Pense nele como o amortecedor entre o dia a dia e a reserva.',
+  colchaoSaldoLabel: 'Saldo do Colchão Emergencial',
   colchaoSaldoPlaceholder: 'R$ 0,00',
   colchaoSaldoHelp: 'Quanto você tem disponível hoje na conta para essa proteção.',
   colchaoSaldoHelpExpanded:
@@ -201,7 +205,7 @@ export const BASE_PROTECAO = {
 
   /** Bloco 2 — Reserva de Emergência */
   reservaBlockTitle: 'Reserva de Emergência',
-  reservaBlockSubtitle: 'Camada mais profunda — usada quando o Colchão Inicial não basta.',
+  reservaBlockSubtitle: 'Reserva para grandes imprevistos — usada quando o Colchão Emergencial não basta.',
   reservaMetaLabel: 'Meta da Reserva de Emergência',
   reservaMetaPlaceholder: 'R$ 0,00',
   reservaMetaHelp: 'Quanto você quer ter guardado para emergências reais.',
@@ -214,7 +218,7 @@ export const BASE_PROTECAO = {
     'Inclua aqui apenas dinheiro com liquidez real — que você consegue usar em até 1 dia útil. Poupança, conta corrente ou resgate imediato. Não inclua investimentos de longo prazo, previdência ou bens.',
 
   disclaimer:
-    'Considere aqui apenas dinheiro que você pode acessar rapidamente se a vida apertar. Esta base é usada para calcular sua Disponibilidade Real na Home.',
+    'Considere aqui apenas dinheiro que você pode acessar rapidamente se a vida apertar. Esta base é usada para calcular sua segurança financeira na Home.',
 } as const;
 
 /** Cockpit / Home hero por contexto */
@@ -226,12 +230,12 @@ export function getCockpitControlaCopy(commandMode?: boolean) {
 
 /** Labels e ajudas expandidas para Disponibilidade Real e composições */
 export const DISPONIBILIDADE_REAL = {
-  heroLabelComando: 'Disponibilidade Real',
+  heroLabelComando: 'Saldo Total Disponível',
   heroLabelRotina: 'Dinheiro do Mês',
   heroHelpComando:
-    'Seu saldo acumulado, depois de cartão, contas e proteção que ainda falta formar.',
+    'Total de recursos disponíveis hoje em conta corrente e benefícios.',
   heroHelpComandoNegativo:
-    'Seu acumulado não cobre todas as obrigações mais a proteção que ainda falta formar. Revise metas ou ajuste despesas.',
+    'Seus compromissos imediatos superam o saldo em conta. Priorize o pagamento das contas essenciais.',
   heroHelpRotina:
     'Suas entradas menos suas saídas deste mês. Cartão e contas futuras não entram aqui.',
   saldoAtualLabel: 'Saldo atual',
@@ -247,12 +251,12 @@ export const DISPONIBILIDADE_REAL = {
   cartaoHelp: 'Total das faturas a vencer no período.',
   contasLabel: 'Contas a pagar',
   contasHelp: 'Contas recorrentes cadastradas que ainda vencem.',
-  faltaColchaoLabel: 'Falta no Colchão Inicial',
-  faltaColchaoHelp: 'Quanto ainda falta para atingir sua meta do Colchão Inicial.',
+  faltaColchaoLabel: 'Falta no Colchão Emergencial',
+  faltaColchaoHelp: 'Quanto ainda falta para atingir sua meta do Colchão Emergencial.',
   faltaReservaLabel: 'Falta na Reserva de Emergência',
   faltaReservaHelp: 'Quanto ainda falta para atingir sua meta de Reserva de Emergência.',
   totalFaltasLabel: 'Falta proteger',
-  totalFaltasHelp: 'Soma do que ainda falta para completar o Colchão Inicial e a Reserva de Emergência.',
+  totalFaltasHelp: 'Soma do que ainda falta para completar o Colchão Emergencial e a Reserva de Emergência.',
   composicaoDisponibilidadeReal:
     'Dívidas não entram neste cálculo. São tratadas separadamente no módulo de Gestão de Dívidas.',
   composicaoTitle: 'Composição desde o início dos lançamentos',
