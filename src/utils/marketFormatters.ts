@@ -20,9 +20,9 @@ export const getDisplayPrice = (type: string, symbol: string, rawPrice: any) => 
         return strPrice.includes('%') ? strPrice : `${strPrice}%`;
     }
 
-    // 3. MOEDAS (Dólar/Euro - 3 casas decimais conforme pedido)
+    // 3. MOEDAS (Dólar/Euro - 2 casas decimais padrão BRL)
     if (type === 'currency' || symbol === 'USD' || symbol === 'EUR' || symbol.includes('BRL')) {
-        return `R$ ${formatNumber(val, 3)}`;
+        return `R$ ${formatNumber(val, 2)}`;
     }
 
     // 4. CRIPTO (US$ para pares USD, R$ para BRL)

@@ -1,3 +1,4 @@
+import { getStorage } from "firebase/storage";
 import firebase from "firebase/compat/app";
 import "firebase/compat/auth";
 import "firebase/compat/database";
@@ -21,6 +22,7 @@ const firebaseConfig = {
 const appModular = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const firestore = getFirestore(appModular); // Firestore Moderno
 export const dbModular = getDatabase(appModular);  // Realtime Moderno
+export const storage = getStorage(appModular);
 
 // 2. Inicialização COMPAT (Obrigatória para o sistema de Login atual)
 const appCompat = !firebase.apps.length ? firebase.initializeApp(firebaseConfig) : firebase.app();

@@ -7,6 +7,10 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+        <meta-data android:name="com.google.firebase.messaging.default_notification_icon"
+                   android:resource="@drawable/ic_stat_controla" />
+        <meta-data android:name="com.google.firebase.messaging.default_notification_color"
+                   android:resource="@color/notification_brand" />
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:name=".MainActivity"
@@ -19,7 +23,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Deep Link: permite abrir o app via intent:// do site mobile -->
+            <!-- Esquema customizado direto: financaspro://... -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -27,13 +31,19 @@
                 <data android:scheme="financaspro" />
             </intent-filter>
 
-            <!-- App Links: permite abrir o app via link https do dominio -->
+            <!-- Android App Links: intercepta e abre o app nativo diretamente via HTTPS -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="www.financasproinvest.com.br" android:pathPrefix="/app" />
+                <data android:scheme="https" android:host="financasproinvest.com.br" />
+                <data android:scheme="https" android:host="www.financasproinvest.com.br" />
+                <data android:scheme="https" android:host="financas-pro-invest.web.app" />
             </intent-filter>
+
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
 
         <provider
@@ -44,8 +54,6 @@
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
     </application>
-
-    <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
 </manifest>

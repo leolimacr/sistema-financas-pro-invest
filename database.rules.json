@@ -1,16 +1,14 @@
-
 {
   "rules": {
-    "users": {
-      "$user_id": {
-        // Permite leitura/escrita completa para o dono, incluindo 'meta' e 'lancamentos'
-        ".read": "auth != null",
-        ".write": "auth != null"
+    "transactions": {
+      "$uid": {
+        ".indexOn": ["date", "sortKey"],
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid"
       }
     },
     "newsletter": {
       "subscribers": {
-        // Apenas escrita para newsletter, leitura bloqueada
         ".read": "false",
         ".write": "auth != null"
       }

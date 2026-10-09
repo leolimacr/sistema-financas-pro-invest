@@ -1,3 +1,8 @@
+export interface FinancialProfile {
+    monthlyIncome: number;
+    emergencyReserveTarget: number;
+    emergencyReserveCurrent: number;
+}
 export interface UserGoal {
     id: string;
     name: string;
@@ -28,20 +33,38 @@ export interface UserDataResult {
     goals: UserGoal[];
     recentTransactions: UserTransaction[];
     simulations: UserSimulation[];
+    financialProfile?: FinancialProfile;
     summary: string;
     hasData: boolean;
     dataStatus: 'ok' | 'empty' | 'error';
     error?: string;
 }
 export declare class DataIntegrator {
-    static gatherUserData(userId: string): Promise<UserDataResult>;
+    static gatherUserData(userId: string, userPlan?: string): Promise<UserDataResult>;
     private static fetchRecentTransactionsWithTimeout;
     private static fetchUserGoalsWithTimeout;
-    static formatTransactionsForPrompt(transactions: UserTransaction[], context: any): string;
-    static formatGoalsForPrompt(goals: UserGoal[], context: any): string;
-    static formatSimulationsForPrompt(simulations: UserSimulation[], context: any): string;
+    static formatTransactionsForPrompt(transactions: UserTransaction[], _context: any): string;
+    static formatGoalsForPrompt(goals: UserGoal[], _context: any): string;
+    static formatAssetsSummary(assets: any[]): string;
+    static formatPassivesSummary(passives: any[]): string;
+    static formatDebtsSummary(debts: any[]): string;
+    static formatBillsSummary(bills: any[]): string;
+    static formatCardsSummary(cards: any[], invoices?: any[]): string;
+    static formatPatrimonioVisaoGerencial(assets: any[], passives: any[]): string;
+    static formatSimulationsForPrompt(simulations: UserSimulation[], _context: any): string;
     private static filterRelevantTransactions;
     private static generateTransactionSummary;
     private static generateDataSummary;
     private static mapGoalCategory;
 }
+export declare const NEXUS_TX_CAPS: Record<string, {
+    days: number;
+    max: number;
+}>;
+export declare function txCapsByPlan(plan?: string): {
+    days: number;
+    max: number;
+};
+export declare const MAX_PROMPT_SEGMENT_CHARS = 4000;
+export declare function truncatePromptSegment(text: string, max?: number): string;
+export declare const MAX_GOALS_LISTED = 20;

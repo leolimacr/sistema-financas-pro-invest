@@ -1,21 +1,3 @@
-export interface DiscretionDecision {
-    responseDepth: 'minimal' | 'concise' | 'detailed' | 'comprehensive';
-    includeMarketData: boolean;
-    includeGoals: boolean;
-    includeTransactions: boolean;
-    includeSimulations: boolean;
-    shouldSuggestActions: boolean;
-    shouldOfferWebSearch: boolean;
-    shouldProposeSimulation: boolean;
-    useBulletPoints: boolean;
-    useParagraphs: boolean;
-    includeClosingQuestion: boolean;
-    formalityLevel: 'high' | 'medium' | 'low';
-    useFirstNameFrequency: 'never' | 'occasional' | 'frequent';
-    includeDateTime: 'none' | 'time' | 'date' | 'both';
-    shouldAcknowledgePreviousMessage: boolean;
-    shouldBeExtraPolite: boolean;
-}
 export declare class DiscretionEngine {
     static analyzeContext(userMessage: string, messageHistory: Array<{
         role: string;
@@ -38,11 +20,6 @@ export declare class DiscretionEngine {
         requiresFollowUp: boolean;
         isProbablyTesting: boolean;
     };
-    static makeDecision(contextAnalysis: ReturnType<typeof DiscretionEngine.analyzeContext>, userData: {
-        hasGoals: boolean;
-        hasRecentTransactions: boolean;
-        hasSimulations: boolean;
-    }): DiscretionDecision;
     private static isTestingPresence;
     private static determineIntent;
     private static assessComplexity;

@@ -1,0 +1,247 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/Agenda/ActiveAlarmModal.tsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=f34cf7b5"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("C:/Users/leoli/sistema-financas-pro-invest/src/components/Agenda/ActiveAlarmModal.tsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import __vite__cjsImport3_react from "/node_modules/.vite/deps/react.js?v=f34cf7b5"; const useEffect = __vite__cjsImport3_react["useEffect"]; const useState = __vite__cjsImport3_react["useState"]; const useCallback = __vite__cjsImport3_react["useCallback"];
+import { BellRing, Check, Clock, Volume2 } from "/node_modules/.vite/deps/lucide-react.js?v=c253b444";
+import {
+  continuousAlarmPlayer
+} from "/src/services/continuousAlarmPlayer.ts";
+import { dismissAlarm, snoozeAlarm } from "/src/services/alarmService.ts";
+export const ActiveAlarmModal = () => {
+  _s();
+  const [active, setActive] = useState(false);
+  const [payload, setPayload] = useState(null);
+  useEffect(() => {
+    const unsubscribe = continuousAlarmPlayer.subscribe((isPlaying, activePayload) => {
+      setActive(isPlaying);
+      setPayload(activePayload);
+    });
+    return unsubscribe;
+  }, []);
+  const handleDismiss = useCallback(() => {
+    dismissAlarm();
+  }, []);
+  const handleSnooze = useCallback(() => {
+    if (payload) {
+      void snoozeAlarm(
+        {
+          commitmentId: payload.commitmentId,
+          title: payload.title,
+          dateStr: payload.dateStr,
+          alarmAt: /* @__PURE__ */ new Date(),
+          userId: payload.userId
+        },
+        5
+      );
+    } else {
+      dismissAlarm();
+    }
+  }, [payload]);
+  useEffect(() => {
+    if (!active) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" || e.code === "Space") {
+        e.preventDefault();
+        handleDismiss();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [active, handleDismiss]);
+  if (!active || !payload) return null;
+  return /* @__PURE__ */ jsxDEV(
+    "div",
+    {
+      role: "dialog",
+      "aria-modal": "true",
+      "aria-labelledby": "alarm-modal-title",
+      className: "fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 animate-in fade-in duration-300",
+      children: /* @__PURE__ */ jsxDEV("div", { className: "relative w-full max-w-sm rounded-[2.5rem] bg-white dark:bg-slate-900 p-7 shadow-2xl border-2 border-emerald-500/40 dark:border-emerald-500/60 text-center animate-in zoom-in-95 duration-200 overflow-hidden", children: [
+        /* @__PURE__ */ jsxDEV("div", { className: "absolute -top-12 -left-12 w-36 h-36 bg-emerald-500/15 rounded-full blur-2xl animate-pulse pointer-events-none" }, void 0, false, {
+          fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/Agenda/ActiveAlarmModal.tsx",
+          lineNumber: 85,
+          columnNumber: 9
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "absolute -bottom-12 -right-12 w-36 h-36 bg-sky-500/15 rounded-full blur-2xl animate-pulse pointer-events-none" }, void 0, false, {
+          fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/Agenda/ActiveAlarmModal.tsx",
+          lineNumber: 86,
+          columnNumber: 9
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "mx-auto mb-5 relative flex items-center justify-center w-20 h-20 rounded-3xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 shadow-inner", children: [
+          /* @__PURE__ */ jsxDEV("span", { className: "absolute inset-0 rounded-3xl bg-emerald-400/20 animate-ping opacity-75" }, void 0, false, {
+            fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/Agenda/ActiveAlarmModal.tsx",
+            lineNumber: 90,
+            columnNumber: 11
+          }, this),
+          /* @__PURE__ */ jsxDEV(BellRing, { size: 38, className: "animate-bounce relative z-10" }, void 0, false, {
+            fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/Agenda/ActiveAlarmModal.tsx",
+            lineNumber: 91,
+            columnNumber: 11
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/Agenda/ActiveAlarmModal.tsx",
+          lineNumber: 89,
+          columnNumber: 9
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/80 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 text-[10px] font-black uppercase tracking-widest mb-3", children: [
+          /* @__PURE__ */ jsxDEV(Volume2, { size: 12, className: "animate-pulse" }, void 0, false, {
+            fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/Agenda/ActiveAlarmModal.tsx",
+            lineNumber: 96,
+            columnNumber: 11
+          }, this),
+          /* @__PURE__ */ jsxDEV("span", { children: "Alarme da Agenda" }, void 0, false, {
+            fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/Agenda/ActiveAlarmModal.tsx",
+            lineNumber: 97,
+            columnNumber: 11
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/Agenda/ActiveAlarmModal.tsx",
+          lineNumber: 95,
+          columnNumber: 9
+        }, this),
+        /* @__PURE__ */ jsxDEV(
+          "h2",
+          {
+            id: "alarm-modal-title",
+            className: "text-xl font-black text-slate-900 dark:text-white leading-snug tracking-tight mb-2 px-2 break-words",
+            children: payload.title
+          },
+          void 0,
+          false,
+          {
+            fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/Agenda/ActiveAlarmModal.tsx",
+            lineNumber: 101,
+            columnNumber: 9
+          },
+          this
+        ),
+        /* @__PURE__ */ jsxDEV("p", { className: "text-xs font-semibold text-slate-500 dark:text-slate-400 mb-6 flex items-center justify-center gap-1.5", children: [
+          /* @__PURE__ */ jsxDEV(Clock, { size: 13, className: "text-slate-400 dark:text-slate-500" }, void 0, false, {
+            fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/Agenda/ActiveAlarmModal.tsx",
+            lineNumber: 110,
+            columnNumber: 11
+          }, this),
+          /* @__PURE__ */ jsxDEV("span", { children: "Horário programado atingido" }, void 0, false, {
+            fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/Agenda/ActiveAlarmModal.tsx",
+            lineNumber: 111,
+            columnNumber: 11
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/Agenda/ActiveAlarmModal.tsx",
+          lineNumber: 109,
+          columnNumber: 9
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "space-y-2.5", children: [
+          /* @__PURE__ */ jsxDEV(
+            "button",
+            {
+              type: "button",
+              onClick: handleDismiss,
+              autoFocus: true,
+              className: "w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-600/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2",
+              children: [
+                /* @__PURE__ */ jsxDEV(Check, { size: 16 }, void 0, false, {
+                  fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/Agenda/ActiveAlarmModal.tsx",
+                  lineNumber: 122,
+                  columnNumber: 13
+                }, this),
+                /* @__PURE__ */ jsxDEV("span", { children: "Dispensar Alarme" }, void 0, false, {
+                  fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/Agenda/ActiveAlarmModal.tsx",
+                  lineNumber: 123,
+                  columnNumber: 13
+                }, this)
+              ]
+            },
+            void 0,
+            true,
+            {
+              fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/Agenda/ActiveAlarmModal.tsx",
+              lineNumber: 116,
+              columnNumber: 11
+            },
+            this
+          ),
+          /* @__PURE__ */ jsxDEV(
+            "button",
+            {
+              type: "button",
+              onClick: handleSnooze,
+              className: "w-full py-3 px-6 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs uppercase tracking-wider active:scale-[0.98] transition-all flex items-center justify-center gap-2",
+              children: [
+                /* @__PURE__ */ jsxDEV(Clock, { size: 14, className: "text-slate-500 dark:text-slate-400" }, void 0, false, {
+                  fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/Agenda/ActiveAlarmModal.tsx",
+                  lineNumber: 131,
+                  columnNumber: 13
+                }, this),
+                /* @__PURE__ */ jsxDEV("span", { children: "Soneca (+5 min)" }, void 0, false, {
+                  fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/Agenda/ActiveAlarmModal.tsx",
+                  lineNumber: 132,
+                  columnNumber: 13
+                }, this)
+              ]
+            },
+            void 0,
+            true,
+            {
+              fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/Agenda/ActiveAlarmModal.tsx",
+              lineNumber: 126,
+              columnNumber: 11
+            },
+            this
+          )
+        ] }, void 0, true, {
+          fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/Agenda/ActiveAlarmModal.tsx",
+          lineNumber: 115,
+          columnNumber: 9
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/Agenda/ActiveAlarmModal.tsx",
+        lineNumber: 83,
+        columnNumber: 7
+      }, this)
+    },
+    void 0,
+    false,
+    {
+      fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/Agenda/ActiveAlarmModal.tsx",
+      lineNumber: 77,
+      columnNumber: 5
+    },
+    this
+  );
+};
+_s(ActiveAlarmModal, "SNfMUWiofP6YCC5FIXtnoFoS0bA=");
+_c = ActiveAlarmModal;
+export default ActiveAlarmModal;
+var _c;
+$RefreshReg$(_c, "ActiveAlarmModal");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/Users/leoli/sistema-financas-pro-invest/src/components/Agenda/ActiveAlarmModal.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("C:/Users/leoli/sistema-financas-pro-invest/src/components/Agenda/ActiveAlarmModal.tsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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SUExREY7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLEVBMkRBO0FBRUo7QUFBRVYsR0E5R1dELGtCQUEwQjtBQUFBLEtBQTFCQTtBQWdIYixlQUFlQTtBQUFpQixJQUFBMEI7QUFBQSxhQUFBQSxJQUFBIiwibmFtZXMiOlsidXNlRWZmZWN0IiwidXNlU3RhdGUiLCJ1c2VDYWxsYmFjayIsIkJlbGxSaW5nIiwiQ2hlY2siLCJDbG9jayIsIlZvbHVtZTIiLCJjb250aW51b3VzQWxhcm1QbGF5ZXIiLCJkaXNtaXNzQWxhcm0iLCJzbm9vemVBbGFybSIsIkFjdGl2ZUFsYXJtTW9kYWwiLCJfcyIsImFjdGl2ZSIsInNldEFjdGl2ZSIsInBheWxvYWQiLCJzZXRQYXlsb2FkIiwidW5zdWJzY3JpYmUiLCJzdWJzY3JpYmUiLCJpc1BsYXlpbmciLCJhY3RpdmVQYXlsb2FkIiwiaGFuZGxlRGlzbWlzcyIsImhhbmRsZVNub296ZSIsImNvbW1pdG1lbnRJZCIsInRpdGxlIiwiZGF0ZVN0ciIsImFsYXJtQXQiLCJEYXRlIiwidXNlcklkIiwiaGFuZGxlS2V5RG93biIsImUiLCJrZXkiLCJjb2RlIiwicHJldmVudERlZmF1bHQiLCJ3aW5kb3ciLCJhZGRFdmVudExpc3RlbmVyIiwicmVtb3ZlRXZlbnRMaXN0ZW5lciIsIl9jIl0sImlnbm9yZUxpc3QiOltdLCJzb3VyY2VzIjpbIkFjdGl2ZUFsYXJtTW9kYWwudHN4Il0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCBSZWFjdCwgeyB1c2VFZmZlY3QsIHVzZVN0YXRlLCB1c2VDYWxsYmFjayB9IGZyb20gJ3JlYWN0JztcbmltcG9ydCB7IEJlbGxSaW5nLCBDaGVjaywgQ2xvY2ssIFZvbHVtZTIgfSBmcm9tICdsdWNpZGUtcmVhY3QnO1xuaW1wb3J0IHtcbiAgY29udGludW91c0FsYXJtUGxheWVyLFxuICB0eXBlIEFjdGl2ZUFsYXJtUGF5bG9hZCxcbn0gZnJvbSAnLi4vLi4vc2VydmljZXMvY29udGludW91c0FsYXJtUGxheWVyJztcbmltcG9ydCB7IGRpc21pc3NBbGFybSwgc25vb3plQWxhcm0gfSBmcm9tICcuLi8uLi9zZXJ2aWNlcy9hbGFybVNlcnZpY2UnO1xuXG5leHBvcnQgY29uc3QgQWN0aXZlQWxhcm1Nb2RhbDogUmVhY3QuRkMgPSAoKSA9PiB7XG4gIGNvbnN0IFthY3RpdmUsIHNldEFjdGl2ZV0gPSB1c2VTdGF0ZShmYWxzZSk7XG4gIGNvbnN0IFtwYXlsb2FkLCBzZXRQYXlsb2FkXSA9IHVzZVN0YXRlPEFjdGl2ZUFsYXJtUGF5bG9hZCB8IG51bGw+KG51bGwpO1xuXG4gIHVzZUVmZmVjdCgoKSA9PiB7XG4gICAgY29uc3QgdW5zdWJzY3JpYmUgPSBjb250aW51b3VzQWxhcm1QbGF5ZXIuc3Vic2NyaWJlKChpc1BsYXlpbmcsIGFjdGl2ZVBheWxvYWQpID0+IHtcbiAgICAgIHNldEFjdGl2ZShpc1BsYXlpbmcpO1xuICAgICAgc2V0UGF5bG9hZChhY3RpdmVQYXlsb2FkKTtcbiAgICB9KTtcbiAgICByZXR1cm4gdW5zdWJzY3JpYmU7XG4gIH0sIFtdKTtcblxuICBjb25zdCBoYW5kbGVEaXNtaXNzID0gdXNlQ2FsbGJhY2soKCkgPT4ge1xuICAgIGRpc21pc3NBbGFybSgpO1xuICB9LCBbXSk7XG5cbiAgY29uc3QgaGFuZGxlU25vb3plID0gdXNlQ2FsbGJhY2soKCkgPT4ge1xuICAgIGlmIChwYXlsb2FkKSB7XG4gICAgICB2b2lkIHNub296ZUFsYXJtKFxuICAgICAgICB7XG4gICAgICAgICAgY29tbWl0bWVudElkOiBwYXlsb2FkLmNvbW1pdG1lbnRJZCxcbiAgICAgICAgICB0aXRsZTogcGF5bG9hZC50aXRsZSxcbiAgICAgICAgICBkYXRlU3RyOiBwYXlsb2FkLmRhdGVTdHIsXG4gICAgICAgICAgYWxhcm1BdDogbmV3IERhdGUoKSxcbiAgICAgICAgICB1c2VySWQ6IHBheWxvYWQudXNlcklkLFxuICAgICAgICB9LFxuICAgICAgICA1XG4gICAgICApO1xuICAgIH0gZWxzZSB7XG4gICAgICBkaXNtaXNzQWxhcm0oKTtcbiAgICB9XG4gIH0sIFtwYXlsb2FkXSk7XG5cbiAgLy8gVGVjbGFkbzogRXNjYXBlIG91IEVzcGHDp28gcGFyYSBkaXNwZW5zYXJcbiAgdXNlRWZmZWN0KCgpID0+IHtcbiAgICBpZiAoIWFjdGl2ZSkgcmV0dXJuO1xuICAgIGNvbnN0IGhhbmRsZUtleURvd24gPSAoZTogS2V5Ym9hcmRFdmVudCkgPT4ge1xuICAgICAgaWYgKGUua2V5ID09PSAnRXNjYXBlJyB8fCBlLmNvZGUgPT09ICdTcGFjZScpIHtcbiAgICAgICAgZS5wcmV2ZW50RGVmYXVsdCgpO1xuICAgICAgICBoYW5kbGVEaXNtaXNzKCk7XG4gICAgICB9XG4gICAgfTtcbiAgICB3aW5kb3cuYWRkRXZlbnRMaXN0ZW5lcigna2V5ZG93bicsIGhhbmRsZUtleURvd24pO1xuICAgIHJldHVybiAoKSA9PiB3aW5kb3cucmVtb3ZlRXZlbnRMaXN0ZW5lcigna2V5ZG93bicsIGhhbmRsZUtleURvd24pO1xuICB9LCBbYWN0aXZlLCBoYW5kbGVEaXNtaXNzXSk7XG5cbiAgaWYgKCFhY3RpdmUgfHwgIXBheWxvYWQpIHJldHVybiBudWxsO1xuXG4gIHJldHVybiAoXG4gICAgPGRpdlxuICAgICAgcm9sZT1cImRpYWxvZ1wiXG4gICAgICBhcmlhLW1vZGFsPVwidHJ1ZVwiXG4gICAgICBhcmlhLWxhYmVsbGVkYnk9XCJhbGFybS1tb2RhbC10aXRsZVwiXG4gICAgICBjbGFzc05hbWU9XCJmaXhlZCBpbnNldC0wIHotWzk5OTldIGZsZXggaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIGJnLXNsYXRlLTk1MC83MCBiYWNrZHJvcC1ibHVyLW1kIHAtNCBhbmltYXRlLWluIGZhZGUtaW4gZHVyYXRpb24tMzAwXCJcbiAgICA+XG4gICAgICA8ZGl2IGNsYXNzTmFtZT1cInJlbGF0aXZlIHctZnVsbCBtYXgtdy1zbSByb3VuZGVkLVsyLjVyZW1dIGJnLXdoaXRlIGRhcms6Ymctc2xhdGUtOTAwIHAtNyBzaGFkb3ctMnhsIGJvcmRlci0yIGJvcmRlci1lbWVyYWxkLTUwMC80MCBkYXJrOmJvcmRlci1lbWVyYWxkLTUwMC82MCB0ZXh0LWNlbnRlciBhbmltYXRlLWluIHpvb20taW4tOTUgZHVyYXRpb24tMjAwIG92ZXJmbG93LWhpZGRlblwiPlxuICAgICAgICB7LyogSGFsbyBsdW1pbm9zbyBkZSBwdWxzbyAqL31cbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJhYnNvbHV0ZSAtdG9wLTEyIC1sZWZ0LTEyIHctMzYgaC0zNiBiZy1lbWVyYWxkLTUwMC8xNSByb3VuZGVkLWZ1bGwgYmx1ci0yeGwgYW5pbWF0ZS1wdWxzZSBwb2ludGVyLWV2ZW50cy1ub25lXCIgLz5cbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJhYnNvbHV0ZSAtYm90dG9tLTEyIC1yaWdodC0xMiB3LTM2IGgtMzYgYmctc2t5LTUwMC8xNSByb3VuZGVkLWZ1bGwgYmx1ci0yeGwgYW5pbWF0ZS1wdWxzZSBwb2ludGVyLWV2ZW50cy1ub25lXCIgLz5cblxuICAgICAgICB7Lyogw41jb25lIGNvbSBhbmVsIHB1bHNhbnRlICovfVxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cIm14LWF1dG8gbWItNSByZWxhdGl2ZSBmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWNlbnRlciB3LTIwIGgtMjAgcm91bmRlZC0zeGwgYmctZW1lcmFsZC01MCBkYXJrOmJnLWVtZXJhbGQtOTUwLzQwIHRleHQtZW1lcmFsZC02MDAgZGFyazp0ZXh0LWVtZXJhbGQtNDAwIHNoYWRvdy1pbm5lclwiPlxuICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cImFic29sdXRlIGluc2V0LTAgcm91bmRlZC0zeGwgYmctZW1lcmFsZC00MDAvMjAgYW5pbWF0ZS1waW5nIG9wYWNpdHktNzVcIiAvPlxuICAgICAgICAgIDxCZWxsUmluZyBzaXplPXszOH0gY2xhc3NOYW1lPVwiYW5pbWF0ZS1ib3VuY2UgcmVsYXRpdmUgei0xMFwiIC8+XG4gICAgICAgIDwvZGl2PlxuXG4gICAgICAgIHsvKiBUYWcgZGUgQWxhcm1lIEF0aXZvICovfVxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImlubGluZS1mbGV4IGl0ZW1zLWNlbnRlciBnYXAtMS41IHB4LTMgcHktMSByb3VuZGVkLWZ1bGwgYmctZW1lcmFsZC0xMDAvODAgZGFyazpiZy1lbWVyYWxkLTkwMC82MCB0ZXh0LWVtZXJhbGQtODAwIGRhcms6dGV4dC1lbWVyYWxkLTIwMCB0ZXh0LVsxMHB4XSBmb250LWJsYWNrIHVwcGVyY2FzZSB0cmFja2luZy13aWRlc3QgbWItM1wiPlxuICAgICAgICAgIDxWb2x1bWUyIHNpemU9ezEyfSBjbGFzc05hbWU9XCJhbmltYXRlLXB1bHNlXCIgLz5cbiAgICAgICAgICA8c3Bhbj5BbGFybWUgZGEgQWdlbmRhPC9zcGFuPlxuICAgICAgICA8L2Rpdj5cblxuICAgICAgICB7LyogVMOtdHVsbyBkbyBDb21wcm9taXNzbyAqL31cbiAgICAgICAgPGgyXG4gICAgICAgICAgaWQ9XCJhbGFybS1tb2RhbC10aXRsZVwiXG4gICAgICAgICAgY2xhc3NOYW1lPVwidGV4dC14bCBmb250LWJsYWNrIHRleHQtc2xhdGUtOTAwIGRhcms6dGV4dC13aGl0ZSBsZWFkaW5nLXNudWcgdHJhY2tpbmctdGlnaHQgbWItMiBweC0yIGJyZWFrLXdvcmRzXCJcbiAgICAgICAgPlxuICAgICAgICAgIHtwYXlsb2FkLnRpdGxlfVxuICAgICAgICA8L2gyPlxuXG4gICAgICAgIHsvKiBEYXRhIC8gSG9yw6FyaW8gKi99XG4gICAgICAgIDxwIGNsYXNzTmFtZT1cInRleHQteHMgZm9udC1zZW1pYm9sZCB0ZXh0LXNsYXRlLTUwMCBkYXJrOnRleHQtc2xhdGUtNDAwIG1iLTYgZmxleCBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIgZ2FwLTEuNVwiPlxuICAgICAgICAgIDxDbG9jayBzaXplPXsxM30gY2xhc3NOYW1lPVwidGV4dC1zbGF0ZS00MDAgZGFyazp0ZXh0LXNsYXRlLTUwMFwiIC8+XG4gICAgICAgICAgPHNwYW4+SG9yw6FyaW8gcHJvZ3JhbWFkbyBhdGluZ2lkbzwvc3Bhbj5cbiAgICAgICAgPC9wPlxuXG4gICAgICAgIHsvKiBBw6fDtWVzOiBEaXNwZW5zYXIgb3UgU29uZWNhICovfVxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cInNwYWNlLXktMi41XCI+XG4gICAgICAgICAgPGJ1dHRvblxuICAgICAgICAgICAgdHlwZT1cImJ1dHRvblwiXG4gICAgICAgICAgICBvbkNsaWNrPXtoYW5kbGVEaXNtaXNzfVxuICAgICAgICAgICAgYXV0b0ZvY3VzXG4gICAgICAgICAgICBjbGFzc05hbWU9XCJ3LWZ1bGwgcHktNCBweC02IHJvdW5kZWQtMnhsIGJnLWdyYWRpZW50LXRvLXIgZnJvbS1lbWVyYWxkLTYwMCB0by10ZWFsLTcwMCBob3Zlcjpmcm9tLWVtZXJhbGQtNzAwIGhvdmVyOnRvLXRlYWwtODAwIHRleHQtd2hpdGUgZm9udC1ibGFjayB0ZXh0LXhzIHVwcGVyY2FzZSB0cmFja2luZy13aWRlc3Qgc2hhZG93LWxnIHNoYWRvdy1lbWVyYWxkLTYwMC8yMCBhY3RpdmU6c2NhbGUtWzAuOThdIHRyYW5zaXRpb24tYWxsIGZsZXggaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIGdhcC0yXCJcbiAgICAgICAgICA+XG4gICAgICAgICAgICA8Q2hlY2sgc2l6ZT17MTZ9IC8+XG4gICAgICAgICAgICA8c3Bhbj5EaXNwZW5zYXIgQWxhcm1lPC9zcGFuPlxuICAgICAgICAgIDwvYnV0dG9uPlxuXG4gICAgICAgICAgPGJ1dHRvblxuICAgICAgICAgICAgdHlwZT1cImJ1dHRvblwiXG4gICAgICAgICAgICBvbkNsaWNrPXtoYW5kbGVTbm9vemV9XG4gICAgICAgICAgICBjbGFzc05hbWU9XCJ3LWZ1bGwgcHktMyBweC02IHJvdW5kZWQtMnhsIGJnLXNsYXRlLTEwMCBkYXJrOmJnLXNsYXRlLTgwMCBob3ZlcjpiZy1zbGF0ZS0yMDAgZGFyazpob3ZlcjpiZy1zbGF0ZS03MDAgdGV4dC1zbGF0ZS03MDAgZGFyazp0ZXh0LXNsYXRlLTIwMCBmb250LWJvbGQgdGV4dC14cyB1cHBlcmNhc2UgdHJhY2tpbmctd2lkZXIgYWN0aXZlOnNjYWxlLVswLjk4XSB0cmFuc2l0aW9uLWFsbCBmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWNlbnRlciBnYXAtMlwiXG4gICAgICAgICAgPlxuICAgICAgICAgICAgPENsb2NrIHNpemU9ezE0fSBjbGFzc05hbWU9XCJ0ZXh0LXNsYXRlLTUwMCBkYXJrOnRleHQtc2xhdGUtNDAwXCIgLz5cbiAgICAgICAgICAgIDxzcGFuPlNvbmVjYSAoKzUgbWluKTwvc3Bhbj5cbiAgICAgICAgICA8L2J1dHRvbj5cbiAgICAgICAgPC9kaXY+XG4gICAgICA8L2Rpdj5cbiAgICA8L2Rpdj5cbiAgKTtcbn07XG5cbmV4cG9ydCBkZWZhdWx0IEFjdGl2ZUFsYXJtTW9kYWw7XG4iXSwiZmlsZSI6IkM6L1VzZXJzL2xlb2xpL3Npc3RlbWEtZmluYW5jYXMtcHJvLWludmVzdC9zcmMvY29tcG9uZW50cy9BZ2VuZGEvQWN0aXZlQWxhcm1Nb2RhbC50c3gifQ==

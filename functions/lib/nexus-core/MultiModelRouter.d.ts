@@ -19,6 +19,7 @@ export interface RouterResponse {
     model: string;
     tokensUsed: number;
     cached: boolean;
+    isContingency?: boolean;
 }
 export declare class MultiModelRouter {
     private static instance;
@@ -30,23 +31,21 @@ export declare class MultiModelRouter {
     private initializeProviders;
     updateApiKeys(keys: {
         gemini?: string;
-        openrouter?: string;
-        mistral?: string;
         groq?: string;
-        deepseek?: string;
+        openrouter?: string;
     }): void;
     routeRequest(messages: any[], systemPrompt?: string, options?: {
         temperature?: number;
         maxTokens?: number;
         tools?: any[];
+        cacheScope?: string;
         fallbackContext?: {
             primaryIntent?: string;
             userName?: string;
         };
+        responseFormat?: 'json';
     }): Promise<RouterResponse>;
     private tryProvider;
-    private tryProviderWithModel;
-    private callGemini;
     private callOpenAIFormat;
     private getAvailableProviders;
     private markProviderError;

@@ -49,18 +49,41 @@ class MultiModelRouter {
         return MultiModelRouter.instance;
     }
     initializeProviders() {
+        this.providers.set('gemini', {
+            name: 'gemini',
+            apiKey: '',
+            baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai',
+            models: {
+                primary: 'gemini-3.8-flash',
+                fallbacks: ['gemini-3.5-flash', 'gemini-flash-latest']
+            },
+            priority: 1,
+            isAvailable: true,
+            errorCount: 0,
+            maxTokens: 8000
+        });
+        this.providers.set('groq', {
+            name: 'groq',
+            apiKey: '',
+            baseURL: 'https://api.groq.com/openai/v1',
+            models: {
+                primary: 'llama-3.3-70b-versatile',
+                fallbacks: ['llama-3.1-8b-instant']
+            },
+            priority: 2,
+            isAvailable: true,
+            errorCount: 0,
+            maxTokens: 8000
+        });
         this.providers.set('openrouter', {
             name: 'openrouter',
             apiKey: '',
             baseURL: 'https://openrouter.ai/api/v1',
             models: {
-                primary: 'deepseek/deepseek-v3.1:free',
-                fallbacks: [
-                    'xiaomi/mimo-v2-flash:free',
-                    'meta-llama/llama-3.3-70b-instruct:free'
-                ]
+                primary: 'openrouter/free',
+                fallbacks: []
             },
-            priority: 1,
+            priority: 3,
             isAvailable: true,
             errorCount: 0,
             maxTokens: 8000,
@@ -69,30 +92,6 @@ class MultiModelRouter {
                 'X-Title': 'Nexus Financial'
             }
         });
-        this.providers.set('mistral', {
-            name: 'mistral',
-            apiKey: '',
-            baseURL: 'https://api.mistral.ai/v1',
-            models: {
-                primary: 'mistral-small-latest'
-            },
-            priority: 2,
-            isAvailable: true,
-            errorCount: 0,
-            maxTokens: 8000
-        });
-        this.providers.set('gemini', {
-            name: 'gemini',
-            apiKey: '',
-            baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-            models: {
-                primary: 'gemini-2.0-flash-exp'
-            },
-            priority: 3,
-            isAvailable: true,
-            errorCount: 0,
-            maxTokens: 8000
-        });
     }
     updateApiKeys(keys) {
         if (keys.gemini) {
@@ -100,30 +99,36 @@ class MultiModelRouter {
             if (p)
                 p.apiKey = keys.gemini;
         }
+        if (keys.groq) {
+            const p = this.providers.get('groq');
+            if (p)
+                p.apiKey = keys.groq;
+        }
         if (keys.openrouter) {
             const p = this.providers.get('openrouter');
             if (p)
                 p.apiKey = keys.openrouter;
         }
-        if (keys.mistral) {
-            const p = this.providers.get('mistral');
-            if (p)
-                p.apiKey = keys.mistral;
-        }
     }
     async routeRequest(messages, systemPrompt, options) {
-        const cacheKey = this.generateCacheKey(messages);
+        const cacheKey = this.generateCacheKey(messages, systemPrompt, options?.cacheScope, options?.responseFormat);
         const cached = this.getCachedResponse(cacheKey);
         if (cached)
             return { ...cached.response, cached: true };
         const sortedProviders = this.getAvailableProviders();
+        let attempts = 0;
         for (const provider of sortedProviders) {
+            if (attempts >= 2) {
+                logger.warn(`[Router] Limite de ${attempts} tentativas atingido`);
+                break;
+            }
             if (!provider.apiKey) {
                 logger.warn(`[Router] ${provider.name} sem API key - pulando`);
                 continue;
             }
             try {
-                logger.info(`[Router] Tentando: ${provider.name} (prioridade ${provider.priority})`);
+                attempts++;
+                logger.info(`[Router] Tentativa ${attempts}/2: ${provider.name} (${provider.models.primary})`);
                 const response = await this.tryProvider(provider, messages, systemPrompt, options);
                 if (response.success) {
                     this.resetProviderErrors(provider.name);
@@ -135,98 +140,27 @@ class MultiModelRouter {
             catch (error) {
                 logger.error(`[Router] ${provider.name} falhou: ${error.message}`);
                 this.markProviderError(provider.name);
-                if (provider.name === 'openrouter' && provider.models.fallbacks) {
-                    for (const fallbackModel of provider.models.fallbacks) {
-                        try {
-                            logger.info(`[Router] Tentando fallback: ${fallbackModel}`);
-                            const fallbackRes = await this.tryProviderWithModel(provider, fallbackModel, messages, systemPrompt, options);
-                            if (fallbackRes.success) {
-                                logger.info(`[Router] ✓ OpenRouter fallback: ${fallbackModel}`);
-                                return fallbackRes;
-                            }
-                        }
-                        catch (fbError) {
-                            logger.warn(`[Router] Fallback ${fallbackModel} falhou`);
-                        }
-                    }
-                }
             }
         }
-        logger.error("[Router] ⚠️ Todos providers falharam - modo contingência");
+        logger.error("[Router] ⚠️ Providers falharam após 2 tentativas - modo contingência");
         return this.getContingencyResponse(options?.fallbackContext);
     }
     async tryProvider(provider, messages, systemPrompt, options) {
-        return this.tryProviderWithModel(provider, provider.models.primary, messages, systemPrompt, options);
-    }
-    async tryProviderWithModel(provider, modelName, messages, systemPrompt, options) {
         if (!provider.isAvailable) {
             throw new Error('Provider indisponível');
         }
-        if (provider.name === 'gemini') {
-            return this.callGemini(provider, modelName, messages, systemPrompt, options);
-        }
-        return this.callOpenAIFormat(provider, modelName, messages, systemPrompt, options);
-    }
-    async callGemini(provider, modelName, messages, systemPrompt, options) {
-        const contents = [];
-        if (systemPrompt) {
-            contents.push({
-                role: 'user',
-                parts: [{ text: `[INSTRUÇÕES DO SISTEMA]\n${systemPrompt}\n\n[FIM DAS INSTRUÇÕES]` }]
-            });
-            contents.push({
-                role: 'model',
-                parts: [{ text: 'Entendido. Vou seguir essas diretrizes.' }]
-            });
-        }
-        messages.forEach(msg => {
-            if (msg.role === 'system')
-                return;
-            contents.push({
-                role: msg.role === 'assistant' ? 'model' : 'user',
-                parts: [{ text: msg.content }]
-            });
-        });
-        const requestBody = {
-            contents,
-            generationConfig: {
-                temperature: options?.temperature || 0.6,
-                maxOutputTokens: options?.maxTokens || provider.maxTokens
+        const candidates = [provider.models.primary, ...(provider.models.fallbacks ?? [])];
+        let lastError;
+        for (const modelName of candidates) {
+            try {
+                return await this.callOpenAIFormat(provider, modelName, messages, systemPrompt, options);
             }
-        };
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 25000);
-        try {
-            const response = await fetch(`${provider.baseURL}/models/${modelName}:generateContent?key=${provider.apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody),
-                signal: controller.signal
-            });
-            clearTimeout(timeoutId);
-            if (!response.ok) {
-                const errorText = await response.text();
-                logger.error(`[Gemini] HTTP ${response.status}: ${errorText.substring(0, 150)}`);
-                throw new Error(`HTTP ${response.status}`);
+            catch (error) {
+                lastError = error;
+                logger.warn(`[Router] ${provider.name}/${modelName} falhou: ${error.message}`);
             }
-            const data = await response.json();
-            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (!text) {
-                throw new Error('Resposta inválida do Gemini');
-            }
-            return {
-                success: true,
-                content: text,
-                provider: provider.name,
-                model: modelName,
-                tokensUsed: data.usageMetadata?.totalTokenCount || 0,
-                cached: false
-            };
         }
-        catch (error) {
-            clearTimeout(timeoutId);
-            throw error;
-        }
+        throw lastError ?? new Error(`Nenhum modelo de ${provider.name} respondeu`);
     }
     async callOpenAIFormat(provider, modelName, messages, systemPrompt, options) {
         const fullMessages = systemPrompt
@@ -239,13 +173,16 @@ class MultiModelRouter {
             max_tokens: options?.maxTokens || provider.maxTokens,
             stream: false
         };
+        if (options?.responseFormat === 'json') {
+            requestBody.response_format = { type: 'json_object' };
+        }
         const headers = {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${provider.apiKey}`,
             ...(provider.headers || {})
         };
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 25000);
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
         try {
             const response = await fetch(`${provider.baseURL}/chat/completions`, {
                 method: 'POST',
@@ -314,11 +251,17 @@ class MultiModelRouter {
             provider: 'contingency',
             model: 'fallback',
             tokensUsed: 0,
-            cached: false
+            cached: false,
+            isContingency: true
         };
     }
-    generateCacheKey(messages) {
-        return JSON.stringify(messages.slice(-2));
+    generateCacheKey(messages, systemPrompt, cacheScope, responseFormat) {
+        return JSON.stringify({
+            cacheScope: cacheScope || 'anonymous',
+            systemPrompt: systemPrompt || '',
+            responseFormat: responseFormat || 'text',
+            messages: messages.slice(-8),
+        });
     }
     getCachedResponse(key) {
         const cached = this.cache.get(key);
@@ -330,8 +273,11 @@ class MultiModelRouter {
         return null;
     }
     cacheResponse(key, response) {
-        if (this.cache.size > 500)
-            this.cache.clear();
+        if (this.cache.size > 500) {
+            const oldest = [...this.cache.entries()].sort((a, b) => a[1].timestamp - b[1].timestamp)[0];
+            if (oldest)
+                this.cache.delete(oldest[0]);
+        }
         this.cache.set(key, { response, timestamp: Date.now() });
     }
 }

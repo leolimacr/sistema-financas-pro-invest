@@ -27,156 +27,6 @@ class DiscretionEngine {
             isProbablyTesting: isTesting
         };
     }
-    static makeDecision(contextAnalysis, userData) {
-        const decision = {
-            responseDepth: 'concise',
-            includeMarketData: false,
-            includeGoals: false,
-            includeTransactions: false,
-            includeSimulations: false,
-            shouldSuggestActions: false,
-            shouldOfferWebSearch: false,
-            shouldProposeSimulation: false,
-            useBulletPoints: false,
-            useParagraphs: true,
-            includeClosingQuestion: false,
-            formalityLevel: 'high',
-            useFirstNameFrequency: 'occasional',
-            includeDateTime: 'none',
-            shouldAcknowledgePreviousMessage: false,
-            shouldBeExtraPolite: false
-        };
-        if (contextAnalysis.isProbablyTesting || contextAnalysis.intent === 'presence_check') {
-            decision.responseDepth = 'minimal';
-            decision.includeClosingQuestion = true;
-            decision.useFirstNameFrequency = 'frequent';
-            decision.formalityLevel = 'medium';
-            decision.shouldAcknowledgePreviousMessage = true;
-            return decision;
-        }
-        switch (contextAnalysis.userMood) {
-            case 'impatient':
-                decision.responseDepth = 'minimal';
-                decision.useBulletPoints = false;
-                decision.includeClosingQuestion = false;
-                decision.formalityLevel = 'medium';
-                decision.shouldBeExtraPolite = true;
-                break;
-            case 'confused':
-                decision.responseDepth = 'detailed';
-                decision.useBulletPoints = true;
-                decision.includeClosingQuestion = true;
-                decision.formalityLevel = 'medium';
-                decision.shouldBeExtraPolite = true;
-                break;
-            case 'curious':
-                decision.responseDepth = 'comprehensive';
-                decision.useBulletPoints = true;
-                decision.includeClosingQuestion = true;
-                decision.formalityLevel = 'medium';
-                break;
-            case 'detailed':
-                decision.responseDepth = 'detailed';
-                decision.useBulletPoints = true;
-                decision.includeClosingQuestion = true;
-                decision.formalityLevel = 'high';
-                break;
-            case 'testing':
-                decision.responseDepth = 'minimal';
-                decision.includeClosingQuestion = true;
-                decision.useFirstNameFrequency = 'frequent';
-                break;
-        }
-        switch (contextAnalysis.intent) {
-            case 'greeting':
-                decision.responseDepth = 'minimal';
-                decision.includeClosingQuestion = true;
-                decision.shouldSuggestActions = false;
-                decision.useFirstNameFrequency = 'frequent';
-                decision.includeDateTime = 'none';
-                decision.shouldAcknowledgePreviousMessage = contextAnalysis.requiresFollowUp;
-                break;
-            case 'market_query':
-                decision.responseDepth = contextAnalysis.complexity === 'high' ? 'detailed' : 'concise';
-                decision.includeMarketData = true;
-                decision.shouldOfferWebSearch = contextAnalysis.requiresMarketData;
-                decision.useBulletPoints = contextAnalysis.complexity === 'high';
-                decision.formalityLevel = 'high';
-                decision.includeDateTime = contextAnalysis.requiresTime ? 'both' :
-                    contextAnalysis.requiresDate ? 'date' : 'none';
-                decision.includeClosingQuestion = contextAnalysis.complexity === 'high';
-                break;
-            case 'investment_advice':
-                decision.responseDepth = 'comprehensive';
-                decision.includeMarketData = true;
-                decision.includeGoals = userData.hasGoals;
-                decision.includeTransactions = userData.hasRecentTransactions;
-                decision.includeSimulations = userData.hasSimulations;
-                decision.shouldSuggestActions = true;
-                decision.shouldProposeSimulation = true;
-                decision.useBulletPoints = true;
-                decision.formalityLevel = 'medium';
-                decision.useFirstNameFrequency = 'frequent';
-                decision.includeClosingQuestion = true;
-                decision.shouldBeExtraPolite = true;
-                break;
-            case 'identity_query':
-                decision.responseDepth = 'minimal';
-                decision.includeClosingQuestion = true;
-                decision.formalityLevel = 'high';
-                decision.shouldAcknowledgePreviousMessage = true;
-                break;
-            case 'date_time_query':
-                decision.responseDepth = 'minimal';
-                decision.includeClosingQuestion = true;
-                decision.includeDateTime = 'both';
-                break;
-            case 'user_data_query':
-                decision.responseDepth = 'detailed';
-                decision.includeGoals = userData.hasGoals;
-                decision.includeTransactions = userData.hasRecentTransactions;
-                decision.includeSimulations = userData.hasSimulations;
-                decision.shouldSuggestActions = true;
-                decision.useBulletPoints = true;
-                decision.formalityLevel = 'medium';
-                decision.useFirstNameFrequency = 'frequent';
-                decision.includeClosingQuestion = true;
-                break;
-            case 'explanation_query':
-                decision.responseDepth = 'detailed';
-                decision.useBulletPoints = true;
-                decision.includeClosingQuestion = true;
-                decision.formalityLevel = 'medium';
-                decision.shouldBeExtraPolite = true;
-                break;
-            case 'follow_up':
-                decision.responseDepth = 'concise';
-                decision.shouldAcknowledgePreviousMessage = true;
-                decision.useFirstNameFrequency = 'occasional';
-                decision.includeClosingQuestion = false;
-                break;
-        }
-        if (contextAnalysis.isSimpleGreeting && contextAnalysis.requiresFollowUp) {
-            decision.responseDepth = 'minimal';
-            decision.shouldSuggestActions = false;
-            decision.includeClosingQuestion = true;
-        }
-        if (contextAnalysis.userMood === 'impatient') {
-            decision.responseDepth = 'minimal';
-            decision.useBulletPoints = false;
-            decision.includeClosingQuestion = false;
-            decision.shouldBeExtraPolite = true;
-        }
-        if (contextAnalysis.complexity === 'low') {
-            decision.responseDepth = 'minimal';
-            decision.useBulletPoints = false;
-            decision.includeClosingQuestion = false;
-        }
-        if (contextAnalysis.requiresMarketData) {
-            decision.includeMarketData = true;
-        }
-        return decision;
-    }
     static isTestingPresence(message, history) {
         if (!history || history.length === 0)
             return false;
@@ -198,18 +48,45 @@ class DiscretionEngine {
         const messageLower = message.toLowerCase();
         if (this.isSimpleGreeting(messageLower, ''))
             return 'greeting';
-        const marketKeywords = ['dólar', 'ibov', 'ação', 'ações', 'bitcoin', 'mercado', 'cotação', 'preço', 'valor'];
-        const investmentKeywords = ['investir', 'aplicar', 'onde colocar', 'melhor investimento', 'onde investir', 'recomende investimento'];
-        const identityKeywords = ['quem é você', 'seu nome', 'você é', 'o que é nexus'];
-        const dateKeywords = ['que dia é hoje', 'qual a data', 'que horas são', 'dia atual', 'hora atual'];
-        const userDataKeywords = [
-            'minhas despesas', 'minhas receitas', 'meu orçamento', 'meus gastos', 'minha situação',
-            'meus lançamentos', 'minhas transações', 'meu saldo', 'meus registros',
-            'meus dados', 'minha conta', 'como estão meus', 'lançamentos de despesas'
+        const cashflowKeywords = [
+            'minhas despesas', 'minhas receitas', 'meu orçamento', 'meus gastos',
+            'meus lançamentos', 'minhas transações', 'minhas transacoes',
+            'meu saldo', 'meus registros', 'entradas e saídas', 'entradas e saidas',
+            'fluxo de caixa', 'lançamentos de despesas', 'lancamentos de despesas',
+            'receitas e despesas', 'analisar meus lançamentos', 'analise meus lançamentos',
+            'analisar minhas despesas', 'analise minhas despesas', 'meu fluxo financeiro'
         ];
-        const explanationKeywords = ['o que é', 'como funciona', 'diferença entre', 'significa', 'qual a diferença'];
-        const followUpKeywords = ['e', 'também', 'além disso', 'outra coisa', 'certo', 'então'];
-        if (userDataKeywords.some(k => messageLower.includes(k)))
+        const patrimonyKeywords = [
+            'meus ativos', 'meus passivos', 'meu patrimônio', 'meu patrimonio',
+            'meus bens', 'minha carteira patrimonial', 'meus imóveis', 'meus imoveis',
+            'meus veículos', 'meus veiculos', 'meus terrenos', 'composição patrimonial',
+            'composicao patrimonial', 'patrimônio ativo', 'patrimonio ativo',
+            'patrimônio passivo', 'patrimonio passivo'
+        ];
+        const marketKeywords = [
+            'dólar', 'dolar', 'ibov', 'ação', 'ações', 'acao', 'acoes',
+            'bitcoin', 'mercado', 'cotação', 'cotacao', 'preço', 'preco', 'valor'
+        ];
+        const investmentKeywords = [
+            'investir', 'aplicar', 'onde colocar', 'melhor investimento',
+            'onde investir', 'recomende investimento'
+        ];
+        const debtKeywords = [
+            'plano', 'quitar', 'sair das dívidas', 'sair das dividas',
+            'estratégia de quitação', 'estrategia de quitacao', 'prioridade de dívida', 'prioridade de divida'
+        ];
+        const identityKeywords = ['quem é você', 'seu nome', 'você é', 'voce é', 'o que é nexus', 'o que e nexus'];
+        const dateKeywords = ['que dia é hoje', 'que dia e hoje', 'qual a data', 'que horas são', 'que horas sao', 'dia atual', 'hora atual'];
+        const explanationKeywords = ['o que é', 'o que e', 'como funciona', 'diferença entre', 'diferenca entre', 'significa', 'qual a diferença', 'qual a diferenca'];
+        const followUpKeywords = ['e', 'também', 'tambem', 'além disso', 'alem disso', 'outra coisa', 'certo', 'então', 'entao'];
+        const genericUserDataKeywords = ['meus dados', 'minha situação', 'minha situacao', 'como estão meus', 'como estao meus'];
+        if (debtKeywords.some(k => messageLower.includes(k)))
+            return 'debt_plan_query';
+        if (cashflowKeywords.some(k => messageLower.includes(k)))
+            return 'cashflow_query';
+        if (patrimonyKeywords.some(k => messageLower.includes(k)))
+            return 'patrimony_query';
+        if (genericUserDataKeywords.some(k => messageLower.includes(k)))
             return 'user_data_query';
         if (explanationKeywords.some(k => messageLower.includes(k)))
             return 'explanation_query';
@@ -287,7 +164,7 @@ class DiscretionEngine {
         const isGreeting = simpleGreetings.some(greeting => message.toLowerCase().startsWith(greeting) && message.split(' ').length <= 4);
         return isGreeting;
     }
-    static shouldSuggestActions(message, intent, history, userData) {
+    static shouldSuggestActions(message, intent, history, _userData) {
         if (intent === 'greeting')
             return false;
         if (message.includes('rápido') || message.includes('urgente') || message.includes('agora')) {
@@ -301,7 +178,7 @@ class DiscretionEngine {
             return false;
         if (intent === 'investment_advice')
             return true;
-        if (intent === 'user_data_query')
+        if (intent === 'cashflow_query' || intent === 'patrimony_query' || intent === 'user_data_query')
             return true;
         if (history.length > 10)
             return false;

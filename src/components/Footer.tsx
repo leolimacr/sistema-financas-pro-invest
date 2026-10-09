@@ -25,14 +25,14 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
   };
 
   const handleNav = (tool: string) => {
-    if (onNavigate) {
-      onNavigate(tool);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
+  if (onNavigate) {
+    onNavigate(tool);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+};
 
   return (
-    <footer className="border-t border-slate-800 bg-[#0f172a] pt-20 pb-8 no-print">
+    <footer className="border-t border-slate-200 bg-surface-primary pt-20 pb-8 no-print">
       <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8">
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
@@ -41,14 +41,14 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           <div className="space-y-6">
             <div className="flex items-center gap-2">
                <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-bold">FP</div>
-               <h4 className="font-bold text-white text-lg">Finanças Pro Invest</h4>
+               <h4 className="font-bold text-slate-900 text-lg">Finanças Pro Invest</h4>
             </div>
-            <p className="text-sm text-slate-400 leading-relaxed">
+            <p className="text-sm text-slate-500 leading-relaxed">
               Sua bússola para a liberdade financeira. Ferramentas precisas e educação sem enrolação.
             </p>
             
             <div className="pt-4">
-              <h5 className="text-white font-bold text-sm mb-3">Fique Atualizado</h5>
+               <h5 className="text-slate-900 font-bold text-sm mb-3">Fique Atualizado</h5>
               
               {status === 'success' ? (
                   <div className="bg-emerald-900/30 text-emerald-400 p-3 rounded-lg text-xs border border-emerald-500/20 animate-in fade-in">
@@ -64,7 +64,7 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                         onChange={(e) => setEmail(e.target.value)}
                         disabled={status === 'loading'}
                         placeholder="seu@email.com" 
-                        className="bg-slate-900 border border-slate-700 text-white text-xs rounded-lg px-3 py-2 w-full focus:ring-1 focus:ring-emerald-500 outline-none transition-all disabled:opacity-50"
+                        className="bg-surface-secondary border border-slate-300 text-slate-900 text-xs rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-brand-primaryCta/30 outline-none transition-all disabled:opacity-50"
                         />
                         <button 
                             type="submit" 
@@ -84,10 +84,10 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
 
           {/* Coluna 2: Ferramentas */}
           <div>
-            <h4 className="font-bold text-white mb-6 text-sm uppercase tracking-wider">Ferramentas</h4>
-            <ul className="space-y-3 text-sm text-slate-400">
+            <h4 className="font-bold text-slate-900 mb-6 text-sm uppercase tracking-wider">Ferramentas</h4>
+            <ul className="space-y-3 text-sm text-slate-500">
               <li><button onClick={() => handleNav('compound')} className="hover:text-emerald-400 transition-colors text-left">Simulador de Juros Compostos</button></li>
-              <li><button onClick={() => handleNav('manager')} className="hover:text-emerald-400 transition-colors text-left">Gerenciador Financeiro</button></li>
+              <li><button onClick={() => handleNav('manager')} className="hover:text-emerald-400 transition-colors text-left">Controla</button></li>
               <li><button onClick={() => handleNav('fire')} className="hover:text-emerald-400 transition-colors text-left">Calculadora FIRE</button></li>
               <li><button onClick={() => handleNav('rent')} className="hover:text-emerald-400 transition-colors text-left">Aluguel vs Financiamento</button></li>
               <li><button onClick={() => handleNav('debt')} className="hover:text-emerald-400 transition-colors text-left">Otimizador de Dívidas</button></li>
@@ -97,8 +97,8 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
 
           {/* Coluna 3: Conteúdo */}
           <div>
-            <h4 className="font-bold text-white mb-6 text-sm uppercase tracking-wider">Academia & Conteúdo</h4>
-            <ul className="space-y-3 text-sm text-slate-400">
+            <h4 className="font-bold text-slate-900 mb-6 text-sm uppercase tracking-wider">Academia & Conteúdo</h4>
+            <ul className="space-y-3 text-sm text-slate-500">
               <li><button onClick={() => handleNav('education')} className="hover:text-emerald-400 transition-colors text-left">Blog Oficial</button></li>
               <li><button onClick={() => handleNav('education')} className="hover:text-emerald-400 transition-colors text-left">Guias para Iniciantes</button></li>
               <li><button onClick={() => handleNav('education')} className="hover:text-emerald-400 transition-colors text-left">Psicologia do Dinheiro</button></li>
@@ -109,26 +109,26 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
 
           {/* Coluna 4: Institucional */}
           <div>
-            <h4 className="font-bold text-white mb-6 text-sm uppercase tracking-wider">Institucional</h4>
-            <ul className="space-y-3 text-sm text-slate-400">
+            <h4 className="font-bold text-slate-900 mb-6 text-sm uppercase tracking-wider">Institucional</h4>
+            <ul className="space-y-3 text-sm text-slate-500">
               <li><button onClick={() => handleNav('sobre')} className="hover:text-emerald-400 transition-colors text-left">Sobre Nós</button></li>
               <li><button onClick={() => handleNav('faq')} className="hover:text-emerald-400 transition-colors text-left">FAQ</button></li>
-              <li><button onClick={() => handleNav('politica-privacidade')} className="hover:text-emerald-400 transition-colors text-left">Política de Privacidade</button></li>
-              <li><button onClick={() => handleNav('termos-de-uso')} className="hover:text-emerald-400 transition-colors text-left">Termos de Uso</button></li>
+              <li><button onClick={() => handleNav('privacidade')} className="hover:text-emerald-400 transition-colors text-left">Política de Privacidade</button></li>
+              <li><button onClick={() => handleNav('termos')} className="hover:text-emerald-400 transition-colors text-left">Termos de Uso</button></li>
               <li><button onClick={() => handleNav('sobre')} className="hover:text-emerald-400 transition-colors text-left">Contato</button></li>
             </ul>
           </div>
 
         </div>
 
-        <div className="pt-8 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-xs text-slate-600">
+        <div className="pt-8 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-xs text-slate-500">
             &copy; {new Date().getFullYear()} Finanças Pro Invest. Todos os direitos reservados.
           </p>
           <div className="flex gap-4">
-             <button className="text-slate-600 hover:text-white transition-colors"><span className="sr-only">Instagram</span>📷</button>
-             <button className="text-slate-600 hover:text-white transition-colors"><span className="sr-only">Twitter</span>🐦</button>
-             <button className="text-slate-600 hover:text-white transition-colors"><span className="sr-only">LinkedIn</span>💼</button>
+             <button className="text-slate-400 hover:text-slate-900 transition-colors"><span className="sr-only">Instagram</span>📷</button>
+             <button className="text-slate-400 hover:text-slate-900 transition-colors"><span className="sr-only">Twitter</span>🐦</button>
+             <button className="text-slate-400 hover:text-slate-900 transition-colors"><span className="sr-only">LinkedIn</span>💼</button>
           </div>
         </div>
       </div>

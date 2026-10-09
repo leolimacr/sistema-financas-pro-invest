@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 
 export type PeriodType = 'months' | 'years';
 export type RateType = 'monthly' | 'annual';
@@ -48,6 +48,11 @@ export interface UserMeta {
 
 export type TransactionType = 'income' | 'expense';
 
+export interface CreditCard {
+  id: string;
+  name: string;
+}
+
 export interface Transaction {
   id: string;
   type: TransactionType;
@@ -55,6 +60,8 @@ export interface Transaction {
   description: string;
   category: string;
   amount: number;
+  paymentMethod?: 'money' | 'credit' | 'voucher';
+  cardId?: string;
 }
 
 export type FilterPeriod = 'tudo' | 'hoje' | 'mes' | 'ano';
@@ -172,6 +179,53 @@ export interface GameEvent {
     cost?: number;
     effect: (state: GameState) => Partial<GameState>;
   }[];
+}
+
+// Conteúdo Educativo - Cursos
+export interface CourseLesson {
+  id: string; // Adicionado para lesson.id
+  slug: string;
+  title: string;
+  content?: string; // Markdown content or similar - Made optional to resolve TS2741
+  durationMinutes: number;
+  isCompleted?: boolean;
+  blocks?: any[]; // Adicionado para lessonData.blocks
+  objective?: string; // Adicionado para corrigir TS2353 em CourseLesson
+}
+
+export interface CourseModule {
+  slug: string;
+  title: string;
+  description: string;
+  lessons: CourseLesson[];
+  isCompleted?: boolean;
+  objective?: string; // Adicionado para moduleData.objective
+  id: string; // Adicionado para CourseModule.id
+  order: number; // Adicionado para CourseModule.order
+  badgeLabel?: string; // Adicionado para CourseModule.badgeLabel
+}
+
+export interface CourseMeta {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  category: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  imageUrl?: string;
+  mainGoal?: string; // Adicionado para course?.meta.mainGoal
+  headline: string; // Adicionado para CourseMeta.headline
+  shortDescription: string; // Adicionado para CourseMeta.shortDescription
+  audience: string; // Adicionado para CourseMeta.audience
+  level: string; // Adicionado para CourseMeta.level
+  estimatedDuration: string; // Adicionado para CourseMeta.estimatedDuration
+  modulesCount: number; // Adicionado para CourseMeta.modulesCount
+}
+
+export interface Course {
+  modules: CourseModule[];
+  isPublished: boolean;
+  meta: CourseMeta; // Contém id, slug, title, description, category, difficulty, imageUrl
 }
 
 // Conteúdo Educativo

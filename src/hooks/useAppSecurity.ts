@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 
@@ -33,12 +33,15 @@ export const useAppSecurity = (userId?: string, isAuthenticated?: boolean) => {
     }
   }
 
-  const handleUnlockSuccess = async () => {
+  const handleUnlockSuccessRef = useRef<() => Promise<void>>(async () => {});
+  handleUnlockSuccessRef.current = async () => {
     if (userId) {
       await Preferences.set({ key: `last_auth_${userId}`, value: Date.now().toString() });
     }
     setIsAppLocked(false);
   };
+
+  const handleUnlockSuccess = useCallback(async () => handleUnlockSuccessRef.current(), []);
 
   return { isAppLocked, storedPin, handleUnlockSuccess };
 };

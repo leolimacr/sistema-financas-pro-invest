@@ -1,5 +1,5 @@
 
-import firebase from 'firebase/compat/app';
+import { ref, push, serverTimestamp } from 'firebase/database';
 import { database, authReadyPromise } from '../firebase';
 
 /**
@@ -12,12 +12,12 @@ export const subscribeToNewsletter = async (email: string, source: string = 'gen
     // Garante que o Auth do Firebase está inicializado (login anônimo ou real)
     await authReadyPromise;
 
-    const subscribersRef = database.ref('newsletter/subscribers');
+    const subscribersRef = ref(database, 'newsletter/subscribers');
     
-    await subscribersRef.push({
+    await push(subscribersRef, {
       email,
       source,
-      createdAt: firebase.database.ServerValue.TIMESTAMP,
+      createdAt: serverTimestamp(),
       userAgent: window.navigator.userAgent 
     });
 

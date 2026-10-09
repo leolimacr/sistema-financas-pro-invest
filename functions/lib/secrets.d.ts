@@ -1,0 +1,10 @@
+export declare const BRAPI_TOKEN: import("firebase-functions/params").SecretParam;
+export declare const DEEPSEEK_API_KEY: import("firebase-functions/params").SecretParam;
+export declare const GEMINI_API_KEY: import("firebase-functions/params").SecretParam;
+export declare const GROQ_API_KEY: import("firebase-functions/params").SecretParam;
+export declare const MISTRAL_API_KEY: import("firebase-functions/params").SecretParam;
+export declare const OPENROUTER_API_KEY: import("firebase-functions/params").SecretParam;
+export declare const STRIPE_SECRET_KEY: import("firebase-functions/params").SecretParam;
+export declare const STRIPE_WEBHOOK_SECRET: import("firebase-functions/params").SecretParam;
+export declare const TAVILY_API_KEY: import("firebase-functions/params").SecretParam;
+export declare const RESEND_API_KEY: import("firebase-functions/params").SecretParam;

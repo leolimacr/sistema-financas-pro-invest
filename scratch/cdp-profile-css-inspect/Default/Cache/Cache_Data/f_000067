@@ -1,0 +1,495 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/tools/finance/calendar/DayExpensesModal.tsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=f34cf7b5"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import __vite__cjsImport3_react from "/node_modules/.vite/deps/react.js?v=f34cf7b5"; const useEffect = __vite__cjsImport3_react["useEffect"];
+import { X, Calendar, Receipt, Plus, CreditCard, Wallet, Pencil } from "/node_modules/.vite/deps/lucide-react.js?v=c253b444";
+import {
+  formatCalendarFullDate,
+  getWeekdayNameFromIso,
+  formatDayExpenseAmount
+} from "/src/utils/expenseCalendarUtils.ts";
+export const DayExpensesModal = ({
+  isOpen,
+  onClose,
+  dateIso,
+  transactions,
+  totalAmount,
+  isPrivacyMode = false,
+  onEditTransaction,
+  onOpenForm
+}) => {
+  _s();
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+  if (!isOpen || !dateIso) return null;
+  const fullDateLabel = formatCalendarFullDate(dateIso);
+  const weekdayLabel = getWeekdayNameFromIso(dateIso);
+  const count = transactions.length;
+  const handleAddNewForDay = () => {
+    onClose();
+    if (onOpenForm) {
+      onOpenForm({ date: dateIso, type: "expense" });
+    }
+  };
+  const handleEdit = (t) => {
+    onClose();
+    if (onEditTransaction) {
+      onEditTransaction(t);
+    }
+  };
+  const getPaymentMethodBadge = (t) => {
+    if (t.paymentMethod === "credit") {
+      return /* @__PURE__ */ jsxDEV("span", { className: "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950/60 text-purple-950 dark:text-purple-300 border border-purple-300 dark:border-purple-800 text-[10px] font-black", children: [
+        /* @__PURE__ */ jsxDEV(CreditCard, { size: 11 }, void 0, false, {
+          fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+          lineNumber: 84,
+          columnNumber: 11
+        }, this),
+        "Crédito"
+      ] }, void 0, true, {
+        fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+        lineNumber: 83,
+        columnNumber: 9
+      }, this);
+    }
+    if (t.paymentMethod === "voucher") {
+      return /* @__PURE__ */ jsxDEV("span", { className: "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/60 text-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800 text-[10px] font-black", children: [
+        /* @__PURE__ */ jsxDEV(Wallet, { size: 11 }, void 0, false, {
+          fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+          lineNumber: 92,
+          columnNumber: 11
+        }, this),
+        "Vale"
+      ] }, void 0, true, {
+        fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+        lineNumber: 91,
+        columnNumber: 9
+      }, this);
+    }
+    return /* @__PURE__ */ jsxDEV("span", { className: "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-950 dark:text-slate-300 border border-slate-300 dark:border-slate-700 text-[10px] font-black", children: [
+      /* @__PURE__ */ jsxDEV(Wallet, { size: 11 }, void 0, false, {
+        fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+        lineNumber: 99,
+        columnNumber: 9
+      }, this),
+      "À vista / Débito"
+    ] }, void 0, true, {
+      fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+      lineNumber: 98,
+      columnNumber: 7
+    }, this);
+  };
+  return /* @__PURE__ */ jsxDEV(
+    "div",
+    {
+      role: "dialog",
+      "aria-modal": "true",
+      "aria-labelledby": "day-expenses-title",
+      className: "fixed inset-0 z-[120] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-xs animate-in fade-in duration-200 p-0 md:p-4",
+      onClick: onClose,
+      children: /* @__PURE__ */ jsxDEV(
+        "div",
+        {
+          className: "w-full md:max-w-lg bg-surface-primary dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 rounded-t-3xl md:rounded-3xl shadow-2xl max-h-[90vh] md:max-h-[85vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-6 md:zoom-in-95 duration-200",
+          onClick: (e) => e.stopPropagation(),
+          children: [
+            /* @__PURE__ */ jsxDEV("div", { className: "md:hidden pt-3 pb-1 flex justify-center shrink-0", children: /* @__PURE__ */ jsxDEV("div", { className: "w-12 h-1.5 bg-slate-400 dark:bg-slate-600 rounded-full" }, void 0, false, {
+              fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+              lineNumber: 119,
+              columnNumber: 11
+            }, this) }, void 0, false, {
+              fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+              lineNumber: 118,
+              columnNumber: 9
+            }, this),
+            /* @__PURE__ */ jsxDEV("div", { className: "flex items-center justify-between p-4 md:p-5 border-b-2 border-slate-100 dark:border-slate-800 shrink-0", children: [
+              /* @__PURE__ */ jsxDEV("div", { className: "flex items-center gap-3 min-w-0", children: [
+                /* @__PURE__ */ jsxDEV("div", { className: "p-2.5 rounded-2xl bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-400 border border-red-200 dark:border-red-900/40 shrink-0", children: /* @__PURE__ */ jsxDEV(Receipt, { size: 20 }, void 0, false, {
+                  fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                  lineNumber: 126,
+                  columnNumber: 15
+                }, this) }, void 0, false, {
+                  fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                  lineNumber: 125,
+                  columnNumber: 13
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { className: "min-w-0", children: [
+                  /* @__PURE__ */ jsxDEV(
+                    "h2",
+                    {
+                      id: "day-expenses-title",
+                      className: "text-base md:text-lg font-black text-slate-950 dark:text-white capitalize tracking-tight truncate",
+                      children: fullDateLabel
+                    },
+                    void 0,
+                    false,
+                    {
+                      fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                      lineNumber: 129,
+                      columnNumber: 15
+                    },
+                    this
+                  ),
+                  /* @__PURE__ */ jsxDEV("p", { className: "text-xs text-slate-600 dark:text-slate-400 font-bold flex items-center gap-1.5 mt-0.5", children: [
+                    /* @__PURE__ */ jsxDEV("span", { className: "text-slate-900 dark:text-slate-200 font-black", children: weekdayLabel }, void 0, false, {
+                      fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                      lineNumber: 136,
+                      columnNumber: 17
+                    }, this),
+                    /* @__PURE__ */ jsxDEV("span", { children: "•" }, void 0, false, {
+                      fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                      lineNumber: 137,
+                      columnNumber: 17
+                    }, this),
+                    /* @__PURE__ */ jsxDEV("span", { children: [
+                      count,
+                      " ",
+                      count === 1 ? "saída" : "saídas"
+                    ] }, void 0, true, {
+                      fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                      lineNumber: 138,
+                      columnNumber: 17
+                    }, this)
+                  ] }, void 0, true, {
+                    fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                    lineNumber: 135,
+                    columnNumber: 15
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                  lineNumber: 128,
+                  columnNumber: 13
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                lineNumber: 124,
+                columnNumber: 11
+              }, this),
+              /* @__PURE__ */ jsxDEV(
+                "button",
+                {
+                  type: "button",
+                  onClick: onClose,
+                  "aria-label": "Fechar detalhamento do dia",
+                  className: "p-2 rounded-xl text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors shrink-0",
+                  children: /* @__PURE__ */ jsxDEV(X, { size: 18 }, void 0, false, {
+                    fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                    lineNumber: 151,
+                    columnNumber: 13
+                  }, this)
+                },
+                void 0,
+                false,
+                {
+                  fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                  lineNumber: 145,
+                  columnNumber: 11
+                },
+                this
+              )
+            ] }, void 0, true, {
+              fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+              lineNumber: 123,
+              columnNumber: 9
+            }, this),
+            /* @__PURE__ */ jsxDEV("div", { className: "p-4 md:p-5 overflow-y-auto flex-1 space-y-3 bg-slate-50/50 dark:bg-slate-950/50", children: count === 0 ? /* @__PURE__ */ jsxDEV("div", { className: "py-8 px-4 text-center space-y-3", children: [
+              /* @__PURE__ */ jsxDEV("div", { className: "w-14 h-14 mx-auto rounded-3xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400", children: /* @__PURE__ */ jsxDEV(Calendar, { size: 26 }, void 0, false, {
+                fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                lineNumber: 160,
+                columnNumber: 17
+              }, this) }, void 0, false, {
+                fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                lineNumber: 159,
+                columnNumber: 15
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("p", { className: "text-sm font-black text-slate-900 dark:text-white", children: "Nenhuma saída registrada neste dia" }, void 0, false, {
+                  fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                  lineNumber: 163,
+                  columnNumber: 17
+                }, this),
+                /* @__PURE__ */ jsxDEV("p", { className: "text-xs text-slate-600 dark:text-slate-400 font-medium mt-1 max-w-xs mx-auto", children: "Não houve compras ou pagamentos computados nesta data." }, void 0, false, {
+                  fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                  lineNumber: 166,
+                  columnNumber: 17
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                lineNumber: 162,
+                columnNumber: 15
+              }, this),
+              onOpenForm && /* @__PURE__ */ jsxDEV(
+                "button",
+                {
+                  type: "button",
+                  onClick: handleAddNewForDay,
+                  className: "inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs uppercase tracking-wider transition-all shadow-sm active:scale-95 mt-2",
+                  children: [
+                    /* @__PURE__ */ jsxDEV(Plus, { size: 16 }, void 0, false, {
+                      fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                      lineNumber: 176,
+                      columnNumber: 19
+                    }, this),
+                    "Lançar despesa neste dia"
+                  ]
+                },
+                void 0,
+                true,
+                {
+                  fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                  lineNumber: 171,
+                  columnNumber: 13
+                },
+                this
+              )
+            ] }, void 0, true, {
+              fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+              lineNumber: 158,
+              columnNumber: 11
+            }, this) : /* @__PURE__ */ jsxDEV("div", { className: "space-y-2.5", children: transactions.map((t) => {
+              const amount = Number(t.amount) || 0;
+              const formattedAmount = isPrivacyMode ? "••••••" : `- ${amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`;
+              return /* @__PURE__ */ jsxDEV(
+                "div",
+                {
+                  className: "p-3.5 rounded-2xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700 flex items-center justify-between gap-3 shadow-xs transition-colors group",
+                  children: [
+                    /* @__PURE__ */ jsxDEV("div", { className: "min-w-0 flex-1", children: [
+                      /* @__PURE__ */ jsxDEV("div", { className: "flex items-center gap-2 flex-wrap mb-1", children: [
+                        /* @__PURE__ */ jsxDEV("span", { className: "inline-block px-2.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-[10px] font-black uppercase tracking-wider text-slate-800 dark:text-slate-300", children: t.category || "Sem categoria" }, void 0, false, {
+                          fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                          lineNumber: 196,
+                          columnNumber: 25
+                        }, this),
+                        getPaymentMethodBadge(t)
+                      ] }, void 0, true, {
+                        fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                        lineNumber: 195,
+                        columnNumber: 23
+                      }, this),
+                      /* @__PURE__ */ jsxDEV("p", { className: "text-sm font-black text-slate-950 dark:text-white truncate", children: t.description || "Despesa" }, void 0, false, {
+                        fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                        lineNumber: 201,
+                        columnNumber: 23
+                      }, this)
+                    ] }, void 0, true, {
+                      fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                      lineNumber: 194,
+                      columnNumber: 21
+                    }, this),
+                    /* @__PURE__ */ jsxDEV("div", { className: "flex items-center gap-2.5 shrink-0", children: [
+                      /* @__PURE__ */ jsxDEV("span", { className: "text-base sm:text-lg font-black text-red-700 dark:text-red-400 tabular-nums", children: formattedAmount }, void 0, false, {
+                        fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                        lineNumber: 207,
+                        columnNumber: 23
+                      }, this),
+                      onEditTransaction && /* @__PURE__ */ jsxDEV(
+                        "button",
+                        {
+                          type: "button",
+                          onClick: () => handleEdit(t),
+                          title: "Editar lançamento",
+                          "aria-label": `Editar ${t.description}`,
+                          className: "p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors",
+                          children: /* @__PURE__ */ jsxDEV(Pencil, { size: 14 }, void 0, false, {
+                            fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                            lineNumber: 218,
+                            columnNumber: 27
+                          }, this)
+                        },
+                        void 0,
+                        false,
+                        {
+                          fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                          lineNumber: 211,
+                          columnNumber: 21
+                        },
+                        this
+                      )
+                    ] }, void 0, true, {
+                      fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                      lineNumber: 206,
+                      columnNumber: 21
+                    }, this)
+                  ]
+                },
+                t.id,
+                true,
+                {
+                  fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                  lineNumber: 190,
+                  columnNumber: 17
+                },
+                this
+              );
+            }) }, void 0, false, {
+              fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+              lineNumber: 182,
+              columnNumber: 11
+            }, this) }, void 0, false, {
+              fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+              lineNumber: 156,
+              columnNumber: 9
+            }, this),
+            /* @__PURE__ */ jsxDEV("div", { className: "p-4 md:p-5 bg-slate-100 dark:bg-slate-950 border-t-2 border-slate-200 dark:border-slate-800 shrink-0", children: [
+              /* @__PURE__ */ jsxDEV("div", { className: "flex items-center justify-between gap-3 bg-slate-950 dark:bg-slate-900 text-white rounded-2xl p-4 shadow-lg border border-slate-800 dark:border-slate-700", children: [
+                /* @__PURE__ */ jsxDEV("div", { className: "flex flex-col", children: [
+                  /* @__PURE__ */ jsxDEV("span", { className: "text-[11px] font-black uppercase tracking-widest text-slate-300 dark:text-slate-400", children: "Valor total do dia" }, void 0, false, {
+                    fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                    lineNumber: 233,
+                    columnNumber: 15
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("span", { className: "text-xs text-slate-400 dark:text-slate-500 font-semibold", children: [
+                    count,
+                    " ",
+                    count === 1 ? "registro" : "registros"
+                  ] }, void 0, true, {
+                    fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                    lineNumber: 236,
+                    columnNumber: 15
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                  lineNumber: 232,
+                  columnNumber: 13
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { className: "text-right", children: /* @__PURE__ */ jsxDEV(
+                  "span",
+                  {
+                    "data-testid": "day-total-amount",
+                    className: "text-2xl sm:text-3xl font-black text-white tabular-nums tracking-tight",
+                    children: formatDayExpenseAmount(totalAmount, { isPrivacyMode }) || (isPrivacyMode ? "••••••" : "R$ 0,00")
+                  },
+                  void 0,
+                  false,
+                  {
+                    fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                    lineNumber: 242,
+                    columnNumber: 15
+                  },
+                  this
+                ) }, void 0, false, {
+                  fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                  lineNumber: 241,
+                  columnNumber: 13
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                lineNumber: 231,
+                columnNumber: 11
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { className: "mt-3 flex items-center justify-between gap-3", children: [
+                onOpenForm && count > 0 && /* @__PURE__ */ jsxDEV(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: handleAddNewForDay,
+                    className: "flex items-center gap-1.5 text-xs font-black text-emerald-800 dark:text-emerald-400 hover:text-emerald-950 dark:hover:text-emerald-300 py-1",
+                    children: [
+                      /* @__PURE__ */ jsxDEV(Plus, { size: 14 }, void 0, false, {
+                        fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                        lineNumber: 258,
+                        columnNumber: 17
+                      }, this),
+                      "Adicionar outra despesa"
+                    ]
+                  },
+                  void 0,
+                  true,
+                  {
+                    fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                    lineNumber: 253,
+                    columnNumber: 13
+                  },
+                  this
+                ),
+                /* @__PURE__ */ jsxDEV(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: onClose,
+                    className: "ml-auto px-5 py-2.5 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white text-xs font-black uppercase tracking-wider transition-colors shadow-xs",
+                    children: "Fechar"
+                  },
+                  void 0,
+                  false,
+                  {
+                    fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                    lineNumber: 263,
+                    columnNumber: 13
+                  },
+                  this
+                )
+              ] }, void 0, true, {
+                fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+                lineNumber: 251,
+                columnNumber: 11
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+              lineNumber: 230,
+              columnNumber: 9
+            }, this)
+          ]
+        },
+        void 0,
+        true,
+        {
+          fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+          lineNumber: 113,
+          columnNumber: 7
+        },
+        this
+      )
+    },
+    void 0,
+    false,
+    {
+      fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx",
+      lineNumber: 106,
+      columnNumber: 5
+    },
+    this
+  );
+};
+_s(DayExpensesModal, "OD7bBpZva5O2jO+Puf00hKivP7c=");
+_c = DayExpensesModal;
+export default DayExpensesModal;
+var _c;
+$RefreshReg$(_c, "DayExpensesModal");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/calendar/DayExpensesModal.tsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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QTtBQUFBLGlCQXhDRjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQXlDQTtBQUFBO0FBQUE7QUFBQSxRQTlKRjtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsTUErSkE7QUFBQTtBQUFBLElBdEtGO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxFQXVLQTtBQUVKO0FBQUVPLEdBM09XVCxrQkFBaUQ7QUFBQSxLQUFqREE7QUE2T2IsZUFBZUE7QUFBaUIsSUFBQXNDO0FBQUEsYUFBQUEsSUFBQSIsIm5hbWVzIjpbInVzZUVmZmVjdCIsIlgiLCJDYWxlbmRhciIsIlJlY2VpcHQiLCJQbHVzIiwiQ3JlZGl0Q2FyZCIsIldhbGxldCIsIlBlbmNpbCIsImZvcm1hdENhbGVuZGFyRnVsbERhdGUiLCJnZXRXZWVrZGF5TmFtZUZyb21Jc28iLCJmb3JtYXREYXlFeHBlbnNlQW1vdW50IiwiRGF5RXhwZW5zZXNNb2RhbCIsImlzT3BlbiIsIm9uQ2xvc2UiLCJkYXRlSXNvIiwidHJhbnNhY3Rpb25zIiwidG90YWxBbW91bnQiLCJpc1ByaXZhY3lNb2RlIiwib25FZGl0VHJhbnNhY3Rpb24iLCJvbk9wZW5Gb3JtIiwiX3MiLCJoYW5kbGVLZXlEb3duIiwiZSIsImtleSIsIndpbmRvdyIsImFkZEV2ZW50TGlzdGVuZXIiLCJyZW1vdmVFdmVudExpc3RlbmVyIiwiZnVsbERhdGVMYWJlbCIsIndlZWtkYXlMYWJlbCIsImNvdW50IiwibGVuZ3RoIiwiaGFuZGxlQWRkTmV3Rm9yRGF5IiwiZGF0ZSIsInR5cGUiLCJoYW5kbGVFZGl0IiwidCIsImdldFBheW1lbnRNZXRob2RCYWRnZSIsInBheW1lbnRNZXRob2QiLCJzdG9wUHJvcGFnYXRpb24iLCJtYXAiLCJhbW91bnQiLCJOdW1iZXIiLCJmb3JtYXR0ZWRBbW91bnQiLCJ0b0xvY2FsZVN0cmluZyIsInN0eWxlIiwiY3VycmVuY3kiLCJjYXRlZ29yeSIsImRlc2NyaXB0aW9uIiwiaWQiLCJfYyJdLCJpZ25vcmVMaXN0IjpbXSwic291cmNlcyI6WyJEYXlFeHBlbnNlc01vZGFsLnRzeCJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgUmVhY3QsIHsgdXNlRWZmZWN0IH0gZnJvbSAncmVhY3QnO1xuaW1wb3J0IHsgWCwgQ2FsZW5kYXIsIFJlY2VpcHQsIFBsdXMsIENyZWRpdENhcmQsIFdhbGxldCwgUGVuY2lsIH0gZnJvbSAnbHVjaWRlLXJlYWN0JztcbmltcG9ydCB0eXBlIHsgVHJhbnNhY3Rpb24gfSBmcm9tICcuLi8uLi8uLi8uLi90eXBlcyc7XG5pbXBvcnQge1xuICBmb3JtYXRDYWxlbmRhckZ1bGxEYXRlLFxuICBnZXRXZWVrZGF5TmFtZUZyb21Jc28sXG4gIGZvcm1hdERheUV4cGVuc2VBbW91bnQsXG59IGZyb20gJy4uLy4uLy4uLy4uL3V0aWxzL2V4cGVuc2VDYWxlbmRhclV0aWxzJztcblxuaW50ZXJmYWNlIERheUV4cGVuc2VzTW9kYWxQcm9wcyB7XG4gIGlzT3BlbjogYm9vbGVhbjtcbiAgb25DbG9zZTogKCkgPT4gdm9pZDtcbiAgZGF0ZUlzbzogc3RyaW5nIHwgbnVsbDtcbiAgdHJhbnNhY3Rpb25zOiBUcmFuc2FjdGlvbltdO1xuICB0b3RhbEFtb3VudDogbnVtYmVyO1xuICBpc1ByaXZhY3lNb2RlPzogYm9vbGVhbjtcbiAgb25FZGl0VHJhbnNhY3Rpb24/OiAodDogVHJhbnNhY3Rpb24pID0+IHZvaWQ7XG4gIG9uT3BlbkZvcm0/OiAoaW5pdGlhbERhdGE/OiBQYXJ0aWFsPFRyYW5zYWN0aW9uPikgPT4gdm9pZDtcbn1cblxuZXhwb3J0IGNvbnN0IERheUV4cGVuc2VzTW9kYWw6IFJlYWN0LkZDPERheUV4cGVuc2VzTW9kYWxQcm9wcz4gPSAoe1xuICBpc09wZW4sXG4gIG9uQ2xvc2UsXG4gIGRhdGVJc28sXG4gIHRyYW5zYWN0aW9ucyxcbiAgdG90YWxBbW91bnQsXG4gIGlzUHJpdmFjeU1vZGUgPSBmYWxzZSxcbiAgb25FZGl0VHJhbnNhY3Rpb24sXG4gIG9uT3BlbkZvcm0sXG59KSA9PiB7XG4gIC8vIEZlY2hhIGNvbSB0ZWNsYSBFc2NhcGVcbiAgdXNlRWZmZWN0KCgpID0+IHtcbiAgICBpZiAoIWlzT3BlbikgcmV0dXJuO1xuICAgIGNvbnN0IGhhbmRsZUtleURvd24gPSAoZTogS2V5Ym9hcmRFdmVudCkgPT4ge1xuICAgICAgaWYgKGUua2V5ID09PSAnRXNjYXBlJykgb25DbG9zZSgpO1xuICAgIH07XG4gICAgd2luZG93LmFkZEV2ZW50TGlzdGVuZXIoJ2tleWRvd24nLCBoYW5kbGVLZXlEb3duKTtcbiAgICByZXR1cm4gKCkgPT4gd2luZG93LnJlbW92ZUV2ZW50TGlzdGVuZXIoJ2tleWRvd24nLCBoYW5kbGVLZXlEb3duKTtcbiAgfSwgW2lzT3Blbiwgb25DbG9zZV0pO1xuXG4gIGlmICghaXNPcGVuIHx8ICFkYXRlSXNvKSByZXR1cm4gbnVsbDtcblxuICBjb25zdCBmdWxsRGF0ZUxhYmVsID0gZm9ybWF0Q2FsZW5kYXJGdWxsRGF0ZShkYXRlSXNvKTtcbiAgY29uc3Qgd2Vla2RheUxhYmVsID0gZ2V0V2Vla2RheU5hbWVGcm9tSXNvKGRhdGVJc28pO1xuICBjb25zdCBjb3VudCA9IHRyYW5zYWN0aW9ucy5sZW5ndGg7XG5cbiAgY29uc3QgaGFuZGxlQWRkTmV3Rm9yRGF5ID0gKCkgPT4ge1xuICAgIG9uQ2xvc2UoKTtcbiAgICBpZiAob25PcGVuRm9ybSkge1xuICAgICAgb25PcGVuRm9ybSh7IGRhdGU6IGRhdGVJc28sIHR5cGU6ICdleHBlbnNlJyB9KTtcbiAgICB9XG4gIH07XG5cbiAgY29uc3QgaGFuZGxlRWRpdCA9ICh0OiBUcmFuc2FjdGlvbikgPT4ge1xuICAgIG9uQ2xvc2UoKTtcbiAgICBpZiAob25FZGl0VHJhbnNhY3Rpb24pIHtcbiAgICAgIG9uRWRpdFRyYW5zYWN0aW9uKHQpO1xuICAgIH1cbiAgfTtcblxuICBjb25zdCBnZXRQYXltZW50TWV0aG9kQmFkZ2UgPSAodDogVHJhbnNhY3Rpb24pID0+IHtcbiAgICBpZiAodC5wYXltZW50TWV0aG9kID09PSAnY3JlZGl0Jykge1xuICAgICAgcmV0dXJuIChcbiAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwiaW5saW5lLWZsZXggaXRlbXMtY2VudGVyIGdhcC0xIHB4LTIuNSBweS0wLjUgcm91bmRlZC1tZCBiZy1wdXJwbGUtMTAwIGRhcms6YmctcHVycGxlLTk1MC82MCB0ZXh0LXB1cnBsZS05NTAgZGFyazp0ZXh0LXB1cnBsZS0zMDAgYm9yZGVyIGJvcmRlci1wdXJwbGUtMzAwIGRhcms6Ym9yZGVyLXB1cnBsZS04MDAgdGV4dC1bMTBweF0gZm9udC1ibGFja1wiPlxuICAgICAgICAgIDxDcmVkaXRDYXJkIHNpemU9ezExfSAvPlxuICAgICAgICAgIENyw6lkaXRvXG4gICAgICAgIDwvc3Bhbj5cbiAgICAgICk7XG4gICAgfVxuICAgIGlmICh0LnBheW1lbnRNZXRob2QgPT09ICd2b3VjaGVyJykge1xuICAgICAgcmV0dXJuIChcbiAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwiaW5saW5lLWZsZXggaXRlbXMtY2VudGVyIGdhcC0xIHB4LTIuNSBweS0wLjUgcm91bmRlZC1tZCBiZy1hbWJlci0xMDAgZGFyazpiZy1hbWJlci05NTAvNjAgdGV4dC1hbWJlci05NTAgZGFyazp0ZXh0LWFtYmVyLTMwMCBib3JkZXIgYm9yZGVyLWFtYmVyLTMwMCBkYXJrOmJvcmRlci1hbWJlci04MDAgdGV4dC1bMTBweF0gZm9udC1ibGFja1wiPlxuICAgICAgICAgIDxXYWxsZXQgc2l6ZT17MTF9IC8+XG4gICAgICAgICAgVmFsZVxuICAgICAgICA8L3NwYW4+XG4gICAgICApO1xuICAgIH1cbiAgICByZXR1cm4gKFxuICAgICAgPHNwYW4gY2xhc3NOYW1lPVwiaW5saW5lLWZsZXggaXRlbXMtY2VudGVyIGdhcC0xIHB4LTIuNSBweS0wLjUgcm91bmRlZC1tZCBiZy1zbGF0ZS0xMDAgZGFyazpiZy1zbGF0ZS04MDAgdGV4dC1zbGF0ZS05NTAgZGFyazp0ZXh0LXNsYXRlLTMwMCBib3JkZXIgYm9yZGVyLXNsYXRlLTMwMCBkYXJrOmJvcmRlci1zbGF0ZS03MDAgdGV4dC1bMTBweF0gZm9udC1ibGFja1wiPlxuICAgICAgICA8V2FsbGV0IHNpemU9ezExfSAvPlxuICAgICAgICDDgCB2aXN0YSAvIETDqWJpdG9cbiAgICAgIDwvc3Bhbj5cbiAgICApO1xuICB9O1xuXG4gIHJldHVybiAoXG4gICAgPGRpdlxuICAgICAgcm9sZT1cImRpYWxvZ1wiXG4gICAgICBhcmlhLW1vZGFsPVwidHJ1ZVwiXG4gICAgICBhcmlhLWxhYmVsbGVkYnk9XCJkYXktZXhwZW5zZXMtdGl0bGVcIlxuICAgICAgY2xhc3NOYW1lPVwiZml4ZWQgaW5zZXQtMCB6LVsxMjBdIGZsZXggaXRlbXMtZW5kIG1kOml0ZW1zLWNlbnRlciBqdXN0aWZ5LWNlbnRlciBiZy1ibGFjay82MCBiYWNrZHJvcC1ibHVyLXhzIGFuaW1hdGUtaW4gZmFkZS1pbiBkdXJhdGlvbi0yMDAgcC0wIG1kOnAtNFwiXG4gICAgICBvbkNsaWNrPXtvbkNsb3NlfVxuICAgID5cbiAgICAgIDxkaXZcbiAgICAgICAgY2xhc3NOYW1lPVwidy1mdWxsIG1kOm1heC13LWxnIGJnLXN1cmZhY2UtcHJpbWFyeSBkYXJrOmJnLXNsYXRlLTkwMCBib3JkZXItMiBib3JkZXItc2xhdGUtMzAwIGRhcms6Ym9yZGVyLXNsYXRlLTgwMCByb3VuZGVkLXQtM3hsIG1kOnJvdW5kZWQtM3hsIHNoYWRvdy0yeGwgbWF4LWgtWzkwdmhdIG1kOm1heC1oLVs4NXZoXSBmbGV4IGZsZXgtY29sIG92ZXJmbG93LWhpZGRlbiBhbmltYXRlLWluIHNsaWRlLWluLWZyb20tYm90dG9tLTYgbWQ6em9vbS1pbi05NSBkdXJhdGlvbi0yMDBcIlxuICAgICAgICBvbkNsaWNrPXsoZSkgPT4gZS5zdG9wUHJvcGFnYXRpb24oKX1cbiAgICAgID5cbiAgICAgICAgey8qIEJhcnJhIGRlIGFycmFzdGUgcGFyYSBlcmdvbm9taWEgbW9iaWxlICovfVxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cIm1kOmhpZGRlbiBwdC0zIHBiLTEgZmxleCBqdXN0aWZ5LWNlbnRlciBzaHJpbmstMFwiPlxuICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwidy0xMiBoLTEuNSBiZy1zbGF0ZS00MDAgZGFyazpiZy1zbGF0ZS02MDAgcm91bmRlZC1mdWxsXCIgLz5cbiAgICAgICAgPC9kaXY+XG5cbiAgICAgICAgey8qIENhYmXDp2FsaG8gKi99XG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZmxleCBpdGVtcy1jZW50ZXIganVzdGlmeS1iZXR3ZWVuIHAtNCBtZDpwLTUgYm9yZGVyLWItMiBib3JkZXItc2xhdGUtMTAwIGRhcms6Ym9yZGVyLXNsYXRlLTgwMCBzaHJpbmstMFwiPlxuICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTMgbWluLXctMFwiPlxuICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJwLTIuNSByb3VuZGVkLTJ4bCBiZy1yZWQtMTAwIGRhcms6YmctcmVkLTk1MC82MCB0ZXh0LXJlZC04MDAgZGFyazp0ZXh0LXJlZC00MDAgYm9yZGVyIGJvcmRlci1yZWQtMjAwIGRhcms6Ym9yZGVyLXJlZC05MDAvNDAgc2hyaW5rLTBcIj5cbiAgICAgICAgICAgICAgPFJlY2VpcHQgc2l6ZT17MjB9IC8+XG4gICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwibWluLXctMFwiPlxuICAgICAgICAgICAgICA8aDJcbiAgICAgICAgICAgICAgICBpZD1cImRheS1leHBlbnNlcy10aXRsZVwiXG4gICAgICAgICAgICAgICAgY2xhc3NOYW1lPVwidGV4dC1iYXNlIG1kOnRleHQtbGcgZm9udC1ibGFjayB0ZXh0LXNsYXRlLTk1MCBkYXJrOnRleHQtd2hpdGUgY2FwaXRhbGl6ZSB0cmFja2luZy10aWdodCB0cnVuY2F0ZVwiXG4gICAgICAgICAgICAgID5cbiAgICAgICAgICAgICAgICB7ZnVsbERhdGVMYWJlbH1cbiAgICAgICAgICAgICAgPC9oMj5cbiAgICAgICAgICAgICAgPHAgY2xhc3NOYW1lPVwidGV4dC14cyB0ZXh0LXNsYXRlLTYwMCBkYXJrOnRleHQtc2xhdGUtNDAwIGZvbnQtYm9sZCBmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMS41IG10LTAuNVwiPlxuICAgICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cInRleHQtc2xhdGUtOTAwIGRhcms6dGV4dC1zbGF0ZS0yMDAgZm9udC1ibGFja1wiPnt3ZWVrZGF5TGFiZWx9PC9zcGFuPlxuICAgICAgICAgICAgICAgIDxzcGFuPuKAojwvc3Bhbj5cbiAgICAgICAgICAgICAgICA8c3Bhbj5cbiAgICAgICAgICAgICAgICAgIHtjb3VudH0ge2NvdW50ID09PSAxID8gJ3Nhw61kYScgOiAnc2HDrWRhcyd9XG4gICAgICAgICAgICAgICAgPC9zcGFuPlxuICAgICAgICAgICAgICA8L3A+XG4gICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICA8L2Rpdj5cblxuICAgICAgICAgIDxidXR0b25cbiAgICAgICAgICAgIHR5cGU9XCJidXR0b25cIlxuICAgICAgICAgICAgb25DbGljaz17b25DbG9zZX1cbiAgICAgICAgICAgIGFyaWEtbGFiZWw9XCJGZWNoYXIgZGV0YWxoYW1lbnRvIGRvIGRpYVwiXG4gICAgICAgICAgICBjbGFzc05hbWU9XCJwLTIgcm91bmRlZC14bCB0ZXh0LXNsYXRlLTcwMCBkYXJrOnRleHQtc2xhdGUtMzAwIGhvdmVyOnRleHQtc2xhdGUtOTUwIGRhcms6aG92ZXI6dGV4dC13aGl0ZSBob3ZlcjpiZy1zbGF0ZS0xMDAgZGFyazpob3ZlcjpiZy1zbGF0ZS04MDAgYm9yZGVyIGJvcmRlci1zbGF0ZS0yMDAgZGFyazpib3JkZXItc2xhdGUtNzAwIHRyYW5zaXRpb24tY29sb3JzIHNocmluay0wXCJcbiAgICAgICAgICA+XG4gICAgICAgICAgICA8WCBzaXplPXsxOH0gLz5cbiAgICAgICAgICA8L2J1dHRvbj5cbiAgICAgICAgPC9kaXY+XG5cbiAgICAgICAgey8qIExpc3RhIGRlIERlc3Blc2FzICovfVxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cInAtNCBtZDpwLTUgb3ZlcmZsb3cteS1hdXRvIGZsZXgtMSBzcGFjZS15LTMgYmctc2xhdGUtNTAvNTAgZGFyazpiZy1zbGF0ZS05NTAvNTBcIj5cbiAgICAgICAgICB7Y291bnQgPT09IDAgPyAoXG4gICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cInB5LTggcHgtNCB0ZXh0LWNlbnRlciBzcGFjZS15LTNcIj5cbiAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJ3LTE0IGgtMTQgbXgtYXV0byByb3VuZGVkLTN4bCBiZy1zbGF0ZS0yMDAgZGFyazpiZy1zbGF0ZS04MDAgZmxleCBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIgdGV4dC1zbGF0ZS02MDAgZGFyazp0ZXh0LXNsYXRlLTQwMFwiPlxuICAgICAgICAgICAgICAgIDxDYWxlbmRhciBzaXplPXsyNn0gLz5cbiAgICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgICAgIDxkaXY+XG4gICAgICAgICAgICAgICAgPHAgY2xhc3NOYW1lPVwidGV4dC1zbSBmb250LWJsYWNrIHRleHQtc2xhdGUtOTAwIGRhcms6dGV4dC13aGl0ZVwiPlxuICAgICAgICAgICAgICAgICAgTmVuaHVtYSBzYcOtZGEgcmVnaXN0cmFkYSBuZXN0ZSBkaWFcbiAgICAgICAgICAgICAgICA8L3A+XG4gICAgICAgICAgICAgICAgPHAgY2xhc3NOYW1lPVwidGV4dC14cyB0ZXh0LXNsYXRlLTYwMCBkYXJrOnRleHQtc2xhdGUtNDAwIGZvbnQtbWVkaXVtIG10LTEgbWF4LXcteHMgbXgtYXV0b1wiPlxuICAgICAgICAgICAgICAgICAgTsOjbyBob3V2ZSBjb21wcmFzIG91IHBhZ2FtZW50b3MgY29tcHV0YWRvcyBuZXN0YSBkYXRhLlxuICAgICAgICAgICAgICAgIDwvcD5cbiAgICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgICAgIHtvbk9wZW5Gb3JtICYmIChcbiAgICAgICAgICAgICAgICA8YnV0dG9uXG4gICAgICAgICAgICAgICAgICB0eXBlPVwiYnV0dG9uXCJcbiAgICAgICAgICAgICAgICAgIG9uQ2xpY2s9e2hhbmRsZUFkZE5ld0ZvckRheX1cbiAgICAgICAgICAgICAgICAgIGNsYXNzTmFtZT1cImlubGluZS1mbGV4IGl0ZW1zLWNlbnRlciBnYXAtMiBweC00IHB5LTIuNSByb3VuZGVkLTJ4bCBiZy1lbWVyYWxkLTcwMCBob3ZlcjpiZy1lbWVyYWxkLTgwMCB0ZXh0LXdoaXRlIGZvbnQtYmxhY2sgdGV4dC14cyB1cHBlcmNhc2UgdHJhY2tpbmctd2lkZXIgdHJhbnNpdGlvbi1hbGwgc2hhZG93LXNtIGFjdGl2ZTpzY2FsZS05NSBtdC0yXCJcbiAgICAgICAgICAgICAgICA+XG4gICAgICAgICAgICAgICAgICA8UGx1cyBzaXplPXsxNn0gLz5cbiAgICAgICAgICAgICAgICAgIExhbsOnYXIgZGVzcGVzYSBuZXN0ZSBkaWFcbiAgICAgICAgICAgICAgICA8L2J1dHRvbj5cbiAgICAgICAgICAgICAgKX1cbiAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICkgOiAoXG4gICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cInNwYWNlLXktMi41XCI+XG4gICAgICAgICAgICAgIHt0cmFuc2FjdGlvbnMubWFwKCh0KSA9PiB7XG4gICAgICAgICAgICAgICAgY29uc3QgYW1vdW50ID0gTnVtYmVyKHQuYW1vdW50KSB8fCAwO1xuICAgICAgICAgICAgICAgIGNvbnN0IGZvcm1hdHRlZEFtb3VudCA9IGlzUHJpdmFjeU1vZGVcbiAgICAgICAgICAgICAgICAgID8gJ+KAouKAouKAouKAouKAouKAoidcbiAgICAgICAgICAgICAgICAgIDogYC0gJHthbW91bnQudG9Mb2NhbGVTdHJpbmcoJ3B0LUJSJywgeyBzdHlsZTogJ2N1cnJlbmN5JywgY3VycmVuY3k6ICdCUkwnIH0pfWA7XG5cbiAgICAgICAgICAgICAgICByZXR1cm4gKFxuICAgICAgICAgICAgICAgICAgPGRpdlxuICAgICAgICAgICAgICAgICAgICBrZXk9e3QuaWR9XG4gICAgICAgICAgICAgICAgICAgIGNsYXNzTmFtZT1cInAtMy41IHJvdW5kZWQtMnhsIGJnLXdoaXRlIGRhcms6Ymctc2xhdGUtOTAwIGJvcmRlci0yIGJvcmRlci1zbGF0ZS0yMDAgZGFyazpib3JkZXItc2xhdGUtODAwIGhvdmVyOmJvcmRlci1zbGF0ZS00MDAgZGFyazpob3Zlcjpib3JkZXItc2xhdGUtNzAwIGZsZXggaXRlbXMtY2VudGVyIGp1c3RpZnktYmV0d2VlbiBnYXAtMyBzaGFkb3cteHMgdHJhbnNpdGlvbi1jb2xvcnMgZ3JvdXBcIlxuICAgICAgICAgICAgICAgICAgPlxuICAgICAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cIm1pbi13LTAgZmxleC0xXCI+XG4gICAgICAgICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMiBmbGV4LXdyYXAgbWItMVwiPlxuICAgICAgICAgICAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwiaW5saW5lLWJsb2NrIHB4LTIuNSBweS0wLjUgcm91bmRlZC1tZCBiZy1zbGF0ZS0xMDAgZGFyazpiZy1zbGF0ZS04MDAgYm9yZGVyIGJvcmRlci1zbGF0ZS0zMDAgZGFyazpib3JkZXItc2xhdGUtNzAwIHRleHQtWzEwcHhdIGZvbnQtYmxhY2sgdXBwZXJjYXNlIHRyYWNraW5nLXdpZGVyIHRleHQtc2xhdGUtODAwIGRhcms6dGV4dC1zbGF0ZS0zMDBcIj5cbiAgICAgICAgICAgICAgICAgICAgICAgICAge3QuY2F0ZWdvcnkgfHwgJ1NlbSBjYXRlZ29yaWEnfVxuICAgICAgICAgICAgICAgICAgICAgICAgPC9zcGFuPlxuICAgICAgICAgICAgICAgICAgICAgICAge2dldFBheW1lbnRNZXRob2RCYWRnZSh0KX1cbiAgICAgICAgICAgICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9XCJ0ZXh0LXNtIGZvbnQtYmxhY2sgdGV4dC1zbGF0ZS05NTAgZGFyazp0ZXh0LXdoaXRlIHRydW5jYXRlXCI+XG4gICAgICAgICAgICAgICAgICAgICAgICB7dC5kZXNjcmlwdGlvbiB8fCAnRGVzcGVzYSd9XG4gICAgICAgICAgICAgICAgICAgICAgPC9wPlxuICAgICAgICAgICAgICAgICAgICA8L2Rpdj5cblxuICAgICAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImZsZXggaXRlbXMtY2VudGVyIGdhcC0yLjUgc2hyaW5rLTBcIj5cbiAgICAgICAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJ0ZXh0LWJhc2Ugc206dGV4dC1sZyBmb250LWJsYWNrIHRleHQtcmVkLTcwMCBkYXJrOnRleHQtcmVkLTQwMCB0YWJ1bGFyLW51bXNcIj5cbiAgICAgICAgICAgICAgICAgICAgICAgIHtmb3JtYXR0ZWRBbW91bnR9XG4gICAgICAgICAgICAgICAgICAgICAgPC9zcGFuPlxuICAgICAgICAgICAgICAgICAgICAgIHtvbkVkaXRUcmFuc2FjdGlvbiAmJiAoXG4gICAgICAgICAgICAgICAgICAgICAgICA8YnV0dG9uXG4gICAgICAgICAgICAgICAgICAgICAgICAgIHR5cGU9XCJidXR0b25cIlxuICAgICAgICAgICAgICAgICAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBoYW5kbGVFZGl0KHQpfVxuICAgICAgICAgICAgICAgICAgICAgICAgICB0aXRsZT1cIkVkaXRhciBsYW7Dp2FtZW50b1wiXG4gICAgICAgICAgICAgICAgICAgICAgICAgIGFyaWEtbGFiZWw9e2BFZGl0YXIgJHt0LmRlc2NyaXB0aW9ufWB9XG4gICAgICAgICAgICAgICAgICAgICAgICAgIGNsYXNzTmFtZT1cInAtMiByb3VuZGVkLXhsIHRleHQtc2xhdGUtNTAwIGRhcms6dGV4dC1zbGF0ZS00MDAgaG92ZXI6dGV4dC1zbGF0ZS05MDAgZGFyazpob3Zlcjp0ZXh0LXdoaXRlIGhvdmVyOmJnLXNsYXRlLTEwMCBkYXJrOmhvdmVyOmJnLXNsYXRlLTgwMCBib3JkZXIgYm9yZGVyLXNsYXRlLTIwMCBkYXJrOmJvcmRlci1zbGF0ZS03MDAgdHJhbnNpdGlvbi1jb2xvcnNcIlxuICAgICAgICAgICAgICAgICAgICAgICAgPlxuICAgICAgICAgICAgICAgICAgICAgICAgICA8UGVuY2lsIHNpemU9ezE0fSAvPlxuICAgICAgICAgICAgICAgICAgICAgICAgPC9idXR0b24+XG4gICAgICAgICAgICAgICAgICAgICAgKX1cbiAgICAgICAgICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICAgICAgICApO1xuICAgICAgICAgICAgICB9KX1cbiAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICl9XG4gICAgICAgIDwvZGl2PlxuXG4gICAgICAgIHsvKiBSb2RhcMOpIE9icmlnYXTDs3JpbzogVmFsb3IgVG90YWwgTG9nbyBBYmFpeG8gZW0gQ2FydMOjbyBFeGVjdXRpdm8gZGUgTcOheGltbyBDb250cmFzdGUgKi99XG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwicC00IG1kOnAtNSBiZy1zbGF0ZS0xMDAgZGFyazpiZy1zbGF0ZS05NTAgYm9yZGVyLXQtMiBib3JkZXItc2xhdGUtMjAwIGRhcms6Ym9yZGVyLXNsYXRlLTgwMCBzaHJpbmstMFwiPlxuICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZmxleCBpdGVtcy1jZW50ZXIganVzdGlmeS1iZXR3ZWVuIGdhcC0zIGJnLXNsYXRlLTk1MCBkYXJrOmJnLXNsYXRlLTkwMCB0ZXh0LXdoaXRlIHJvdW5kZWQtMnhsIHAtNCBzaGFkb3ctbGcgYm9yZGVyIGJvcmRlci1zbGF0ZS04MDAgZGFyazpib3JkZXItc2xhdGUtNzAwXCI+XG4gICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImZsZXggZmxleC1jb2xcIj5cbiAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwidGV4dC1bMTFweF0gZm9udC1ibGFjayB1cHBlcmNhc2UgdHJhY2tpbmctd2lkZXN0IHRleHQtc2xhdGUtMzAwIGRhcms6dGV4dC1zbGF0ZS00MDBcIj5cbiAgICAgICAgICAgICAgICBWYWxvciB0b3RhbCBkbyBkaWFcbiAgICAgICAgICAgICAgPC9zcGFuPlxuICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJ0ZXh0LXhzIHRleHQtc2xhdGUtNDAwIGRhcms6dGV4dC1zbGF0ZS01MDAgZm9udC1zZW1pYm9sZFwiPlxuICAgICAgICAgICAgICAgIHtjb3VudH0ge2NvdW50ID09PSAxID8gJ3JlZ2lzdHJvJyA6ICdyZWdpc3Ryb3MnfVxuICAgICAgICAgICAgICA8L3NwYW4+XG4gICAgICAgICAgICA8L2Rpdj5cblxuICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJ0ZXh0LXJpZ2h0XCI+XG4gICAgICAgICAgICAgIDxzcGFuXG4gICAgICAgICAgICAgICAgZGF0YS10ZXN0aWQ9XCJkYXktdG90YWwtYW1vdW50XCJcbiAgICAgICAgICAgICAgICBjbGFzc05hbWU9XCJ0ZXh0LTJ4bCBzbTp0ZXh0LTN4bCBmb250LWJsYWNrIHRleHQtd2hpdGUgdGFidWxhci1udW1zIHRyYWNraW5nLXRpZ2h0XCJcbiAgICAgICAgICAgICAgPlxuICAgICAgICAgICAgICAgIHtmb3JtYXREYXlFeHBlbnNlQW1vdW50KHRvdGFsQW1vdW50LCB7IGlzUHJpdmFjeU1vZGUgfSkgfHwgKGlzUHJpdmFjeU1vZGUgPyAn4oCi4oCi4oCi4oCi4oCi4oCiJyA6ICdSJCAwLDAwJyl9XG4gICAgICAgICAgICAgIDwvc3Bhbj5cbiAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgIDwvZGl2PlxuXG4gICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJtdC0zIGZsZXggaXRlbXMtY2VudGVyIGp1c3RpZnktYmV0d2VlbiBnYXAtM1wiPlxuICAgICAgICAgICAge29uT3BlbkZvcm0gJiYgY291bnQgPiAwICYmIChcbiAgICAgICAgICAgICAgPGJ1dHRvblxuICAgICAgICAgICAgICAgIHR5cGU9XCJidXR0b25cIlxuICAgICAgICAgICAgICAgIG9uQ2xpY2s9e2hhbmRsZUFkZE5ld0ZvckRheX1cbiAgICAgICAgICAgICAgICBjbGFzc05hbWU9XCJmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMS41IHRleHQteHMgZm9udC1ibGFjayB0ZXh0LWVtZXJhbGQtODAwIGRhcms6dGV4dC1lbWVyYWxkLTQwMCBob3Zlcjp0ZXh0LWVtZXJhbGQtOTUwIGRhcms6aG92ZXI6dGV4dC1lbWVyYWxkLTMwMCBweS0xXCJcbiAgICAgICAgICAgICAgPlxuICAgICAgICAgICAgICAgIDxQbHVzIHNpemU9ezE0fSAvPlxuICAgICAgICAgICAgICAgIEFkaWNpb25hciBvdXRyYSBkZXNwZXNhXG4gICAgICAgICAgICAgIDwvYnV0dG9uPlxuICAgICAgICAgICAgKX1cblxuICAgICAgICAgICAgPGJ1dHRvblxuICAgICAgICAgICAgICB0eXBlPVwiYnV0dG9uXCJcbiAgICAgICAgICAgICAgb25DbGljaz17b25DbG9zZX1cbiAgICAgICAgICAgICAgY2xhc3NOYW1lPVwibWwtYXV0byBweC01IHB5LTIuNSByb3VuZGVkLXhsIGJnLXNsYXRlLTkwMCBkYXJrOmJnLXNsYXRlLTgwMCBob3ZlcjpiZy1zbGF0ZS04MDAgZGFyazpob3ZlcjpiZy1zbGF0ZS03MDAgdGV4dC13aGl0ZSB0ZXh0LXhzIGZvbnQtYmxhY2sgdXBwZXJjYXNlIHRyYWNraW5nLXdpZGVyIHRyYW5zaXRpb24tY29sb3JzIHNoYWRvdy14c1wiXG4gICAgICAgICAgICA+XG4gICAgICAgICAgICAgIEZlY2hhclxuICAgICAgICAgICAgPC9idXR0b24+XG4gICAgICAgICAgPC9kaXY+XG4gICAgICAgIDwvZGl2PlxuICAgICAgPC9kaXY+XG4gICAgPC9kaXY+XG4gICk7XG59O1xuXG5leHBvcnQgZGVmYXVsdCBEYXlFeHBlbnNlc01vZGFsO1xuIl0sImZpbGUiOiJDOi9Vc2Vycy9sZW9saS9zaXN0ZW1hLWZpbmFuY2FzLXByby1pbnZlc3Qvc3JjL2NvbXBvbmVudHMvdG9vbHMvZmluYW5jZS9jYWxlbmRhci9EYXlFeHBlbnNlc01vZGFsLnRzeCJ9

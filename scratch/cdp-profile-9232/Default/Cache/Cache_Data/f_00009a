@@ -1,0 +1,283 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=f34cf7b5"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import __vite__cjsImport3_react from "/node_modules/.vite/deps/react.js?v=f34cf7b5"; const useMemo = __vite__cjsImport3_react["useMemo"];
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceLine
+} from "/node_modules/.vite/deps/recharts.js?v=430cf613";
+import { TrendingDown, TrendingUp, Minus } from "/node_modules/.vite/deps/lucide-react.js?v=c253b444";
+import { buildMarginTrajectorySummary } from "/src/services/trajectoryEngine.ts";
+import { maskCurrency } from "/src/utils/calculations.ts";
+const MarginTrajectoryPanel = ({
+  transactions,
+  financialProfile,
+  currentMargin,
+  isPrivacyMode = false,
+  variant = "light",
+  months = 6
+}) => {
+  _s();
+  const summary = useMemo(
+    () => buildMarginTrajectorySummary(
+      transactions,
+      financialProfile,
+      months,
+      currentMargin
+    ),
+    [transactions, financialProfile, months, currentMargin]
+  );
+  const isDark = variant === "dark";
+  const hasData = summary.points.some((p) => p.cashFlow !== 0);
+  const DirectionIcon = summary.direction === "up" ? TrendingUp : summary.direction === "down" ? TrendingDown : Minus;
+  const directionColor = summary.direction === "up" ? "text-emerald-600" : summary.direction === "down" ? "text-rose-600" : isDark ? "text-slate-500" : "text-text-muted";
+  const strokeColor = summary.direction === "down" ? "#be123c" : summary.direction === "up" ? "#047857" : "#0284c7";
+  if (!hasData) {
+    return /* @__PURE__ */ jsxDEV(
+      "div",
+      {
+        className: `rounded-section border p-5 ${isDark ? "bg-slate-900/60 border-slate-700/80" : "bg-surface-subtle border-slate-200"}`,
+        children: [
+          /* @__PURE__ */ jsxDEV("p", { className: `text-xxs font-black uppercase tracking-ultra-wide ${isDark ? "text-slate-500" : "text-text-muted"}`, children: "Trajetória da folga" }, void 0, false, {
+            fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx",
+            lineNumber: 94,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("p", { className: `text-sm font-medium mt-2 ${isDark ? "text-slate-500" : "text-text-muted"}`, children: "Registre movimentações em mais meses para ver a inclinação da sua folga do mês." }, void 0, false, {
+            fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx",
+            lineNumber: 97,
+            columnNumber: 9
+          }, this)
+        ]
+      },
+      void 0,
+      true,
+      {
+        fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx",
+        lineNumber: 87,
+        columnNumber: 7
+      },
+      this
+    );
+  }
+  return /* @__PURE__ */ jsxDEV(
+    "div",
+    {
+      className: `rounded-section border p-4 md:p-5 space-y-3 ${isDark ? "bg-slate-900/60 border-slate-700/80" : "bg-surface-subtle border-slate-200"}`,
+      children: [
+        /* @__PURE__ */ jsxDEV("div", { className: "flex items-start justify-between gap-3", children: [
+          /* @__PURE__ */ jsxDEV("div", { children: [
+            /* @__PURE__ */ jsxDEV(
+              "p",
+              {
+                className: `text-xxs font-black uppercase tracking-ultra-wide ${isDark ? "text-slate-500" : "text-text-muted"}`,
+                children: "Trajetória da folga"
+              },
+              void 0,
+              false,
+              {
+                fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx",
+                lineNumber: 114,
+                columnNumber: 11
+              },
+              this
+            ),
+            /* @__PURE__ */ jsxDEV("p", { className: `text-[10px] font-medium mt-0.5 ${isDark ? "text-slate-500" : "text-text-muted"}`, children: [
+              "Últimos ",
+              months,
+              " meses · inclinação da curva"
+            ] }, void 0, true, {
+              fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx",
+              lineNumber: 121,
+              columnNumber: 11
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx",
+            lineNumber: 113,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("div", { className: `flex items-center gap-1.5 ${directionColor}`, children: [
+            /* @__PURE__ */ jsxDEV(DirectionIcon, { size: 14, strokeWidth: 2.5 }, void 0, false, {
+              fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx",
+              lineNumber: 126,
+              columnNumber: 11
+            }, this),
+            /* @__PURE__ */ jsxDEV("span", { className: "text-[10px] font-black uppercase tracking-widest", children: summary.direction === "up" ? "Subindo" : summary.direction === "down" ? "Caindo" : "Estável" }, void 0, false, {
+              fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx",
+              lineNumber: 127,
+              columnNumber: 11
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx",
+            lineNumber: 125,
+            columnNumber: 9
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx",
+          lineNumber: 112,
+          columnNumber: 7
+        }, this),
+        !isPrivacyMode && /* @__PURE__ */ jsxDEV("p", { className: `text-xs font-medium ${isDark ? "text-slate-300" : "text-text-secondary"}`, children: summary.label }, void 0, false, {
+          fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx",
+          lineNumber: 134,
+          columnNumber: 7
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "h-36 w-full", children: /* @__PURE__ */ jsxDEV(ResponsiveContainer, { width: "100%", height: "100%", children: /* @__PURE__ */ jsxDEV(AreaChart, { data: summary.points, margin: { top: 8, right: 4, left: 0, bottom: 0 }, children: [
+          /* @__PURE__ */ jsxDEV("defs", { children: /* @__PURE__ */ jsxDEV("linearGradient", { id: `marginGrad-${variant}`, x1: "0", y1: "0", x2: "0", y2: "1", children: [
+            /* @__PURE__ */ jsxDEV("stop", { offset: "0%", stopColor: strokeColor, stopOpacity: 0.35 }, void 0, false, {
+              fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx",
+              lineNumber: 144,
+              columnNumber: 17
+            }, this),
+            /* @__PURE__ */ jsxDEV("stop", { offset: "100%", stopColor: strokeColor, stopOpacity: 0 }, void 0, false, {
+              fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx",
+              lineNumber: 145,
+              columnNumber: 17
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx",
+            lineNumber: 143,
+            columnNumber: 15
+          }, this) }, void 0, false, {
+            fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx",
+            lineNumber: 142,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV(
+            XAxis,
+            {
+              dataKey: "label",
+              tick: { fontSize: 10, fill: isDark ? "#cbd5e1" : "#475569" },
+              axisLine: false,
+              tickLine: false
+            },
+            void 0,
+            false,
+            {
+              fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx",
+              lineNumber: 148,
+              columnNumber: 13
+            },
+            this
+          ),
+          /* @__PURE__ */ jsxDEV(YAxis, { hide: true, domain: ["auto", "auto"] }, void 0, false, {
+            fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx",
+            lineNumber: 154,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV(ReferenceLine, { y: 0, stroke: isDark ? "#475569" : "#94a3b8", strokeDasharray: "4 4" }, void 0, false, {
+            fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx",
+            lineNumber: 155,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV(
+            Tooltip,
+            {
+              contentStyle: {
+                borderRadius: "12px",
+                border: isDark ? "1px solid #334155" : "1px solid #e2e8f0",
+                boxShadow: "0 10px 25px -5px rgba(15, 23, 42, 0.18)",
+                fontSize: "11px",
+                background: isDark ? "#1e293b" : "#fff",
+                color: isDark ? "#f1f5f9" : "#0f172a"
+              },
+              formatter: (val) => [
+                isPrivacyMode ? "••••" : maskCurrency(val),
+                "Folga"
+              ],
+              labelFormatter: (label) => String(label)
+            },
+            void 0,
+            false,
+            {
+              fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx",
+              lineNumber: 156,
+              columnNumber: 13
+            },
+            this
+          ),
+          /* @__PURE__ */ jsxDEV(
+            Area,
+            {
+              type: "monotone",
+              dataKey: "margin",
+              stroke: strokeColor,
+              strokeWidth: 2,
+              fill: `url(#marginGrad-${variant})`,
+              dot: { r: 3, fill: strokeColor, strokeWidth: 0 },
+              activeDot: { r: 5 }
+            },
+            void 0,
+            false,
+            {
+              fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx",
+              lineNumber: 171,
+              columnNumber: 13
+            },
+            this
+          )
+        ] }, void 0, true, {
+          fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx",
+          lineNumber: 141,
+          columnNumber: 11
+        }, this) }, void 0, false, {
+          fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx",
+          lineNumber: 140,
+          columnNumber: 9
+        }, this) }, void 0, false, {
+          fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx",
+          lineNumber: 139,
+          columnNumber: 7
+        }, this)
+      ]
+    },
+    void 0,
+    true,
+    {
+      fileName: "C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx",
+      lineNumber: 105,
+      columnNumber: 5
+    },
+    this
+  );
+};
+_s(MarginTrajectoryPanel, "JddJdqv3FQBm+uQ+WcunH2BFikQ=");
+_c = MarginTrajectoryPanel;
+export default MarginTrajectoryPanel;
+var _c;
+$RefreshReg$(_c, "MarginTrajectoryPanel");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("C:/Users/leoli/sistema-financas-pro-invest/src/components/tools/finance/dashboard/MarginTrajectoryPanel.tsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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QUFBO0FBQUE7QUFBQTtBQUFBLEVBOEVBO0FBRUo7QUFBRTFCLEdBN0lJUCx1QkFBMkQ7QUFBQSxLQUEzREE7QUErSU4sZUFBZUE7QUFBc0IsSUFBQW1DO0FBQUEsYUFBQUEsSUFBQSIsIm5hbWVzIjpbInVzZU1lbW8iLCJBcmVhQ2hhcnQiLCJBcmVhIiwiWEF4aXMiLCJZQXhpcyIsIlRvb2x0aXAiLCJSZXNwb25zaXZlQ29udGFpbmVyIiwiUmVmZXJlbmNlTGluZSIsIlRyZW5kaW5nRG93biIsIlRyZW5kaW5nVXAiLCJNaW51cyIsImJ1aWxkTWFyZ2luVHJhamVjdG9yeVN1bW1hcnkiLCJtYXNrQ3VycmVuY3kiLCJNYXJnaW5UcmFqZWN0b3J5UGFuZWwiLCJ0cmFuc2FjdGlvbnMiLCJmaW5hbmNpYWxQcm9maWxlIiwiY3VycmVudE1hcmdpbiIsImlzUHJpdmFjeU1vZGUiLCJ2YXJpYW50IiwibW9udGhzIiwiX3MiLCJzdW1tYXJ5IiwiaXNEYXJrIiwiaGFzRGF0YSIsInBvaW50cyIsInNvbWUiLCJwIiwiY2FzaEZsb3ciLCJEaXJlY3Rpb25JY29uIiwiZGlyZWN0aW9uIiwiZGlyZWN0aW9uQ29sb3IiLCJzdHJva2VDb2xvciIsImxhYmVsIiwidG9wIiwicmlnaHQiLCJsZWZ0IiwiYm90dG9tIiwiZm9udFNpemUiLCJmaWxsIiwiYm9yZGVyUmFkaXVzIiwiYm9yZGVyIiwiYm94U2hhZG93IiwiYmFja2dyb3VuZCIsImNvbG9yIiwidmFsIiwiU3RyaW5nIiwiciIsInN0cm9rZVdpZHRoIiwiX2MiXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsiTWFyZ2luVHJhamVjdG9yeVBhbmVsLnRzeCJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgUmVhY3QsIHsgdXNlTWVtbyB9IGZyb20gJ3JlYWN0JztcbmltcG9ydCB7XG4gIEFyZWFDaGFydCxcbiAgQXJlYSxcbiAgWEF4aXMsXG4gIFlBeGlzLFxuICBUb29sdGlwLFxuICBSZXNwb25zaXZlQ29udGFpbmVyLFxuICBSZWZlcmVuY2VMaW5lLFxufSBmcm9tICdyZWNoYXJ0cyc7XG5pbXBvcnQgeyBUcmVuZGluZ0Rvd24sIFRyZW5kaW5nVXAsIE1pbnVzIH0gZnJvbSAnbHVjaWRlLXJlYWN0JztcbmltcG9ydCB0eXBlIHsgVHJhbnNhY3Rpb24sIEZpbmFuY2lhbFByb2ZpbGUgfSBmcm9tICcuLi8uLi8uLi8uLi90eXBlcyc7XG5pbXBvcnQgeyBidWlsZE1hcmdpblRyYWplY3RvcnlTdW1tYXJ5IH0gZnJvbSAnLi4vLi4vLi4vLi4vc2VydmljZXMvdHJhamVjdG9yeUVuZ2luZSc7XG5pbXBvcnQgeyBtYXNrQ3VycmVuY3kgfSBmcm9tICcuLi8uLi8uLi8uLi91dGlscy9jYWxjdWxhdGlvbnMnO1xuXG5pbnRlcmZhY2UgTWFyZ2luVHJhamVjdG9yeVBhbmVsUHJvcHMge1xuICB0cmFuc2FjdGlvbnM6IFRyYW5zYWN0aW9uW107XG4gIGZpbmFuY2lhbFByb2ZpbGU/OiBGaW5hbmNpYWxQcm9maWxlO1xuICBjdXJyZW50TWFyZ2luPzogbnVtYmVyO1xuICBpc1ByaXZhY3lNb2RlPzogYm9vbGVhbjtcbiAgdmFyaWFudD86ICdsaWdodCcgfCAnZGFyayc7XG4gIG1vbnRocz86IG51bWJlcjtcbn1cblxuY29uc3QgTWFyZ2luVHJhamVjdG9yeVBhbmVsOiBSZWFjdC5GQzxNYXJnaW5UcmFqZWN0b3J5UGFuZWxQcm9wcz4gPSAoe1xuICB0cmFuc2FjdGlvbnMsXG4gIGZpbmFuY2lhbFByb2ZpbGUsXG4gIGN1cnJlbnRNYXJnaW4sXG4gIGlzUHJpdmFjeU1vZGUgPSBmYWxzZSxcbiAgdmFyaWFudCA9ICdsaWdodCcsXG4gIG1vbnRocyA9IDYsXG59KSA9PiB7XG4gIGNvbnN0IHN1bW1hcnkgPSB1c2VNZW1vKFxuICAgICgpID0+XG4gICAgICBidWlsZE1hcmdpblRyYWplY3RvcnlTdW1tYXJ5KFxuICAgICAgICB0cmFuc2FjdGlvbnMsXG4gICAgICAgIGZpbmFuY2lhbFByb2ZpbGUsXG4gICAgICAgIG1vbnRocyxcbiAgICAgICAgY3VycmVudE1hcmdpblxuICAgICAgKSxcbiAgICBbdHJhbnNhY3Rpb25zLCBmaW5hbmNpYWxQcm9maWxlLCBtb250aHMsIGN1cnJlbnRNYXJnaW5dXG4gICk7XG5cbiAgY29uc3QgaXNEYXJrID0gdmFyaWFudCA9PT0gJ2RhcmsnO1xuICBjb25zdCBoYXNEYXRhID0gc3VtbWFyeS5wb2ludHMuc29tZSgocCkgPT4gcC5jYXNoRmxvdyAhPT0gMCk7XG5cbiAgY29uc3QgRGlyZWN0aW9uSWNvbiA9XG4gICAgc3VtbWFyeS5kaXJlY3Rpb24gPT09ICd1cCdcbiAgICAgID8gVHJlbmRpbmdVcFxuICAgICAgOiBzdW1tYXJ5LmRpcmVjdGlvbiA9PT0gJ2Rvd24nXG4gICAgICAgID8gVHJlbmRpbmdEb3duXG4gICAgICAgIDogTWludXM7XG5cbiAgY29uc3QgZGlyZWN0aW9uQ29sb3IgPVxuICAgIHN1bW1hcnkuZGlyZWN0aW9uID09PSAndXAnXG4gICAgICA/ICd0ZXh0LWVtZXJhbGQtNjAwJ1xuICAgICAgOiBzdW1tYXJ5LmRpcmVjdGlvbiA9PT0gJ2Rvd24nXG4gICAgICAgID8gJ3RleHQtcm9zZS02MDAnXG4gICAgICAgIDogaXNEYXJrXG4gICAgICAgICAgPyAndGV4dC1zbGF0ZS01MDAnXG4gICAgICAgICAgOiAndGV4dC10ZXh0LW11dGVkJztcblxuICBjb25zdCBzdHJva2VDb2xvciA9XG4gICAgc3VtbWFyeS5kaXJlY3Rpb24gPT09ICdkb3duJyA/ICcjYmUxMjNjJyA6IHN1bW1hcnkuZGlyZWN0aW9uID09PSAndXAnID8gJyMwNDc4NTcnIDogJyMwMjg0YzcnO1xuXG4gIGlmICghaGFzRGF0YSkge1xuICAgIHJldHVybiAoXG4gICAgICA8ZGl2XG4gICAgICAgIGNsYXNzTmFtZT17YHJvdW5kZWQtc2VjdGlvbiBib3JkZXIgcC01ICR7XG4gICAgICAgICAgaXNEYXJrXG4gICAgICAgICAgICA/ICdiZy1zbGF0ZS05MDAvNjAgYm9yZGVyLXNsYXRlLTcwMC84MCdcbiAgICAgICAgICAgIDogJ2JnLXN1cmZhY2Utc3VidGxlIGJvcmRlci1zbGF0ZS0yMDAnXG4gICAgICAgIH1gfVxuICAgICAgPlxuICAgICAgICA8cCBjbGFzc05hbWU9e2B0ZXh0LXh4cyBmb250LWJsYWNrIHVwcGVyY2FzZSB0cmFja2luZy11bHRyYS13aWRlICR7aXNEYXJrID8gJ3RleHQtc2xhdGUtNTAwJyA6ICd0ZXh0LXRleHQtbXV0ZWQnfWB9PlxuICAgICAgICAgIFRyYWpldMOzcmlhIGRhIGZvbGdhXG4gICAgICAgIDwvcD5cbiAgICAgICAgPHAgY2xhc3NOYW1lPXtgdGV4dC1zbSBmb250LW1lZGl1bSBtdC0yICR7aXNEYXJrID8gJ3RleHQtc2xhdGUtNTAwJyA6ICd0ZXh0LXRleHQtbXV0ZWQnfWB9PlxuICAgICAgICAgIFJlZ2lzdHJlIG1vdmltZW50YcOnw7VlcyBlbSBtYWlzIG1lc2VzIHBhcmEgdmVyIGEgaW5jbGluYcOnw6NvIGRhIHN1YSBmb2xnYSBkbyBtw6pzLlxuICAgICAgICA8L3A+XG4gICAgICA8L2Rpdj5cbiAgICApO1xuICB9XG5cbiAgcmV0dXJuIChcbiAgICA8ZGl2XG4gICAgICBjbGFzc05hbWU9e2Byb3VuZGVkLXNlY3Rpb24gYm9yZGVyIHAtNCBtZDpwLTUgc3BhY2UteS0zICR7XG4gICAgICAgIGlzRGFya1xuICAgICAgICAgID8gJ2JnLXNsYXRlLTkwMC82MCBib3JkZXItc2xhdGUtNzAwLzgwJ1xuICAgICAgICAgIDogJ2JnLXN1cmZhY2Utc3VidGxlIGJvcmRlci1zbGF0ZS0yMDAnXG4gICAgICB9YH1cbiAgICA+XG4gICAgICA8ZGl2IGNsYXNzTmFtZT1cImZsZXggaXRlbXMtc3RhcnQganVzdGlmeS1iZXR3ZWVuIGdhcC0zXCI+XG4gICAgICAgIDxkaXY+XG4gICAgICAgICAgPHBcbiAgICAgICAgICAgIGNsYXNzTmFtZT17YHRleHQteHhzIGZvbnQtYmxhY2sgdXBwZXJjYXNlIHRyYWNraW5nLXVsdHJhLXdpZGUgJHtcbiAgICAgICAgICAgICAgaXNEYXJrID8gJ3RleHQtc2xhdGUtNTAwJyA6ICd0ZXh0LXRleHQtbXV0ZWQnXG4gICAgICAgICAgICB9YH1cbiAgICAgICAgICA+XG4gICAgICAgICAgICBUcmFqZXTDs3JpYSBkYSBmb2xnYVxuICAgICAgICAgIDwvcD5cbiAgICAgICAgICA8cCBjbGFzc05hbWU9e2B0ZXh0LVsxMHB4XSBmb250LW1lZGl1bSBtdC0wLjUgJHtpc0RhcmsgPyAndGV4dC1zbGF0ZS01MDAnIDogJ3RleHQtdGV4dC1tdXRlZCd9YH0+XG4gICAgICAgICAgICDDmmx0aW1vcyB7bW9udGhzfSBtZXNlcyDCtyBpbmNsaW5hw6fDo28gZGEgY3VydmFcbiAgICAgICAgICA8L3A+XG4gICAgICAgIDwvZGl2PlxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT17YGZsZXggaXRlbXMtY2VudGVyIGdhcC0xLjUgJHtkaXJlY3Rpb25Db2xvcn1gfT5cbiAgICAgICAgICA8RGlyZWN0aW9uSWNvbiBzaXplPXsxNH0gc3Ryb2tlV2lkdGg9ezIuNX0gLz5cbiAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJ0ZXh0LVsxMHB4XSBmb250LWJsYWNrIHVwcGVyY2FzZSB0cmFja2luZy13aWRlc3RcIj5cbiAgICAgICAgICAgIHtzdW1tYXJ5LmRpcmVjdGlvbiA9PT0gJ3VwJyA/ICdTdWJpbmRvJyA6IHN1bW1hcnkuZGlyZWN0aW9uID09PSAnZG93bicgPyAnQ2FpbmRvJyA6ICdFc3TDoXZlbCd9XG4gICAgICAgICAgPC9zcGFuPlxuICAgICAgICA8L2Rpdj5cbiAgICAgIDwvZGl2PlxuXG4gICAgICB7IWlzUHJpdmFjeU1vZGUgJiYgKFxuICAgICAgICA8cCBjbGFzc05hbWU9e2B0ZXh0LXhzIGZvbnQtbWVkaXVtICR7aXNEYXJrID8gJ3RleHQtc2xhdGUtMzAwJyA6ICd0ZXh0LXRleHQtc2Vjb25kYXJ5J31gfT5cbiAgICAgICAgICB7c3VtbWFyeS5sYWJlbH1cbiAgICAgICAgPC9wPlxuICAgICAgKX1cblxuICAgICAgPGRpdiBjbGFzc05hbWU9XCJoLTM2IHctZnVsbFwiPlxuICAgICAgICA8UmVzcG9uc2l2ZUNvbnRhaW5lciB3aWR0aD1cIjEwMCVcIiBoZWlnaHQ9XCIxMDAlXCI+XG4gICAgICAgICAgPEFyZWFDaGFydCBkYXRhPXtzdW1tYXJ5LnBvaW50c30gbWFyZ2luPXt7IHRvcDogOCwgcmlnaHQ6IDQsIGxlZnQ6IDAsIGJvdHRvbTogMCB9fT5cbiAgICAgICAgICAgIDxkZWZzPlxuICAgICAgICAgICAgICA8bGluZWFyR3JhZGllbnQgaWQ9e2BtYXJnaW5HcmFkLSR7dmFyaWFudH1gfSB4MT1cIjBcIiB5MT1cIjBcIiB4Mj1cIjBcIiB5Mj1cIjFcIj5cbiAgICAgICAgICAgICAgICA8c3RvcCBvZmZzZXQ9XCIwJVwiIHN0b3BDb2xvcj17c3Ryb2tlQ29sb3J9IHN0b3BPcGFjaXR5PXswLjM1fSAvPlxuICAgICAgICAgICAgICAgIDxzdG9wIG9mZnNldD1cIjEwMCVcIiBzdG9wQ29sb3I9e3N0cm9rZUNvbG9yfSBzdG9wT3BhY2l0eT17MH0gLz5cbiAgICAgICAgICAgICAgPC9saW5lYXJHcmFkaWVudD5cbiAgICAgICAgICAgIDwvZGVmcz5cbiAgICAgICAgICAgIDxYQXhpc1xuICAgICAgICAgICAgICBkYXRhS2V5PVwibGFiZWxcIlxuICAgICAgICAgICAgICB0aWNrPXt7IGZvbnRTaXplOiAxMCwgZmlsbDogaXNEYXJrID8gJyNjYmQ1ZTEnIDogJyM0NzU1NjknIH19XG4gICAgICAgICAgICAgIGF4aXNMaW5lPXtmYWxzZX1cbiAgICAgICAgICAgICAgdGlja0xpbmU9e2ZhbHNlfVxuICAgICAgICAgICAgLz5cbiAgICAgICAgICAgIDxZQXhpcyBoaWRlIGRvbWFpbj17WydhdXRvJywgJ2F1dG8nXX0gLz5cbiAgICAgICAgICAgIDxSZWZlcmVuY2VMaW5lIHk9ezB9IHN0cm9rZT17aXNEYXJrID8gJyM0NzU1NjknIDogJyM5NGEzYjgnfSBzdHJva2VEYXNoYXJyYXk9XCI0IDRcIiAvPlxuICAgICAgICAgICAgPFRvb2x0aXBcbiAgICAgICAgICAgICAgY29udGVudFN0eWxlPXt7XG4gICAgICAgICAgICAgICAgYm9yZGVyUmFkaXVzOiAnMTJweCcsXG4gICAgICAgICAgICAgICAgYm9yZGVyOiBpc0RhcmsgPyAnMXB4IHNvbGlkICMzMzQxNTUnIDogJzFweCBzb2xpZCAjZTJlOGYwJyxcbiAgICAgICAgICAgICAgICBib3hTaGFkb3c6ICcwIDEwcHggMjVweCAtNXB4IHJnYmEoMTUsIDIzLCA0MiwgMC4xOCknLFxuICAgICAgICAgICAgICAgIGZvbnRTaXplOiAnMTFweCcsXG4gICAgICAgICAgICAgICAgYmFja2dyb3VuZDogaXNEYXJrID8gJyMxZTI5M2InIDogJyNmZmYnLFxuICAgICAgICAgICAgICAgIGNvbG9yOiBpc0RhcmsgPyAnI2YxZjVmOScgOiAnIzBmMTcyYScsXG4gICAgICAgICAgICAgIH19XG4gICAgICAgICAgICAgIGZvcm1hdHRlcj17KHZhbDogbnVtYmVyKSA9PiBbXG4gICAgICAgICAgICAgICAgaXNQcml2YWN5TW9kZSA/ICfigKLigKLigKLigKInIDogbWFza0N1cnJlbmN5KHZhbCksXG4gICAgICAgICAgICAgICAgJ0ZvbGdhJyxcbiAgICAgICAgICAgICAgXX1cbiAgICAgICAgICAgICAgbGFiZWxGb3JtYXR0ZXI9eyhsYWJlbCkgPT4gU3RyaW5nKGxhYmVsKX1cbiAgICAgICAgICAgIC8+XG4gICAgICAgICAgICA8QXJlYVxuICAgICAgICAgICAgICB0eXBlPVwibW9ub3RvbmVcIlxuICAgICAgICAgICAgICBkYXRhS2V5PVwibWFyZ2luXCJcbiAgICAgICAgICAgICAgc3Ryb2tlPXtzdHJva2VDb2xvcn1cbiAgICAgICAgICAgICAgc3Ryb2tlV2lkdGg9ezJ9XG4gICAgICAgICAgICAgIGZpbGw9e2B1cmwoI21hcmdpbkdyYWQtJHt2YXJpYW50fSlgfVxuICAgICAgICAgICAgICBkb3Q9e3sgcjogMywgZmlsbDogc3Ryb2tlQ29sb3IsIHN0cm9rZVdpZHRoOiAwIH19XG4gICAgICAgICAgICAgIGFjdGl2ZURvdD17eyByOiA1IH19XG4gICAgICAgICAgICAvPlxuICAgICAgICAgIDwvQXJlYUNoYXJ0PlxuICAgICAgICA8L1Jlc3BvbnNpdmVDb250YWluZXI+XG4gICAgICA8L2Rpdj5cbiAgICA8L2Rpdj5cbiAgKTtcbn07XG5cbmV4cG9ydCBkZWZhdWx0IE1hcmdpblRyYWplY3RvcnlQYW5lbDtcbiJdLCJmaWxlIjoiQzovVXNlcnMvbGVvbGkvc2lzdGVtYS1maW5hbmNhcy1wcm8taW52ZXN0L3NyYy9jb21wb25lbnRzL3Rvb2xzL2ZpbmFuY2UvZGFzaGJvYXJkL01hcmdpblRyYWplY3RvcnlQYW5lbC50c3gifQ==

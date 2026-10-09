@@ -1,6 +1,7 @@
 
 import { functions, auth } from '../firebase';
-import { SubscriptionPlanId } from '../config/stripePlans';
+import { httpsCallable } from 'firebase/functions';
+import type { SubscriptionPlanId } from '../../config/stripePlans';
 import { logEvent } from './logger';
 import { trackStartCheckout } from './analyticsService';
 
@@ -19,8 +20,7 @@ export const startCheckout = async (planId: SubscriptionPlanId) => {
     logEvent('info', 'Iniciando checkout', { planId, uid: auth.currentUser.uid });
     trackStartCheckout(planId);
 
-    // Call Cloud Function using v8/compat syntax
-    const createCheckoutSession = functions.httpsCallable('createCheckoutSession');
+    const createCheckoutSession = httpsCallable(functions, 'createCheckoutSession');
 
     const result = await createCheckoutSession({ planId });
     const data = result.data as CheckoutResponse;

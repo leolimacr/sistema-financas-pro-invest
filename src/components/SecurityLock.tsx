@@ -57,15 +57,15 @@ const SecurityLock: React.FC<SecurityLockProps> = ({ storedPin, useBiometrics, o
   const handleDelete = () => setPin(pin.slice(0, -1));
 
   return (
-    <div className="fixed inset-0 z-[10002] bg-[#020617] flex flex-col items-center justify-center p-6 animate-in fade-in duration-500">
+    <div className="fixed inset-0 z-[10002] bg-surface-primary dark:bg-slate-950 flex flex-col items-center justify-center p-6 animate-in fade-in duration-500">
       
       {/* Topo: Logo e Status */}
       <div className="text-center mb-12">
-        <div className="w-20 h-20 bg-emerald-500/10 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-emerald-500/20 shadow-lg shadow-emerald-500/5">
+        <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-950/40 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-emerald-200 dark:border-emerald-800 shadow-sm">
             <Lock className={error ? "text-red-500 animate-bounce" : "text-emerald-500"} size={40} />
         </div>
-        <h2 className="text-2xl font-black text-white tracking-tight">App Bloqueado</h2>
-        <p className="text-slate-500 text-sm mt-2 font-bold uppercase tracking-widest">
+        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">App Bloqueado</h2>
+        <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 font-bold uppercase tracking-widest">
             {error ? 'PIN Incorreto' : 'Digite seu código de acesso'}
         </p>
       </div>
@@ -77,8 +77,8 @@ const SecurityLock: React.FC<SecurityLockProps> = ({ storedPin, useBiometrics, o
             key={i} 
             className={`w-4 h-4 rounded-full border-2 transition-all duration-200 ${
               pin.length >= i 
-              ? 'bg-emerald-500 border-emerald-500 scale-125 shadow-[0_0_15px_rgba(16,185,129,0.5)]' 
-              : 'border-slate-700 bg-transparent'
+              ? 'bg-emerald-600 border-emerald-600 scale-125 shadow-sm' 
+              : 'border-slate-300 dark:border-slate-700 bg-transparent'
             } ${error ? 'border-red-500 bg-red-500' : ''}`}
           />
         ))}
@@ -90,7 +90,7 @@ const SecurityLock: React.FC<SecurityLockProps> = ({ storedPin, useBiometrics, o
           <button 
             key={num}
             onClick={() => handleKeyPress(num)}
-            className="w-16 h-16 rounded-full bg-slate-800/50 border border-slate-700 text-white text-2xl font-bold hover:bg-slate-700 active:scale-90 transition-all flex items-center justify-center"
+            className="w-16 h-16 rounded-full bg-surface-secondary dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-2xl font-bold hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-90 transition-all flex items-center justify-center"
           >
             {num}
           </button>
@@ -99,21 +99,21 @@ const SecurityLock: React.FC<SecurityLockProps> = ({ storedPin, useBiometrics, o
         {/* Botão Biometria ou Vazio */}
         <button 
           onClick={handleBiometrics}
-          className="w-16 h-16 rounded-full flex items-center justify-center text-emerald-500 hover:bg-emerald-500/10 active:scale-90 transition-all"
+          className="w-16 h-16 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 active:scale-90 transition-all"
         >
           {useBiometrics && <Fingerprint size={32} />}
         </button>
 
         <button 
           onClick={() => handleKeyPress('0')}
-          className="w-16 h-16 rounded-full bg-slate-800/50 border border-slate-700 text-white text-2xl font-bold hover:bg-slate-700 active:scale-90 transition-all flex items-center justify-center"
+          className="w-16 h-16 rounded-full bg-surface-secondary dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-2xl font-bold hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-90 transition-all flex items-center justify-center"
         >
           0
         </button>
 
         <button 
           onClick={handleDelete}
-          className="w-16 h-16 rounded-full flex items-center justify-center text-slate-500 hover:text-white active:scale-90 transition-all"
+          className="w-16 h-16 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white active:scale-90 transition-all"
         >
           <Delete size={28} />
         </button>
@@ -121,7 +121,7 @@ const SecurityLock: React.FC<SecurityLockProps> = ({ storedPin, useBiometrics, o
 
       {/* Rodapé Informativo */}
       <div className="mt-20">
-         <p className="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em]">Finanças Pro Invest Security</p>
+         <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-[0.3em]">Finanças Pro Invest Security</p>
       </div>
 
     </div>

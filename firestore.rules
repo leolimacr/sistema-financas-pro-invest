@@ -1,8 +1,146 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Coleções públicas (apenas leitura)
+    match /noticias/{document} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Dados do usuário — apenas o próprio dono
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Billing (Etapa 7 — E7-01, menor privilégio): leitura do dono SOMENTE
+    // em billing/main. Demais docs sob billing/** sem concessão ao cliente;
+    // escrita só via backend (Admin SDK). Nenhum `allow ... if false` abaixo
+    // nega por prioridade — a escrita é negada por ausência de concessão.
+    match /users/{userId}/billing/main {
+      allow read: if isOwner(userId);
+      allow write: if false;
+    }
+
+    match /users/{userId}/billing/{document=**} {
+      allow read, write: if false;
+    }
+
+    // Nexus Agenda interno: leitura do dono; escrita só via backend (Admin SDK).
+    match /users/{userId}/agenda/_nexus/{document=**} {
+      allow read: if isOwner(userId);
+      allow write: if false;
+    }
+
+    // Compromissos da Agenda (documentos de 1 nível). Leitura sem guarda por
+    // ID (list por mês precisa valer para todo retorno possível); escrita com
+    // guarda por documento (avaliável por operação em doc único).
+    match /users/{userId}/agenda/{commitmentId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && commitmentId != '_nexus';
+    }
+
+    // Carteira Soberana de Investimentos (Validação rigorosa por documento)
+    match /users/{userId}/portfolio_classes/{classId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+        && request.resource.data.targetPercentage >= 0
+        && request.resource.data.targetPercentage <= 100
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0;
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/portfolio_assets/{assetId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+        && request.resource.data.userId == userId
+        && request.resource.data.ticker is string
+        && request.resource.data.ticker.size() > 0
+        && request.resource.data.name is string
+        && request.resource.data.category is string;
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/portfolio_movements/{movementId} {
+      allow read: if isOwner(userId);
+      // Delete físico RIGOROSAMENTE NEGADO para integridade contábil
+      allow delete: if false;
+
+      // Criação de novos lançamentos válidos
+      allow create: if isOwner(userId)
+        && request.resource.data.userId == userId
+        && request.resource.data.assetId is string
+        && request.resource.data.type in [
+          'INITIAL_POSITION', 'EXTERNAL_DEPOSIT', 'EXTERNAL_WITHDRAWAL',
+          'BUY', 'SELL', 'DIVIDEND', 'INTEREST', 'FEE_OR_TAX', 'SPLIT_OR_BONUS', 'ADJUSTMENT'
+        ]
+        && request.resource.data.unitPrice >= 0
+        && request.resource.data.fxRateToBRL > 0
+        && request.resource.data.status in ['ACTIVE', 'VOIDED']
+        && (request.resource.data.quantity == null || request.resource.data.quantity >= 0)
+        && request.resource.data.netAmountBRL >= 0;
+
+      // Atualização permitida EXCLUSIVAMENTE para anulação auditável (VOIDED)
+      // Preserva imutabilidade dos dados contábeis originais
+      allow update: if isOwner(userId)
+        && request.resource.data.userId == userId
+        && request.resource.data.assetId == resource.data.assetId
+        && request.resource.data.type == resource.data.type
+        && request.resource.data.date == resource.data.date
+        && request.resource.data.netAmountBRL == resource.data.netAmountBRL
+        && resource.data.status == 'ACTIVE'
+        && request.resource.data.status == 'VOIDED'
+        && request.resource.data.revisions is list;
+    }
+
+    match /users/{userId}/portfolio_cash_balances/{cashAssetId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId)
+        && request.resource.data.userId == userId
+        && request.resource.data.cashAssetId == cashAssetId
+        && request.resource.data.availableBalanceBRL is number
+        && request.resource.data.availableBalanceBRL >= 0
+        && request.resource.data.version is number
+        && request.resource.data.version >= 1;
+      allow update: if isOwner(userId)
+        && request.resource.data.userId == userId
+        && request.resource.data.cashAssetId == cashAssetId
+        && request.resource.data.availableBalanceBRL is number
+        && request.resource.data.availableBalanceBRL >= 0
+        && request.resource.data.version is number
+        && request.resource.data.version >= resource.data.version + 1;
+      allow delete: if isOwner(userId);
+    }
+
+    // Demais coleções do usuário (dividas, cartoes, metas, passivos,
+    // transactions, presence*, nexusPlans, nexusDebtPlans, jurosRotativos...).
+    match /users/{userId}/{collection}/{document=**} {
+      allow read, write: if isOwner(userId)
+        && collection != 'billing'
+        && collection != 'agenda'
+        && collection != 'portfolio_classes'
+        && collection != 'portfolio_assets'
+        && collection != 'portfolio_movements'
+        && collection != 'portfolio_cash_balances';
+    }
+
+    // Coleção legacy de transações (RTDB mirror) — apenas dono
+    match /transactions/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Categorias por usuário — apenas o próprio dono pode ler e escrever
+    match /categories/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Negar todo o resto por segurança
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }

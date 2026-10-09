@@ -1,5 +1,5 @@
 
-import { MarketQuote, HistoricalDataPoint } from '../types';
+import type { MarketQuote, HistoricalDataPoint } from '../types';
 
 // ============================================================================
 // CONFIGURAÇÃO
@@ -8,11 +8,61 @@ import { MarketQuote, HistoricalDataPoint } from '../types';
 const AWESOME_API_URL = 'https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,BTC-BRL,BTC-USD,ETH-BRL,BNB-BRL,SOL-BRL';
 
 // Rota Serverless para Índices e Ações
-const INDICES_API_URL = '/api/market';
+const FIREBASE_FUNCTIONS_BASE_URL = import.meta.env.VITE_FIREBASE_FUNCTIONS_BASE_URL;
+const INDICES_API_URL = `${FIREBASE_FUNCTIONS_BASE_URL}/getMarketData`;
 
 // Cache Cliente
 const CACHE_KEY = 'finpro_market_cache';
 const CACHE_DURATION = 30 * 1000; // 30 segundos
+const KNOWN_CRYPTOS = ['BTC', 'ETH', 'SOL', 'BNB', 'USDT', 'XRP', 'ADA', 'DOGE'] as const;
+
+type CryptoQuoteCurrency = 'BRL' | 'USD' | 'USDT';
+
+type NormalizedCryptoSymbol = {
+  base: string;
+  quote: CryptoQuoteCurrency;
+  canonical: string;
+  yahooSymbol: string;
+};
+
+const normalizeCryptoSymbol = (rawSymbol: string): NormalizedCryptoSymbol | null => {
+  const raw = rawSymbol.toUpperCase().trim().replace(/\s+/g, '');
+
+  const slashMatch = raw.match(/^([A-Z0-9]+)\/(BRL|USD|USDT)$/);
+  if (slashMatch && KNOWN_CRYPTOS.includes(slashMatch[1] as any)) {
+    const base = slashMatch[1];
+    const quote = slashMatch[2] as CryptoQuoteCurrency;
+    return {
+      base,
+      quote,
+      canonical: `${base}/${quote}`,
+      yahooSymbol: `${base}-${quote}`
+    };
+  }
+
+  const dashMatch = raw.match(/^([A-Z0-9]+)-(BRL|USD|USDT)$/);
+  if (dashMatch && KNOWN_CRYPTOS.includes(dashMatch[1] as any)) {
+    const base = dashMatch[1];
+    const quote = dashMatch[2] as CryptoQuoteCurrency;
+    return {
+      base,
+      quote,
+      canonical: `${base}/${quote}`,
+      yahooSymbol: `${base}-${quote}`
+    };
+  }
+
+  if (KNOWN_CRYPTOS.includes(raw as any)) {
+    return {
+      base: raw,
+      quote: 'BRL',
+      canonical: `${raw}/BRL`,
+      yahooSymbol: `${raw}-BRL`
+    };
+  }
+
+  return null;
+};
 
 export interface MarketResponse {
   quotes: MarketQuote[];
@@ -43,67 +93,66 @@ const STOCK_FALLBACK = [
 // SERVIÇO
 // ============================================================================
 
-// --- Busca de Histórico ---
-export const fetchHistoricalData = async (symbol: string, range: '1d' | '5d' | '1mo' | '6mo' | '1y' | '5y' = '1mo'): Promise<HistoricalDataPoint[]> => {
-  console.log(`[MarketService] Buscando histórico para: ${symbol} (${range})`);
-  
-  // 1. Identificar se é Cripto para estratégia de Fallback
-  const knownCryptos = ['BTC', 'ETH', 'SOL', 'BNB', 'USDT', 'XRP', 'ADA', 'DOGE'];
-  const isCrypto = knownCryptos.includes(symbol) || knownCryptos.some(c => symbol.startsWith(c + '-')) || symbol === 'BTC/USD';
+const getOptimalRange = (symbol: string): string => {
+  const isB3 = symbol.endsWith('.SA') || symbol === '^BVSP';
+  return isB3 ? '1d' : '1mo';
+};
 
-  // 2. Tentar Yahoo Finance primeiro (Melhor para ações)
+// --- Busca de Histórico ---
+export const fetchHistoricalData = async (
+  symbol: string,
+  range: '1d' | '5d' | '1mo' | '6mo' | '1y' | '5y' = '1mo'
+): Promise<HistoricalDataPoint[]> => {
+  console.log(`[MarketService] Buscando histórico para: ${symbol} (${range})`);
+
+  const normalizedCrypto = normalizeCryptoSymbol(symbol);
+  const isCrypto = !!normalizedCrypto;
+
   try {
     let interval = '1d';
-    // Intervalos seguros para Yahoo (evitar 1m/5m que bloqueiam proxy)
-    switch(range) {
-        case '1d': interval = '15m'; break; 
-        case '5d': interval = '60m'; break;
-        case '1mo': interval = '1d'; break;
-        case '6mo': interval = '1d'; break;
-        case '1y': interval = '1wk'; break;
-        case '5y': interval = '1mo'; break;
+    switch (range) {
+      case '1d': interval = '15m'; break;
+      case '5d': interval = '60m'; break;
+      case '1mo': interval = '1d'; break;
+      case '6mo': interval = '1d'; break;
+      case '1y': interval = '1wk'; break;
+      case '5y': interval = '1mo'; break;
     }
 
     let apiSymbol = symbol;
     const symbolMap: Record<string, string> = {
-        'USD': 'BRL=X', 
-        'EUR': 'EURBRL=X',
-        'IBOV': '^BVSP',
-        'BVSP': '^BVSP',
-        'BTC/USD': 'BTC-USD'
+      'USD': 'BRL=X',
+      'EUR': 'EURBRL=X',
+      'IBOV': '^BVSP',
+      'BVSP': '^BVSP'
     };
 
     if (symbolMap[symbol]) {
-        apiSymbol = symbolMap[symbol];
-    } else if (isCrypto) {
-        if (!symbol.includes('-') && !symbol.includes('=') && symbol !== 'BTC/USD') {
-            apiSymbol = `${symbol}-BRL`;
-        }
+      apiSymbol = symbolMap[symbol];
+    } else if (normalizedCrypto) {
+      apiSymbol = normalizedCrypto.yahooSymbol;
     } else if (!symbol.includes('.') && !symbol.includes('-') && !symbol.startsWith('^')) {
-        apiSymbol = `${symbol}.SA`;
+      apiSymbol = `${symbol}.SA`;
     }
 
-    const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${apiSymbol}?range=${range}&interval=${interval}`;
+    const targetRange = getOptimalRange(apiSymbol);
+    const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${apiSymbol}?range=${targetRange}&interval=${interval}`;
     const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
-    
-    console.log(`[MarketService] Tentando Yahoo: ${apiSymbol}`);
-    const res = await fetch(proxyUrl);
-    
-    if (res.ok) {
-        const data = await res.json();
-        const history = parseYahooChartData(data);
-        if (history.length > 0) return history;
-    }
-    
-    console.warn(`[MarketService] Yahoo falhou ou retornou vazio para ${apiSymbol}.`);
 
+    console.log(`[MarketService] Tentando Yahoo: ${apiSymbol} (range: ${targetRange})`);
+    const res = await fetch(proxyUrl);
+
+    if (res.ok) {
+      const data = await res.json();
+      const history = parseYahooChartData(data);
+      if (history.length > 0) return history;
+    }
   } catch (error) {
     console.error('[MarketService] Erro no Yahoo:', error);
   }
 
-  // 3. Fallback: CryptoCompare (Apenas para Criptos)
   if (isCrypto) {
-      return await fetchCryptoCompareHistory(symbol, range);
+    return await fetchCryptoCompareHistory(symbol, range);
   }
 
   return [];
@@ -112,18 +161,13 @@ export const fetchHistoricalData = async (symbol: string, range: '1d' | '5d' | '
 // --- Fallback CryptoCompare ---
 const fetchCryptoCompareHistory = async (symbol: string, range: string): Promise<HistoricalDataPoint[]> => {
     try {
-        let cleanSymbol = symbol.split('-')[0].toUpperCase(); 
-        let targetCurrency = 'BRL';
+        const normalized = normalizeCryptoSymbol(symbol);
+        if (!normalized) return [];
 
-        if (symbol === 'BTC/USD') {
-            cleanSymbol = 'BTC';
-            targetCurrency = 'USD';
-        } else if (symbol.includes('-')) {
-             cleanSymbol = symbol.split('-')[0];
-        }
+        const cleanSymbol = normalized.base;
+        const targetCurrency = normalized.quote;
 
-        console.log(`[MarketService] Tentando CryptoCompare para ${cleanSymbol}/${targetCurrency}`);
-        
+        console.log(`[MarketService] Tentando CryptoCompare para ${cleanSymbol}/${targetCurrency}`);        
         let limit = 30;
         let endpoint = 'histoday';
         let aggregate = 1;
@@ -177,6 +221,7 @@ const parseYahooChartData = (data: any): HistoricalDataPoint[] => {
 
 // --- Busca de Sugestões (Autocomplete) ---
 export const searchAssets = async (query: string): Promise<AssetSearchResult[]> => {
+  console.log('searchAssets chamada com query:', query);	
   if (!query || query.length < 2) return [];
 
   try {
@@ -204,43 +249,95 @@ export const searchAssets = async (query: string): Promise<AssetSearchResult[]> 
     return [];
   }
 };
-
-// --- Busca Cotação Específica ---
 export const fetchAssetQuote = async (symbol: string): Promise<MarketQuote | null> => {
   try {
-    let apiSymbol = symbol;
-    let category: any = 'stock';
-    const knownCryptos = ['BTC', 'ETH', 'SOL', 'BNB', 'USDT', 'XRP', 'ADA', 'DOGE'];
+    const isProduction = window.location.hostname.includes('financasproinvest.com.br');
+    const normalizedCrypto = normalizeCryptoSymbol(symbol);
 
-    if (symbol === 'BTC/USD') {
-        apiSymbol = 'BTC-USD';
-        category = 'crypto';
-    } else if (knownCryptos.includes(symbol)) {
-        apiSymbol = `${symbol}-BRL`;
-        category = 'crypto';
-    } else if (!symbol.includes('.') && !symbol.includes('-') && !symbol.startsWith('^')) {
-        apiSymbol = `${symbol}.SA`; 
+    if (normalizedCrypto) {
+      const requestSymbol = normalizedCrypto.yahooSymbol;
+
+      if (isProduction) {
+        const url = `${FIREBASE_FUNCTIONS_BASE_URL}/getAssetQuote?symbol=${encodeURIComponent(requestSymbol)}`;
+        const res = await fetch(url);
+        if (!res.ok) return null;
+
+        const data = await res.json();
+        return {
+          symbol: normalizedCrypto.canonical,
+          name: data.name,
+          price: data.price,
+          changePercent: data.changePercent,
+          category: 'crypto',
+          timestamp: data.timestamp,
+          simulated: false
+        };
+      }
+
+      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${requestSymbol}?interval=1d&range=1d`)}`;
+      const res = await fetch(proxyUrl);
+      if (!res.ok) return null;
+
+      const data = await res.json();
+      const result = data.chart?.result?.[0]?.meta;
+      if (!result) return null;
+
+      const price = result.regularMarketPrice;
+      const prevClose = result.chartPreviousClose;
+      const changePercent = prevClose ? ((price - prevClose) / prevClose) * 100 : 0;
+
+      return {
+        symbol: normalizedCrypto.canonical,
+        name: result.shortName || normalizedCrypto.canonical,
+        price,
+        changePercent,
+        category: 'crypto',
+        timestamp: Date.now(),
+        simulated: false
+      };
+    }
+
+    if (isProduction) {
+      const url = `${FIREBASE_FUNCTIONS_BASE_URL}/getAssetQuote?symbol=${encodeURIComponent(symbol)}`;
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return {
+        symbol: data.symbol,
+        name: data.name,
+        price: data.price,
+        changePercent: data.changePercent,
+        category: data.category,
+        timestamp: data.timestamp,
+        simulated: false
+      };
+    }
+
+    let apiSymbol = symbol;
+    if (!symbol.includes('.') && !symbol.startsWith('^')) {
+      apiSymbol = `${symbol}.SA`;
     }
 
     const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${apiSymbol}?interval=1d&range=1d`)}`;
     const res = await fetch(proxyUrl);
-    
     if (!res.ok) return null;
-    
+
     const data = await res.json();
     const result = data.chart?.result?.[0]?.meta;
-    
     if (!result) return null;
 
     const price = result.regularMarketPrice;
     const prevClose = result.chartPreviousClose;
     const changePercent = prevClose ? ((price - prevClose) / prevClose) * 100 : 0;
-    
-    if (result.instrumentType === 'CRYPTOCURRENCY') category = 'crypto';
-    
+
+    let category: any = 'stock';
+    if (result.instrumentType === 'CRYPTOCURRENCY') {
+      category = 'crypto';
+    }
+
     return {
-      symbol: symbol === 'BTC-USD' ? 'BTC/USD' : symbol.replace('.SA', ''),
-      name:  data.chart?.result?.[0]?.meta?.shortName || symbol,
+      symbol: symbol.replace('.SA', ''),
+      name: result.shortName || symbol,
       price,
       changePercent,
       category,
@@ -252,21 +349,24 @@ export const fetchAssetQuote = async (symbol: string): Promise<MarketQuote | nul
     return null;
   }
 };
-
 // --- Carga Geral do Painel ---
 export const fetchMarketQuotes = async (forceRefresh = false): Promise<MarketResponse> => {
-  if (!forceRefresh) {
+  let previousCachedData: CachedData | null = null;
+  try {
     const cached = localStorage.getItem(CACHE_KEY);
     if (cached) {
-      const { timestamp, data } = JSON.parse(cached) as CachedData;
-      if (Date.now() - timestamp < CACHE_DURATION) {
-        return data;
+      previousCachedData = JSON.parse(cached) as CachedData;
+      if (!forceRefresh && (Date.now() - previousCachedData.timestamp < CACHE_DURATION)) {
+        return previousCachedData.data;
       }
     }
+  } catch {
+    // Silencioso em caso de erro no parse do cache
   }
 
   const quotes: MarketQuote[] = [];
   let isRateLimited = false;
+  let awesomeSuccess = false;
 
   // --- 2. BUSCA MOEDAS E CRIPTO (AwesomeAPI) ---
   try {
@@ -276,15 +376,23 @@ export const fetchMarketQuotes = async (forceRefresh = false): Promise<MarketRes
       
       if (json.USDBRL) quotes.push(mapAwesomeItem('USD', 'Dólar', json.USDBRL, 'currency'));
       if (json.EURBRL) quotes.push(mapAwesomeItem('EUR', 'Euro', json.EURBRL, 'currency'));
-      
-      if (json.BTCBRL) quotes.push(mapAwesomeItem('BTC', 'Bitcoin', json.BTCBRL, 'crypto'));
+      if (json.BTCBRL) quotes.push(mapAwesomeItem('BTC/BRL', 'Bitcoin', json.BTCBRL, 'crypto'));
       if (json.BTCUSD) quotes.push(mapAwesomeItem('BTC/USD', 'Bitcoin (USD)', json.BTCUSD, 'crypto'));
-      if (json.ETHBRL) quotes.push(mapAwesomeItem('ETH', 'Ethereum', json.ETHBRL, 'crypto'));
-      if (json.BNBBRL) quotes.push(mapAwesomeItem('BNB', 'Binance Coin', json.BNBBRL, 'crypto'));
-      if (json.SOLBRL) quotes.push(mapAwesomeItem('SOL', 'Solana', json.SOLBRL, 'crypto'));
+      if (json.ETHBRL) quotes.push(mapAwesomeItem('ETH/BRL', 'Ethereum', json.ETHBRL, 'crypto'));
+      if (json.BNBBRL) quotes.push(mapAwesomeItem('BNB/BRL', 'Binance Coin', json.BNBBRL, 'crypto'));
+      if (json.SOLBRL) quotes.push(mapAwesomeItem('SOL/BRL', 'Solana', json.SOLBRL, 'crypto'));
+      awesomeSuccess = true;
     }
   } catch (error) {
-    console.error("Erro ao buscar AwesomeAPI:", error);
+    console.warn('[MarketService] Falha ao consultar AwesomeAPI. Ativando resiliência:', error);
+  }
+
+  // Se AwesomeAPI falhou mas temos cotações anteriores válidas em cache, recuperamos moedas e criptos
+  if (!awesomeSuccess && previousCachedData?.data?.quotes) {
+    const cachedCurrenciesAndCryptos = previousCachedData.data.quotes.filter(
+      (q) => q.category === 'currency' || q.category === 'crypto'
+    );
+    quotes.push(...cachedCurrenciesAndCryptos);
   }
 
   // --- 3. BUSCA ÍNDICES E AÇÕES ---
@@ -301,7 +409,7 @@ export const fetchMarketQuotes = async (forceRefresh = false): Promise<MarketRes
                     symbol: idx.symbol,
                     name: idx.name, 
                     price: idx.price,
-                    changePercent: idx.changePercent,
+                    changePercent: idx.change,
                     category: 'index',
                     timestamp: Date.now(),
                     simulated: data.simulated
@@ -315,7 +423,7 @@ export const fetchMarketQuotes = async (forceRefresh = false): Promise<MarketRes
                     symbol: stock.symbol,
                     name: stock.name,
                     price: stock.price,
-                    changePercent: stock.changePercent,
+					changePercent: stock.change,
                     category: 'stock',
                     timestamp: Date.now(),
                     simulated: data.simulated
@@ -351,6 +459,12 @@ export const fetchMarketQuotes = async (forceRefresh = false): Promise<MarketRes
           } catch (e) {}
       }
 
+      // Se Yahoo também falhou, verificar se há índice em cache anterior
+      if (!quotes.some(q => q.symbol === 'IBOV') && previousCachedData?.data?.quotes) {
+        const cachedIbov = previousCachedData.data.quotes.find(q => q.symbol === 'IBOV');
+        if (cachedIbov) quotes.push(cachedIbov);
+      }
+
       if (!quotes.some(q => q.category === 'stock')) {
           STOCK_FALLBACK.forEach(s => {
               quotes.push({
@@ -362,12 +476,22 @@ export const fetchMarketQuotes = async (forceRefresh = false): Promise<MarketRes
       }
   }
 
+  // Se tudo falhar e quotes estiver vazio, retorna cache prévio intacto
+  if (quotes.length === 0 && previousCachedData?.data?.quotes && previousCachedData.data.quotes.length > 0) {
+    console.warn('[MarketService] Rede indisponível. Retornando cotações salvas em cache local.');
+    return previousCachedData.data;
+  }
+
   const result: MarketResponse = { quotes, isRateLimited };
 
-  localStorage.setItem(CACHE_KEY, JSON.stringify({
-    timestamp: Date.now(),
-    data: result
-  }));
+  if (quotes.length > 0) {
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        timestamp: Date.now(),
+        data: result
+      }));
+    } catch {}
+  }
 
   return result;
 };

@@ -1,0 +1,9 @@
+export const isTransactionVisible = () => true;
+export const isDateBeforeCurrentMonth = () => false;
+export const isMonthBeforeCurrent = () => false;
+export const isPeriodRangeAllowed = () => true;
+export const planHasHistoryAccess = () => false;
+export const getCurrentMonthAnchor = () => '';
+export const getCurrentMonthStartIso = () => '';
+export const canUseViewMode = () => true;
+export const isDateStringBeforeCurrentMonth = () => false;

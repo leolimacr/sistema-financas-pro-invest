@@ -5,7 +5,9 @@ import * as logger from "firebase-functions/logger";
 const ALLOWED_ORIGINS = [
     'http://localhost:5173',
     'https://financasproinvest.com',
+    'https://www.financasproinvest.com',
     'https://financasproinvest.com.br',
+    'https://www.financasproinvest.com.br',
 ];
 
 export const getMarketData = onRequest(async (request, response) => {
@@ -86,15 +88,40 @@ export const getMarketData = onRequest(async (request, response) => {
         const stockResults = await Promise.all(stockPromises);
         const stocks = stockResults.filter((stock) => stock !== null);
 
-        // ===== 3. RESPOSTA FINAL =====
+        // ===== 3. BUSCAR CÂMBIO (AwesomeAPI) =====
+        let currencies: any[] = [];
+        try {
+            const awesomeRes = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,GBP-BRL');
+            const awesomeJson = await awesomeRes.json() as any;
+            currencies = [
+                awesomeJson.USDBRL && { symbol: 'USD/BRL', price: parseFloat(awesomeJson.USDBRL.bid), change: parseFloat(awesomeJson.USDBRL.pctChange), up: parseFloat(awesomeJson.USDBRL.pctChange) >= 0, type: 'currency' },
+                awesomeJson.EURBRL && { symbol: 'EUR/BRL', price: parseFloat(awesomeJson.EURBRL.bid), change: parseFloat(awesomeJson.EURBRL.pctChange), up: parseFloat(awesomeJson.EURBRL.pctChange) >= 0, type: 'currency' },
+                awesomeJson.GBPBRL && { symbol: 'GBP/BRL', price: parseFloat(awesomeJson.GBPBRL.bid), change: parseFloat(awesomeJson.GBPBRL.pctChange), up: parseFloat(awesomeJson.GBPBRL.pctChange) >= 0, type: 'currency' },
+            ].filter(Boolean);
+        } catch (e) { logger.warn('Erro ao buscar câmbio', e); }
+
+        // ===== 4. BUSCAR CRIPTO (AwesomeAPI) =====
+        let cryptos: any[] = [];
+        try {
+            const cryptoRes = await fetch('https://economia.awesomeapi.com.br/last/BTC-BRL,ETH-BRL,SOL-BRL,BNB-BRL');
+            const cryptoJson = await cryptoRes.json() as any;
+            cryptos = [
+                cryptoJson.BTCBRL && { symbol: 'BTC', price: parseFloat(cryptoJson.BTCBRL.bid), change: parseFloat(cryptoJson.BTCBRL.pctChange), up: parseFloat(cryptoJson.BTCBRL.pctChange) >= 0, type: 'crypto' },
+                cryptoJson.ETHBRL && { symbol: 'ETH', price: parseFloat(cryptoJson.ETHBRL.bid), change: parseFloat(cryptoJson.ETHBRL.pctChange), up: parseFloat(cryptoJson.ETHBRL.pctChange) >= 0, type: 'crypto' },
+                cryptoJson.SOLBRL && { symbol: 'SOL', price: parseFloat(cryptoJson.SOLBRL.bid), change: parseFloat(cryptoJson.SOLBRL.pctChange), up: parseFloat(cryptoJson.SOLBRL.pctChange) >= 0, type: 'crypto' },
+                cryptoJson.BNBBRL && { symbol: 'BNB', price: parseFloat(cryptoJson.BNBBRL.bid), change: parseFloat(cryptoJson.BNBBRL.pctChange), up: parseFloat(cryptoJson.BNBBRL.pctChange) >= 0, type: 'crypto' },
+            ].filter(Boolean);
+        } catch (e) { logger.warn('Erro ao buscar cripto', e); }
+
+        // ===== 5. RESPOSTA FINAL =====
         const formattedData = {
             indices: indices.length > 0 ? indices : [],
             stocks: stocks.length > 0 ? stocks : [],
-            currencies: [], 
-            cryptos: []
+            currencies,
+            cryptos
         };
 
-        response.json(formattedData);
+        response.json(formattedData);;
         logger.info("Dados enviados com sucesso (Raw Numbers).");
 
     } catch (error) {
